@@ -28,6 +28,18 @@ motherboard, GPU and NZXT controller fans, and watch it all live in a modern Win
 - [PawnIO](https://pawnio.eu) for motherboard fans and CPU temperatures (`winget install namazso.PawnIO`).
 - RigControl runs as administrator (hardware access).
 
+## Install
+
+1. Install [PawnIO](https://pawnio.eu) (`winget install namazso.PawnIO`).
+2. Download `rig-control-<version>-win-x64.zip` from [Releases](https://github.com/KrapFey/rig-control/releases)
+   and extract it somewhere permanent, e.g. `%LOCALAPPDATA%\Programs\RigControl`.
+3. Run `RigControl.exe` and accept the admin prompt.
+4. Optional:
+   - **Import FanControl setup** on the dashboard brings over your curves and fan names.
+   - **Settings → Start with Windows** starts RigControl in the tray at logon.
+
+If another fan app is running, exit it first. RigControl stays hands-off while FanControl runs.
+
 ## Build
 
 Needs the .NET 10 SDK.
