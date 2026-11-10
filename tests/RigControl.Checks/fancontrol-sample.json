@@ -1,0 +1,23 @@
+{
+  "__VERSION__": "285",
+  "FanControl": {
+    "Controls": [
+      { "NickName": "CPU Front", "Identifier": "/lpc/it8689e/control/0", "Enable": true, "SelectedFanCurve": { "Name": "CPU" },
+        "MinimumPercent": 0, "SelectedStart": 16, "SelectedStop": 7, "SelectedCommandStepUp": 8, "SelectedCommandStepDown": 8, "ManualControl": false, "ManualControlValue": 50 },
+      { "NickName": "Control 2 - GPU", "Identifier": "NVApiWrapper/0-AD104-A/control/0", "Enable": false, "SelectedFanCurve": null },
+      { "NickName": "Front Top", "Identifier": "liquidctl/NZXTRGB&FanController(3+6channels)#1660399584/Fan1duty", "Enable": true, "SelectedFanCurve": { "Name": "Case" } },
+      { "NickName": "Front Mid", "Identifier": "liquidctl/NZXTRGB&FanController(3+6channels)#1660399584/Fan2duty", "Enable": true, "SelectedFanCurve": { "Name": "Case" } },
+      { "NickName": "Bottom Front", "Identifier": "liquidctl/NZXTRGB&FanController(3+6channels)#1700000001/Fan1duty", "Enable": true, "SelectedFanCurve": { "Name": "GPU" } },
+      { "NickName": "Ghost", "Identifier": "liquidctl/Missing#1/Fan1duty", "Enable": true, "SelectedFanCurve": { "Name": "Case" } }
+    ],
+    "FanCurves": [
+      { "Name": "CPU", "SelectedTempSource": { "Identifier": "/intelcpu/0/temperature/18" }, "Step": 2, "Deadband": 3, "SelectedResponseTime": 2,
+        "IdleTemperature": 35, "MinFanSpeed": 30, "MaxFanSpeed": 100, "LoadTemperature": 85 },
+      { "Name": "GPU", "SelectedTempSource": { "Identifier": "NVApiWrapper/0-AD104-A/sensor/0" }, "Deadband": 3, "SelectedResponseTime": 2,
+        "IdleTemperature": 35, "MinFanSpeed": 30, "MaxFanSpeed": 100, "LoadTemperature": 78 },
+      { "Name": "Case", "SelectedFanCurves": [ { "Name": "CPU" }, { "Name": "GPU" } ], "SelectedMixFunction": 0 },
+      { "Name": "Pts", "SelectedTempSource": { "Identifier": "/intelcpu/0/temperature/18" }, "Points": [ "60,50", "30,20", "90,100" ] },
+      { "Name": "Test", "Percent": 0 }
+    ]
+  }
+}

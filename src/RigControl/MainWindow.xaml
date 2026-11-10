@@ -1,0 +1,96 @@
+<Window
+    x:Class="RigControl.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="RigControl">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop Kind="BaseAlt" />
+    </Window.SystemBackdrop>
+
+    <Grid x:Name="Root">
+        <Grid.Resources>
+            <Storyboard x:Name="AuroraDrift" RepeatBehavior="Forever">
+                <DoubleAnimation Storyboard.TargetName="BlobAMove" Storyboard.TargetProperty="X" From="0" To="260" Duration="0:0:19" AutoReverse="True">
+                    <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
+                <DoubleAnimation Storyboard.TargetName="BlobAMove" Storyboard.TargetProperty="Y" From="0" To="180" Duration="0:0:23" AutoReverse="True">
+                    <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
+                <DoubleAnimation Storyboard.TargetName="BlobBMove" Storyboard.TargetProperty="X" From="0" To="-300" Duration="0:0:27" AutoReverse="True">
+                    <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
+                <DoubleAnimation Storyboard.TargetName="BlobBMove" Storyboard.TargetProperty="Y" From="0" To="-200" Duration="0:0:21" AutoReverse="True">
+                    <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
+            </Storyboard>
+        </Grid.Resources>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Ambient aurora: two soft blobs drifting slowly behind everything -->
+        <Canvas x:Name="Aurora" Grid.RowSpan="2" IsHitTestVisible="False" Opacity="0.55">
+            <Ellipse x:Name="BlobA" Width="720" Height="720" Canvas.Left="-160" Canvas.Top="-260">
+                <Ellipse.Fill>
+                    <RadialGradientBrush>
+                        <GradientStop Offset="0" Color="#557C5CFF" />
+                        <GradientStop Offset="1" Color="#007C5CFF" />
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+                <Ellipse.RenderTransform>
+                    <TranslateTransform x:Name="BlobAMove" />
+                </Ellipse.RenderTransform>
+            </Ellipse>
+            <Ellipse x:Name="BlobB" Width="820" Height="820" Canvas.Left="520" Canvas.Top="260">
+                <Ellipse.Fill>
+                    <RadialGradientBrush>
+                        <GradientStop Offset="0" Color="#4400D4FF" />
+                        <GradientStop Offset="1" Color="#0000D4FF" />
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+                <Ellipse.RenderTransform>
+                    <TranslateTransform x:Name="BlobBMove" />
+                </Ellipse.RenderTransform>
+            </Ellipse>
+        </Canvas>
+
+        <!-- Title bar -->
+        <Grid x:Name="TitleBar" Padding="16,0,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <Image Source="ms-appx:///Assets/RigControl.png" Width="18" Height="18" />
+                <TextBlock Text="RigControl" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
+                <Border CornerRadius="8" Padding="8,2" Background="{StaticResource AccentGradient}" VerticalAlignment="Center">
+                    <TextBlock x:Name="Status" Text="Live" FontSize="11" FontWeight="SemiBold" Foreground="White" />
+                </Border>
+            </StackPanel>
+        </Grid>
+
+        <NavigationView
+            x:Name="Nav"
+            Grid.Row="1"
+            PaneDisplayMode="LeftCompact"
+            IsBackButtonVisible="Collapsed"
+            IsSettingsVisible="True"
+            OpenPaneLength="200"
+            SelectionChanged="Nav_SelectionChanged">
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="Dashboard" Tag="Dashboard" IsSelected="True">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE80F;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Fans" Tag="Fans">
+                    <NavigationViewItem.Icon><PathIcon Data="M10,10 C10.6,4 15.8,3.2 15.2,8 C14.4,9.2 12,10 10,10 Z M10,10 C16,10.6 16.8,15.8 12,15.2 C10.8,14.4 10,12 10,10 Z M10,10 C9.4,16 4.2,16.8 4.8,12 C5.6,10.8 8,10 10,10 Z M10,10 C4,9.4 3.2,4.2 8,4.8 C9.2,5.6 10,8 10,10 Z" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Curves" Tag="Curves">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Sensors" Tag="Sensors">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE9CA;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.MenuItems>
+            <Frame x:Name="ContentFrame" Padding="28,8,28,20" />
+        </NavigationView>
+    </Grid>
+</Window>

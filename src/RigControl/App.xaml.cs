@@ -1,0 +1,166 @@
+using H.NotifyIcon;
+using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using RigControl.Core;
+
+namespace RigControl;
+
+public partial class App : Application
+{
+    public static App? Instance { get; private set; }
+
+    public HardwareHub Hub { get; } = new();
+    public FanEngine Engine { get; private set; } = null!;
+    /// <summary>The live config the UI edits. Call <see cref="ConfigChanged"/> after changing it.</summary>
+    public AppConfig Config { get; private set; } = null!;
+    public DispatcherQueue Ui { get; private set; } = null!;
+    public List<string> StartupNotes { get; } = [];
+
+    MainWindow? _window;
+    TaskbarIcon? _tray;
+    DispatcherQueueTimer? _saveTimer;
+
+    public App()
+    {
+        Instance = this;
+        InitializeComponent();
+        // The tray keeps the app (and fan control) alive with no window open.
+        DispatcherShutdownMode = DispatcherShutdownMode.OnExplicitShutdown;
+        UnhandledException += (_, e) => Crash(e.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => Crash(e.ExceptionObject as Exception);
+    }
+
+    protected override void OnLaunched(LaunchActivatedEventArgs args)
+    {
+        Ui = DispatcherQueue.GetForCurrentThread();
+        try { Config = AppConfig.Load(); }
+        catch (Exception e)
+        {
+            var bad = AppConfig.FilePath + $".broken-{DateTime.Now:yyyyMMdd-HHmmss}";
+            File.Move(AppConfig.FilePath, bad);
+            StartupNotes.Add($"config.json couldn't be read ({e.Message}); it was moved to {Path.GetFileName(bad)} and a fresh one started.");
+            Config = new AppConfig();
+        }
+
+        Hub.Open();
+        Engine = new FanEngine(Hub, Config) { Paused = OtherFanAppRunning() };
+        Engine.Start();
+
+        // Two programs writing the same fans fight each other: stay hands-off while FanControl runs.
+        var watch = Ui.CreateTimer();
+        watch.Interval = TimeSpan.FromSeconds(2);
+        watch.Tick += (_, _) => Engine.Paused = OtherFanAppRunning();
+        watch.Start();
+
+        _saveTimer = Ui.CreateTimer();
+        _saveTimer.Interval = TimeSpan.FromMilliseconds(600);
+        _saveTimer.IsRepeating = false;
+        _saveTimer.Tick += (_, _) => Config.Save();
+
+        CreateTray();
+        if (!Environment.GetCommandLineArgs().Contains("--tray")) ShowWindow();
+    }
+
+    static bool OtherFanAppRunning()
+    {
+#if UITEST
+        return true; // the UI-test build never touches fans
+#endif
+        var p = System.Diagnostics.Process.GetProcessesByName("FanControl");
+        foreach (var x in p) x.Dispose();
+        return p.Length > 0;
+    }
+
+    public void ConfigChanged()
+    {
+        Engine.Apply(Config);
+        _saveTimer?.Stop();
+        _saveTimer?.Start();
+    }
+
+    public void ReplaceConfig(AppConfig config)
+    {
+        Config = config;
+        ConfigChanged();
+    }
+
+    /// <summary>Appends a line to %APPDATA%\RigControl\rigcontrol.log (kept short: last 200 KB).</summary>
+    public static void Log(string line)
+    {
+        try
+        {
+            Directory.CreateDirectory(AppConfig.Folder);
+            var path = Path.Combine(AppConfig.Folder, "rigcontrol.log");
+            if (File.Exists(path) && new FileInfo(path).Length > 200_000) File.Delete(path);
+            File.AppendAllText(path, $"{DateTime.Now:HH:mm:ss.fff} [{Environment.CurrentManagedThreadId}] {line}\n");
+        }
+        catch { }
+    }
+
+    public void ShowWindow() => Ui.TryEnqueue(() =>
+    {
+        Log($"ShowWindow (window exists: {_window is not null})");
+        if (_window is null)
+        {
+            _window = new MainWindow();
+            _window.Closed += (_, _) => _window = null; // closing frees the UI; the tray keeps running
+        }
+        _window.Activate();
+        _window.BringToFront();
+        Log("window shown");
+    });
+
+    void CreateTray()
+    {
+        var menu = new MenuFlyout();
+        var open = new MenuFlyoutItem { Text = "Open RigControl" };
+        open.Click += (_, _) => ShowWindow();
+        var quit = new MenuFlyoutItem { Text = "Exit" };
+        quit.Click += (_, _) => Quit();
+        menu.Items.Add(open);
+        menu.Items.Add(new MenuFlyoutSeparator());
+        menu.Items.Add(quit);
+
+        _tray = new TaskbarIcon
+        {
+            ToolTipText = "RigControl",
+            Icon = new System.Drawing.Icon(Path.Combine(AppContext.BaseDirectory, "Assets", "RigControl.ico")),
+            ContextMenuMode = ContextMenuMode.PopupMenu,
+            ContextFlyout = menu,
+            NoLeftClickDelay = true,
+            LeftClickCommand = new Command(() => { Log("tray left click"); ShowWindow(); }),
+        };
+        _tray.ForceCreate(enablesEfficiencyMode: false);
+    }
+
+    public void Quit()
+    {
+        _saveTimer?.Stop();
+        try { Config.Save(); } catch { }
+        Engine.Dispose(); // hands every fan back to the hardware
+        Hub.Dispose();
+        _tray?.Dispose();
+        _window?.Close();
+        Exit();
+    }
+
+    void Crash(Exception? e)
+    {
+        Log($"CRASH {e?.GetType().Name}: {e?.Message}");
+        try { Engine?.ReleaseDriven(); } catch { }
+        try
+        {
+            Directory.CreateDirectory(AppConfig.Folder);
+            File.AppendAllText(Path.Combine(AppConfig.Folder, "crash.log"), $"{DateTime.Now:O}\n{e}\n\n");
+        }
+        catch { }
+    }
+}
+
+sealed class Command(Action run) : System.Windows.Input.ICommand
+{
+    public event EventHandler? CanExecuteChanged { add { } remove { } }
+    public bool CanExecute(object? parameter) => true;
+    public void Execute(object? parameter) => run();
+}

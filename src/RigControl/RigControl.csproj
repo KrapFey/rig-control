@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <RootNamespace>RigControl</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <!-- needed for dotnet publish to emit RigControl.pri and the compiled XAML (.xbf); without them the first window crashes -->
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <!-- never glob other configurations' build output into this one -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin/**;bin-uitest/**</DefaultItemExcludes>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\RigControl.ico</ApplicationIcon>
+    <Version>0.1.0</Version>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- Program.cs owns Main (single instance) -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+  </PropertyGroup>
+
+  <!-- dotnet build -p:UiTest=true : runs without admin (reduced sensors) so UI automation from a normal shell works -->
+  <PropertyGroup Condition="'$(UiTest)' == 'true'">
+    <ApplicationManifest>uitest.manifest</ApplicationManifest>
+    <DefineConstants>$(DefineConstants);UITEST</DefineConstants>
+    <BaseOutputPath>bin-uitest\</BaseOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ponytail: the metapackage also ships AI/ML runtimes (~40 MB on disk, never loaded); the split packages break the MSIX build tools -->
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.6.5" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2957" />
+    <PackageReference Include="H.NotifyIcon.WinUI" Version="2.4.1" />
+    <ProjectReference Include="..\RigControl.Core\RigControl.Core.csproj" />
+    <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

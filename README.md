@@ -1,0 +1,62 @@
+# RigControl
+
+<img src="src/RigControl/Assets/RigControl.png" width="72" align="right">
+
+An open-source Windows app for controlling your PC's fans. Build temperature-based fan curves for
+motherboard, GPU and NZXT controller fans, and watch it all live in a modern WinUI 3 interface.
+
+## Features
+
+- **Fans:** every motherboard fan chip, CPU and GPU that
+  [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) supports, plus a
+  native driver for the NZXT HUE 2 family (Smart Device V2, RGB & Fan Controller, 3+6 channel models).
+- **Curves:** graph curves you drag in place, mix (max/min/average of other curves) and flat curves.
+  Deadband and response time per curve; minimum, start, stop and step limits per fan.
+- **Safe by default:**
+  - A fan whose temperature sensor disappears goes to 100%.
+  - On exit or crash every fan goes back to the hardware's own control. NZXT controllers hold the last speed they were given, so they're set to a safe 60%.
+  - RigControl stays hands-off while FanControl is running.
+- **Import from FanControl:** curves, fan names and fan settings, including NZXT controllers driven through
+  the FanControl.Liquidctl plugin (matched by the plugin's own device ids).
+- **Identify** stops one fan for 8 seconds so you can see which it is; **Swap with…** exchanges two fans'
+  settings.
+- Tray icon, start with Windows (scheduled task, admin without a UAC prompt), Mica, live animations.
+
+## Requirements
+
+- Windows 10 1904x or Windows 11, x64.
+- [PawnIO](https://pawnio.eu) for motherboard fans and CPU temperatures (`winget install namazso.PawnIO`).
+- RigControl runs as administrator (hardware access).
+
+## Build
+
+Needs the .NET 10 SDK.
+
+```powershell
+dotnet run --project tests\RigControl.Checks                 # self-checks
+dotnet build src\RigControl                                  # app (asks for admin when started)
+dotnet publish src\RigControl -c Release -r win-x64 --self-contained -o "$env:LOCALAPPDATA\Programs\RigControl"
+```
+
+Read-only hardware diagnostics (admin for `--probe` / `--lhm`):
+
+```powershell
+tests\RigControl.Checks\bin\Debug\net10.0-windows10.0.26100.0\RigControl.Checks.exe --probe   # all sensors and fan channels
+tests\RigControl.Checks\bin\Debug\net10.0-windows10.0.26100.0\RigControl.Checks.exe --watch   # NZXT duty/RPM for 8 s
+```
+
+`-p:UiTest=true` builds a copy that runs without admin and never touches fans, for UI automation
+(`tools\ui.ps1`, `tools\shot.ps1`, `tools\tray.ps1`).
+
+Settings live in `%APPDATA%\RigControl\config.json`.
+
+## Credits and licence
+
+GPL-3.0-or-later, see [LICENSE](LICENSE).
+
+- NZXT HUE 2 fan protocol ported from [liquidctl](https://github.com/liquidctl/liquidctl) (GPL-3.0-or-later).
+- [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) (MPL-2.0),
+  [HidSharp](https://www.zer7.com/software/hidsharp) (Apache-2.0),
+  [H.NotifyIcon](https://github.com/HavenDV/H.NotifyIcon) (MIT).
+
+Not affiliated with NZXT, FanControl or any hardware vendor.

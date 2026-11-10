@@ -1,0 +1,89 @@
+<Page
+    x:Class="RigControl.Pages.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="Transparent">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="12" MaxWidth="900" HorizontalAlignment="Left" Padding="0,0,0,24">
+            <StackPanel.ChildrenTransitions>
+                <TransitionCollection>
+                    <EntranceThemeTransition FromVerticalOffset="40" IsStaggeringEnabled="True" />
+                </TransitionCollection>
+            </StackPanel.ChildrenTransitions>
+
+            <TextBlock Text="Settings" Style="{StaticResource PageTitle}" />
+
+            <Border Style="{StaticResource Card}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Start with Windows" FontWeight="SemiBold" />
+                        <TextBlock Text="Starts in the tray at logon, with admin rights and no UAC prompt (a scheduled task)." Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="AutoStart" Grid.Column="1" Toggled="AutoStart_Toggled" />
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Update interval" FontWeight="SemiBold" />
+                        <TextBlock Text="How often sensors are read and fans adjusted." Style="{StaticResource Caption}" />
+                    </StackPanel>
+                    <ComboBox x:Name="Interval" Grid.Column="1" Width="140" SelectionChanged="Interval_SelectionChanged">
+                        <x:String>0.5 s</x:String>
+                        <x:String>1 s</x:String>
+                        <x:String>2 s</x:String>
+                    </ComboBox>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Import from FanControl" FontWeight="SemiBold" />
+                        <TextBlock x:Name="ImportHint" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button x:Name="ImportButton" Grid.Column="1" Content="Import…" Click="Import_Click" />
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Settings folder" FontWeight="SemiBold" />
+                        <TextBlock x:Name="FolderText" Style="{StaticResource Caption}" IsTextSelectionEnabled="True" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="Open" Click="OpenFolder_Click" />
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel Spacing="6">
+                    <TextBlock x:Name="AboutTitle" FontWeight="SemiBold" />
+                    <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap">
+                        GPL-3.0-or-later. Sensors and motherboard/GPU fans: LibreHardwareMonitor (MPL-2.0) via PawnIO.
+                        NZXT HUE 2 fan protocol: ported from liquidctl (GPL-3.0-or-later). USB HID: HidSharp (Apache-2.0).
+                        Tray: H.NotifyIcon (MIT).
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

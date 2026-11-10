@@ -1,0 +1,73 @@
+using System.Runtime.InteropServices;
+using Microsoft.UI.Windowing;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Animation;
+using RigControl.Pages;
+
+namespace RigControl;
+
+public sealed partial class MainWindow : Window
+{
+    static readonly Dictionary<string, Type> Pages = new()
+    {
+        ["Dashboard"] = typeof(DashboardPage),
+        ["Fans"] = typeof(FansPage),
+        ["Curves"] = typeof(CurvesPage),
+        ["Sensors"] = typeof(SensorsPage),
+        ["Settings"] = typeof(SettingsPage),
+    };
+
+    int _lastIndex;
+    readonly DispatcherTimer _statusTimer = new() { Interval = TimeSpan.FromSeconds(1) };
+
+    public MainWindow()
+    {
+        InitializeComponent();
+        ExtendsContentIntoTitleBar = true;
+        SetTitleBar(TitleBar);
+        AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "RigControl.ico"));
+        AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
+        var scale = (Content as FrameworkElement)?.XamlRoot?.RasterizationScale ?? GetDpiForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this)) / 96.0;
+        AppWindow.Resize(new((int)(1280 * scale), (int)(820 * scale)));
+
+        Root.Loaded += (_, _) => AuroraDrift.Begin();
+        _statusTimer.Tick += (_, _) => UpdateStatus();
+        _statusTimer.Start();
+        Closed += (_, _) => _statusTimer.Stop();
+        Navigate("Dashboard", null);
+        UpdateStatus();
+    }
+
+    void UpdateStatus()
+    {
+        var app = App.Instance!;
+        Status.Text = app.Engine.Paused ? "Paused · FanControl is running" : "Live";
+    }
+
+    void Nav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    {
+        var tag = args.IsSettingsSelected ? "Settings" : (args.SelectedItemContainer?.Tag as string ?? "Dashboard");
+        Navigate(tag, args.RecommendedNavigationTransitionInfo);
+    }
+
+    void Navigate(string tag, NavigationTransitionInfo? _)
+    {
+        var index = Pages.Keys.ToList().IndexOf(tag);
+        // Going down the menu slides up from below; going back up drills in.
+        NavigationTransitionInfo info = index >= _lastIndex
+            ? new SlideNavigationTransitionInfo { Effect = SlideNavigationTransitionEffect.FromBottom }
+            : new DrillInNavigationTransitionInfo();
+        _lastIndex = index;
+        ContentFrame.Navigate(Pages[tag], null, info);
+    }
+
+    public void BringToFront()
+    {
+        if (AppWindow.Presenter is OverlappedPresenter p && p.State == OverlappedPresenterState.Minimized) p.Restore();
+        SetForegroundWindow(WinRT.Interop.WindowNative.GetWindowHandle(this));
+    }
+
+    [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr hWnd);
+    [DllImport("user32.dll")] static extern uint GetDpiForWindow(IntPtr hWnd);
+}
