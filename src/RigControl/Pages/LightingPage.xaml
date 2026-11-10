@@ -1,0 +1,157 @@
+<Page
+    x:Class="RigControl.Pages.LightingPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:p="using:RigControl.Pages"
+    Background="Transparent">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="16" Padding="0,0,0,24">
+            <StackPanel.ChildrenTransitions>
+                <TransitionCollection>
+                    <EntranceThemeTransition FromVerticalOffset="40" IsStaggeringEnabled="True" />
+                </TransitionCollection>
+            </StackPanel.ChildrenTransitions>
+
+            <!-- Header: title, profiles, master switch -->
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Lighting" Style="{StaticResource PageTitle}" Margin="0" />
+                    <TextBlock x:Name="Summary" Style="{StaticResource Caption}" Margin="0,4,0,0" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <ComboBox x:Name="ProfileBox" Width="190" SelectionChanged="ProfileBox_SelectionChanged" />
+                    <Button ToolTipService.ToolTip="Profile actions">
+                        <FontIcon Glyph="&#xE712;" FontSize="14" />
+                        <Button.Flyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Text="New profile (copy of this one)" Click="NewProfile_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE710;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
+                                <MenuFlyoutItem Text="Rename…" Click="RenameProfile_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8AC;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
+                                <MenuFlyoutItem x:Name="DeleteProfileItem" Text="Delete" Click="DeleteProfile_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74D;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                </StackPanel>
+                <ToggleSwitch x:Name="EnabledSwitch" Grid.Column="2" OnContent="Lighting on" OffContent="Lighting off" VerticalAlignment="Center" Toggled="EnabledSwitch_Toggled" />
+            </Grid>
+
+            <InfoBar x:Name="Notice" Severity="Informational" IsClosable="False" />
+
+            <!-- Synced effect -->
+            <Border Style="{StaticResource Card}" Padding="22">
+                <StackPanel Spacing="16">
+                    <Grid>
+                        <TextBlock Text="SYNCED EFFECT" Style="{StaticResource Caption}" VerticalAlignment="Center" />
+                        <TextBlock x:Name="SyncCount" Style="{StaticResource Caption}" HorizontalAlignment="Right" />
+                    </Grid>
+
+                    <!-- Live preview of the effect -->
+                    <Grid Height="54">
+                        <Border x:Name="PreviewGlow" CornerRadius="27" Opacity="0.45" Margin="10,10,10,-6">
+                            <Border.RenderTransform><ScaleTransform ScaleY="1.25" CenterY="27" /></Border.RenderTransform>
+                        </Border>
+                        <Border x:Name="PreviewBar" CornerRadius="16" BorderBrush="#33FFFFFF" BorderThickness="1" />
+                    </Grid>
+
+                    <ListView x:Name="EffectList" SelectionMode="Single" SelectionChanged="EffectList_SelectionChanged"
+                              ScrollViewer.HorizontalScrollMode="Enabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollMode="Disabled">
+                        <ListView.ItemsPanel>
+                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate>
+                        </ListView.ItemsPanel>
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="p:EffectChoice">
+                                <StackPanel Orientation="Horizontal" Spacing="8" Padding="6,8">
+                                    <FontIcon Glyph="{x:Bind Glyph}" FontSize="16" />
+                                    <TextBlock Text="{x:Bind Label}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <Grid ColumnSpacing="24" RowSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel x:Name="ColorsPanel" Spacing="6">
+                            <TextBlock x:Name="ColorsLabel" Text="Colours" Style="{StaticResource Caption}" />
+                            <StackPanel x:Name="Swatches" Orientation="Horizontal" Spacing="8" />
+                        </StackPanel>
+                        <Slider x:Name="SpeedSlider" Grid.Column="1" Header="Speed" Minimum="0" Maximum="100" ValueChanged="Tuning_Changed" />
+                        <Slider x:Name="BrightnessSlider" Grid.Column="2" Header="Brightness" Minimum="0" Maximum="100" ValueChanged="Tuning_Changed" />
+                    </Grid>
+
+                    <Grid x:Name="TempPanel" ColumnSpacing="16" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="SensorBox" Header="Follows temperature of" HorizontalAlignment="Stretch" DisplayMemberPath="Label" SelectionChanged="SensorBox_SelectionChanged" />
+                        <NumberBox x:Name="ColdBox" Grid.Column="1" Header="Cold at °C" Minimum="0" Maximum="120" SpinButtonPlacementMode="Compact" ValueChanged="Temp_ValueChanged" />
+                        <NumberBox x:Name="HotBox" Grid.Column="2" Header="Hot at °C" Minimum="0" Maximum="120" SpinButtonPlacementMode="Compact" ValueChanged="Temp_ValueChanged" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="DEVICES" Style="{StaticResource Caption}" Margin="2,4,0,0" />
+
+            <ItemsRepeater x:Name="DeviceGrid">
+                <ItemsRepeater.Layout>
+                    <UniformGridLayout MinItemWidth="330" MinItemHeight="190" MinRowSpacing="14" MinColumnSpacing="14" ItemsStretch="Fill" />
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="p:DeviceCard">
+                        <Border Style="{StaticResource Card}" Padding="18">
+                            <StackPanel Spacing="12">
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="2" Click="{x:Bind Identify}" ToolTipService.ToolTip="Identify: pulses this device white for 4 seconds" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon Glyph="&#xE7B3;" FontSize="14" />
+                                            <TextBlock Text="Identify" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Border Width="38" Height="38" CornerRadius="10" Background="#1AFFFFFF">
+                                        <FontIcon Glyph="{x:Bind Glyph}" FontSize="18" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{x:Bind Detail}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Live LED strip with a soft glow -->
+                                <Grid Height="22">
+                                    <Border Background="{x:Bind Preview}" CornerRadius="11" Opacity="0.4" Margin="6,6,6,-4" />
+                                    <Border Background="{x:Bind Preview}" CornerRadius="8" Margin="0,2" BorderBrush="#26FFFFFF" BorderThickness="1" />
+                                </Grid>
+
+                                <ComboBox Header="Lighting" HorizontalAlignment="Stretch" ItemsSource="{x:Bind Options}" SelectedIndex="{x:Bind Selected, Mode=TwoWay}" />
+
+                                <StackPanel Spacing="8" Visibility="{x:Bind HardwareVisibility, Mode=OneWay}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8" Visibility="{x:Bind ColorVisibility, Mode=OneWay}">
+                                        <Button Width="36" Height="28" Padding="0" CornerRadius="8" Background="{x:Bind ColorBrush, Mode=OneWay}" Click="{x:Bind PickColor}" ToolTipService.ToolTip="Colour" />
+                                        <TextBlock Text="{x:Bind ColorText, Mode=OneWay}" VerticalAlignment="Center" Style="{StaticResource Caption}" />
+                                    </StackPanel>
+                                    <Slider Header="Speed" Minimum="0" Maximum="100" Value="{x:Bind Speed, Mode=TwoWay}" Visibility="{x:Bind SpeedVisibility, Mode=OneWay}" />
+                                    <Slider Header="Brightness" Minimum="0" Maximum="100" Value="{x:Bind Brightness, Mode=TwoWay}" Visibility="{x:Bind BrightnessVisibility, Mode=OneWay}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

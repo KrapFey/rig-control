@@ -42,6 +42,11 @@
 
   <!-- Bundled liquidctl runtime (tools\fetch-liquidctl.ps1 builds it into build\liquidctl). Without it the app
        still runs; only devices without a built-in driver go unsupported. -->
+  <!-- Bundled OpenRGB engine (tools\fetch-openrgb.ps1 puts it in build\openrgb). Without it, RGB is unavailable. -->
+  <ItemGroup Condition="Exists('..\..\build\openrgb\OpenRGB.exe')">
+    <Content Include="..\..\build\openrgb\**" LinkBase="openrgb" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup Condition="Exists('..\..\build\liquidctl\bridge.py')">
     <Content Include="..\..\build\liquidctl\**" LinkBase="liquidctl" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

@@ -1,6 +1,21 @@
 using RigControl.Core;
 
 if (args.Contains("--probe")) { Probe(); return 0; }
+if (args.Contains("--rgb"))
+{
+    // Read-only: list what an OpenRGB server reports (default port 6742).
+    var port = args.SkipWhile(a => a != "--port").Skip(1).Select(int.Parse).FirstOrDefault(6742);
+    using var orgb = new OpenRgbClient();
+    orgb.ConnectAsync("127.0.0.1", port, "RigControl checks").Wait();
+    Console.WriteLine($"server protocol {orgb.ServerProtocol}");
+    foreach (var d in orgb.GetDevicesAsync().Result)
+    {
+        Console.WriteLine($"[{d.Index}] {d.Type} | {d.Name} | {d.Vendor} | leds {d.Leds.Count} | active {d.Modes.ElementAtOrDefault(d.ActiveMode)?.Name} | direct #{d.DirectModeIndex} | serial '{d.Serial}' | location '{d.Location}'");
+        Console.WriteLine($"     modes: {string.Join(", ", d.Modes.Select(m => m.Name))}");
+        Console.WriteLine($"     zones: {string.Join(", ", d.Zones.Select(z => $"{z.Name}({z.LedsCount}{(z.Matrix is null ? "" : $" {z.MatrixWidth}x{z.MatrixHeight}")})"))}");
+    }
+    return 0;
+}
 if (args.Contains("--lqprobe"))
 {
     // Read-only: would the liquidctl helper start on this PC with no driver overrides?
@@ -151,6 +166,21 @@ if (File.Exists(Path.Combine(runtime, "bridge.py")))
     Check(py.ExitCode == 0, "liquidctl bridge selftest" + (py.ExitCode == 0 ? "" : $": {outText.Trim()}"));
 }
 else Console.WriteLine("skip liquidctl bridge selftest (runtime not built)");
+
+// --- lighting effects
+Check(EffectMath.Gradient([new(0, 0, 0), new(200, 100, 50)], 0.5) == new Rgb(100, 50, 25), "gradient midpoint");
+Check(Math.Abs(EffectMath.Period(0) - 10) < 1e-9 && Math.Abs(EffectMath.Period(100) - 1) < 1e-9, "speed 0..100 -> 10 s..1 s per cycle");
+var px = new Rgb[3];
+EffectMath.Render(new EffectSettings { Kind = EffectKind.Static, Colors = ["#FF0000", "#0000FF"], Brightness = 50 }, 0, [0f, 0.5f, 1f], null, px);
+Check(px[0] == new Rgb(127, 0, 0) && px[2] == new Rgb(0, 0, 127), "static gradient across LEDs, scaled by brightness");
+var heat = new EffectSettings { Kind = EffectKind.Temperature, Colors = ["#0000FF", "#FF0000"], ColdTemp = 40, HotTemp = 80 };
+EffectMath.Render(heat, 0, [0f], 40, px.AsSpan(0, 1)); var cold = px[0];
+EffectMath.Render(heat, 0, [0f], 80, px.AsSpan(0, 1)); var hot = px[0];
+EffectMath.Render(heat, 0, [0f], null, px.AsSpan(0, 1));
+Check(cold == new Rgb(0, 0, 255) && hot == new Rgb(255, 0, 0) && px[0] == hot, "temperature: cold/hot ends, missing sensor shows hot");
+EffectMath.Render(new EffectSettings { Kind = EffectKind.Rainbow }, 0, [0f, 0.5f], null, px.AsSpan(0, 2));
+Check(px[0] != px[1], "rainbow wave varies along the LEDs");
+Check(EffectMath.Animated(new EffectSettings { Kind = EffectKind.Rainbow }) && !EffectMath.Animated(new EffectSettings { Kind = EffectKind.Static }), "only moving effects stream frames");
 
 // --- config round trip
 var path = Path.Combine(Path.GetTempPath(), $"rigcontrol-{Guid.NewGuid():N}.json");

@@ -16,6 +16,12 @@ public partial class App : Application
     public AppConfig Config { get; private set; } = null!;
     public DispatcherQueue Ui { get; private set; } = null!;
     public List<string> StartupNotes { get; } = [];
+    public LightingEngine Lighting { get; private set; } = null!;
+    public RgbEngine? Rgb { get; private set; }
+    /// <summary>Why lighting isn't running, when it isn't.</summary>
+    public string? LightingNotice { get; private set; }
+    public event Action? LightingStateChanged;
+    SeirenV3? _seiren;
 
     MainWindow? _window;
     TaskbarIcon? _tray;
@@ -66,8 +72,63 @@ public partial class App : Application
             try { Config.Save(); } catch (Exception e) { Log($"config save failed: {e.Message}"); }
         };
 
+        Lighting = new LightingEngine(id => Hub.Temps.FirstOrDefault(t => t.Id == id)?.Value);
+        Lighting.Apply(Config.Lighting);
+        _ = StartLightingAsync();
+
         CreateTray();
         if (!Environment.GetCommandLineArgs().Contains("--tray")) ShowWindow();
+    }
+
+    async Task StartLightingAsync()
+    {
+#if UITEST
+        LightingNotice = "The UI-test build doesn't start the lighting engine.";
+        return;
+#endif
+        if (OtherOpenRgbRunning())
+        {
+            LightingNotice = "OpenRGB is already running, so RigControl leaves your lighting to it. Exit OpenRGB (and stop its service) and restart RigControl to take over.";
+            Log("rgb: another OpenRGB is running, lighting not started");
+            Ui.TryEnqueue(() => LightingStateChanged?.Invoke());
+            return;
+        }
+        try
+        {
+            _seiren = SeirenV3.Open();
+            Rgb = new RgbEngine(Path.Combine(AppConfig.Folder, "openrgb"));
+            Rgb.DevicesChanged += RebuildTargets;
+            await Task.Run(() => Rgb.StartAsync());
+            if (Rgb.Problem is string p) LightingNotice = p;
+            RebuildTargets();
+        }
+        catch (Exception e)
+        {
+            LightingNotice = $"Lighting couldn't start: {e.Message}";
+            Log($"rgb: start failed: {e}");
+        }
+        Ui.TryEnqueue(() => LightingStateChanged?.Invoke());
+    }
+
+    void RebuildTargets()
+    {
+        Lighting.SetTargets(LightingEngine.TargetsFrom(Rgb, _seiren));
+        Ui.TryEnqueue(() => LightingStateChanged?.Invoke());
+    }
+
+    /// <summary>A separate OpenRGB (its service or window), not our own engine.</summary>
+    static bool OtherOpenRgbRunning()
+    {
+        var ours = Path.GetFullPath(Path.Combine(RgbEngine.EngineDir, "OpenRGB.exe"));
+        foreach (var p in System.Diagnostics.Process.GetProcessesByName("OpenRGB"))
+        {
+            using (p)
+            {
+                try { if (!string.Equals(p.MainModule?.FileName, ours, StringComparison.OrdinalIgnoreCase)) return true; }
+                catch { return true; } // can't tell: assume it's someone else's
+            }
+        }
+        return false;
     }
 
     static bool OtherFanAppRunning()
@@ -83,6 +144,7 @@ public partial class App : Application
     public void ConfigChanged()
     {
         Engine.Apply(Config);
+        Lighting?.Apply(Config.Lighting);
         _saveTimer?.Stop();
         _saveTimer?.Start();
     }
@@ -157,6 +219,9 @@ public partial class App : Application
         try { Config.Save(); } catch (Exception e) { Log($"config save on exit failed: {e.Message}"); }
         Log("quit");
         Engine.Dispose(); // hands every fan back to the hardware
+        Lighting?.Dispose();
+        Rgb?.Dispose();
+        _seiren?.Dispose();
         Hub.Dispose();
         _tray?.Dispose();
         _window?.Close();

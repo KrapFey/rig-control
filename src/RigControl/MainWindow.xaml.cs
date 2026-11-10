@@ -14,6 +14,7 @@ public sealed partial class MainWindow : Window
         ["Dashboard"] = typeof(DashboardPage),
         ["Fans"] = typeof(FansPage),
         ["Curves"] = typeof(CurvesPage),
+        ["Lighting"] = typeof(LightingPage),
         ["Sensors"] = typeof(SensorsPage),
         ["Settings"] = typeof(SettingsPage),
     };

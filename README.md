@@ -2,8 +2,9 @@
 
 <img src="src/RigControl/Assets/RigControl.png" width="72" align="right">
 
-An open-source Windows app for controlling your PC's fans. Build temperature-based fan curves for
-motherboard, GPU, fan-controller and AIO fans, and watch it all live in a modern WinUI 3 interface.
+An open-source Windows app for your PC's fans and RGB lighting. Build temperature-based fan curves for
+motherboard, GPU, fan-controller and AIO fans, light every RGB device in sync, and watch it all live in a
+modern WinUI 3 interface.
 
 ## Features
 
@@ -22,6 +23,13 @@ motherboard, GPU, fan-controller and AIO fans, and watch it all live in a modern
   - A fan whose temperature sensor disappears goes to 100%.
   - On exit or crash every fan goes back to the hardware's own control. NZXT controllers hold the last speed they were given, so they're set to a safe 60%.
   - RigControl stays hands-off while FanControl is running.
+- **Lighting:** hundreds of RGB devices (RAM, GPUs, motherboards, keyboards, mice, controllers…) through a
+  bundled, headless [OpenRGB](https://codeberg.org/OpenRGB/OpenRGB) 1.1, plus a native Razer Seiren V3 Chroma driver.
+  - **Synced effects across every device:** rainbow wave, colour cycle, breathing, static and gradients.
+  - **Temperature lighting:** colour follows any sensor.
+  - **Per device:** keep the synced effect, use one of the device's own effects, or turn it off.
+  - **Profiles,** live LED previews, and **Identify**, which pulses one device.
+  - RigControl steps aside while another OpenRGB is running.
 - **Import from FanControl:** curves, fan names and fan settings, including NZXT controllers driven through
   the FanControl.Liquidctl plugin (matched by the plugin's own device ids).
 - **Identify** stops one fan for 8 seconds so you can see which it is; **Swap with…** exchanges two fans'
@@ -48,10 +56,12 @@ If another fan app is running, exit it first. RigControl stays hands-off while F
 
 ## Build
 
-Needs the .NET 10 SDK, and Python 3.13 x64 to build the bundled liquidctl runtime.
+Needs the .NET 10 SDK, and Python 3.13 x64 to build the bundled liquidctl runtime. Without `build\liquidctl` or
+`build\openrgb` the app still builds; those features are then unavailable.
 
 ```powershell
 tools\fetch-liquidctl.ps1                                    # build\liquidctl: Python + liquidctl, SHA-256 pinned (optional)
+tools\fetch-openrgb.ps1                                      # build\openrgb: OpenRGB 1.1 engine, SHA-256 pinned (optional)
 dotnet run --project tests\RigControl.Checks                 # self-checks
 dotnet build src\RigControl                                  # app (asks for admin when started)
 dotnet publish src\RigControl -c Release -r win-x64 --self-contained -o "$env:LOCALAPPDATA\Programs\RigControl"
@@ -74,6 +84,9 @@ Settings live in `%APPDATA%\RigControl\config.json`; every load and save is logg
 
 GPL-3.0-or-later, see [LICENSE](LICENSE).
 
+- [OpenRGB](https://codeberg.org/OpenRGB/OpenRGB) 1.1 (GPL-2.0): bundled unmodified as a separate program; its
+  licence and source link ship beside it (`openrgb\SOURCE.txt`).
+- Razer Seiren V3 Chroma lighting protocol: from [openrazer PR #2896](https://github.com/openrazer/openrazer/pull/2896).
 - [liquidctl](https://github.com/liquidctl/liquidctl) (GPL-3.0-or-later): bundled, and the source of the
   NZXT HUE 2 fan protocol; bundled with [Python](https://www.python.org) (PSF licence) and its dependencies
   (hidapi, pyusb, libusb, Pillow and others, under their own licences).
@@ -81,4 +94,4 @@ GPL-3.0-or-later, see [LICENSE](LICENSE).
   [HidSharp](https://www.zer7.com/software/hidsharp) (Apache-2.0),
   [H.NotifyIcon](https://github.com/HavenDV/H.NotifyIcon) (MIT).
 
-Not affiliated with NZXT, FanControl or any hardware vendor.
+Not affiliated with NZXT, Razer, OpenRGB, FanControl or any hardware vendor.

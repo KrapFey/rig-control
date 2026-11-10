@@ -86,6 +86,9 @@
                 <NavigationViewItem Content="Curves" Tag="Curves">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="Lighting" Tag="Lighting">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE781;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="Sensors" Tag="Sensors">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE9CA;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>

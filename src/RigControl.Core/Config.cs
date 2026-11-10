@@ -56,6 +56,7 @@ public sealed class AppConfig
     public double IntervalSeconds { get; set; } = 1;
     /// <summary>Per-device driver: device key (e.g. "nzxt-hue2/&lt;serial&gt;") -> "liquidctl". Missing = built-in.</summary>
     public Dictionary<string, string> Drivers { get; set; } = [];
+    public LightingConfig Lighting { get; set; } = new();
 
     /// <summary>
     /// Moves a HUE 2 device's fan settings between its built-in ids ("nzxt-hue2/S/fan/N") and its liquidctl ids
