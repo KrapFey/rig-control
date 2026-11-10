@@ -1,6 +1,13 @@
 using RigControl.Core;
 
 if (args.Contains("--probe")) { Probe(); return 0; }
+if (args.Contains("--lqprobe"))
+{
+    // Read-only: would the liquidctl helper start on this PC with no driver overrides?
+    var m = typeof(HardwareHub).Assembly.GetType("RigControl.Core.LiquidctlBridge")!.GetMethod("CandidatePresent", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+    Console.WriteLine($"candidate present: {m.Invoke(null, [Hue2Device.Supported.ToHashSet()])}");
+    return 0;
+}
 if (args.Contains("--hid")) { RawHid(); return 0; }
 if (args.Contains("--lhm"))
 {
@@ -122,6 +129,28 @@ var exact = FanControlImport.Import(json, hw with
     },
 });
 Check(exact.Config.Fans["nzxt-hue2/BBBB/fan/1"].Name == "Front Mid" && exact.Config.Fans["nzxt-hue2/AAAA/fan/2"].Name == "Bottom Front", "liquidctl alias maps exactly");
+
+// --- switching a HUE 2 controller between drivers keeps its fan settings
+var sw = new AppConfig();
+sw.Fans["nzxt-hue2/SER/fan/2"] = new FanSettings { Name = "Top Front", Curve = "Case" };
+sw.Fans["/lpc/x/control/0"] = new FanSettings { Name = "CPU" };
+sw.MoveHue2Settings("SER", toLiquidctl: true);
+Check(sw.Fans.ContainsKey("liquidctl/SER/fan2") && !sw.Fans.ContainsKey("nzxt-hue2/SER/fan/2") && sw.Fans["liquidctl/SER/fan2"].Name == "Top Front", "HUE 2 settings move to liquidctl ids");
+sw.MoveHue2Settings("SER", toLiquidctl: false);
+Check(sw.Fans["nzxt-hue2/SER/fan/2"].Curve == "Case" && sw.Fans.Count == 2, "...and back, other fans untouched");
+
+// --- the liquidctl helper's own self-test, when the runtime has been built (tools\fetch-liquidctl.ps1)
+var runtime = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "build", "liquidctl"));
+if (File.Exists(Path.Combine(runtime, "bridge.py")))
+{
+    var psi = new System.Diagnostics.ProcessStartInfo(Path.Combine(runtime, "python", "python.exe"), ["-I", "-B", Path.Combine(runtime, "bridge.py"), "--selftest"])
+        { RedirectStandardOutput = true, RedirectStandardError = true };
+    using var py = System.Diagnostics.Process.Start(psi)!;
+    var outText = py.StandardOutput.ReadToEnd() + py.StandardError.ReadToEnd();
+    py.WaitForExit();
+    Check(py.ExitCode == 0, "liquidctl bridge selftest" + (py.ExitCode == 0 ? "" : $": {outText.Trim()}"));
+}
+else Console.WriteLine("skip liquidctl bridge selftest (runtime not built)");
 
 // --- config round trip
 var path = Path.Combine(Path.GetTempPath(), $"rigcontrol-{Guid.NewGuid():N}.json");

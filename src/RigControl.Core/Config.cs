@@ -54,6 +54,22 @@ public sealed class AppConfig
     /// <summary>Friendly names for temperature sensors.</summary>
     public Dictionary<string, string> SensorNames { get; set; } = [];
     public double IntervalSeconds { get; set; } = 1;
+    /// <summary>Per-device driver: device key (e.g. "nzxt-hue2/&lt;serial&gt;") -> "liquidctl". Missing = built-in.</summary>
+    public Dictionary<string, string> Drivers { get; set; } = [];
+
+    /// <summary>
+    /// Moves a HUE 2 device's fan settings between its built-in ids ("nzxt-hue2/S/fan/N") and its liquidctl ids
+    /// ("liquidctl/S/fanN"), so switching drivers keeps names, curves and limits.
+    /// </summary>
+    public void MoveHue2Settings(string serial, bool toLiquidctl)
+    {
+        for (int n = 1; n <= 3; n++)
+        {
+            string native = $"nzxt-hue2/{serial}/fan/{n}", lq = $"liquidctl/{serial}/fan{n}";
+            var (from, to) = toLiquidctl ? (native, lq) : (lq, native);
+            if (Fans.Remove(from, out var s)) Fans[to] = s;
+        }
+    }
 
     static readonly JsonSerializerOptions Json = new()
     {
@@ -62,15 +78,21 @@ public sealed class AppConfig
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    public static string Folder { get; } =
+    /// <summary>Settings folder; the UI-test build points this elsewhere so it never touches real settings.</summary>
+    public static string Folder { get; set; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RigControl");
+
+    /// <summary>Optional diagnostics sink (the app writes it to rigcontrol.log).</summary>
+    public static Action<string>? Log { get; set; }
     public static string FilePath => Path.Combine(Folder, "config.json");
 
     public static AppConfig Load(string? path = null)
     {
         path ??= FilePath;
-        if (!File.Exists(path)) return new AppConfig();
-        return JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(path), Json) ?? new AppConfig();
+        if (!File.Exists(path)) { Log?.Invoke($"config: {path} not found, starting empty"); return new AppConfig(); }
+        var cfg = JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(path), Json) ?? new AppConfig();
+        Log?.Invoke($"config: loaded {path} ({cfg.Curves.Count} curves, {cfg.Fans.Count} fans, {cfg.Drivers.Count} driver overrides)");
+        return cfg;
     }
 
     public void Save(string? path = null)
@@ -80,6 +102,7 @@ public sealed class AppConfig
         var tmp = path + ".tmp";
         File.WriteAllText(tmp, JsonSerializer.Serialize(this, Json));
         File.Move(tmp, path, overwrite: true); // no half-written config if we die mid-save
+        Log?.Invoke($"config: saved {path} ({Fans.Count} fans, {Drivers.Count} driver overrides)");
     }
 
     public AppConfig Clone() => JsonSerializer.Deserialize<AppConfig>(JsonSerializer.Serialize(this, Json), Json)!;

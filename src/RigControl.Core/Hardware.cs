@@ -44,14 +44,20 @@ public sealed class HardwareHub : IDisposable
     readonly List<(ISensor sensor, TempSensor temp)> _lhmTemps = [];
     readonly List<LhmFan> _lhmFans = [];
     readonly List<Hue2Device> _hue2 = [];
+    LiquidctlBridge? _liquidctl;
 
     public List<TempSensor> Temps { get; } = [];
     public List<FanChannel> Fans { get; } = [];
     public List<string> Problems { get; } = [];
     internal IReadOnlyList<Hue2Device> Hue2 => _hue2;
 
-    public void Open()
+    /// <summary>Devices that can run on either driver: key -> (label, current driver).</summary>
+    public List<DriverChoice> DriverChoices { get; } = [];
+
+    /// <param name="drivers">Per-device driver overrides (<see cref="AppConfig.Drivers"/>).</param>
+    public void Open(IReadOnlyDictionary<string, string>? drivers = null)
     {
+        drivers ??= new Dictionary<string, string>();
         try
         {
             _lhm.Open();
@@ -59,10 +65,29 @@ public sealed class HardwareHub : IDisposable
         }
         catch (Exception e) { Problems.Add($"LibreHardwareMonitor: {e.Message}"); }
 
-        foreach (var dev in Hue2Device.FindAll(Problems))
+        // NZXT HUE 2: native driver unless the device was switched to liquidctl.
+        var toLiquidctl = new HashSet<string>();
+        var nativePaths = new List<string>();
+        foreach (var (serial, product, path) in Hue2Device.Present())
+        {
+            var key = Hue2Device.DriverKey(serial);
+            var useLiquidctl = drivers.TryGetValue(key, out var d) && d == DriverChoice.Liquidctl && LiquidctlBridge.Available;
+            if (useLiquidctl) toLiquidctl.Add(serial); else nativePaths.Add(path);
+            DriverChoices.Add(new DriverChoice(key, $"{product} · {(serial.Length > 4 ? serial[^4..] : serial)}",
+                useLiquidctl ? DriverChoice.Liquidctl : DriverChoice.Native, LiquidctlBridge.Available));
+        }
+        foreach (var dev in Hue2Device.FindAll(Problems, toLiquidctl))
         {
             _hue2.Add(dev);
             Fans.AddRange(dev.Channels);
+        }
+
+        // Everything else liquidctl knows (Corsair, Kraken, Asetek, ...), never the devices handled natively above.
+        _liquidctl = LiquidctlBridge.StartIfUseful(nativePaths, Hue2Device.Supported.ToHashSet(), toLiquidctl.Count > 0, Problems);
+        foreach (var dev in _liquidctl?.Devices ?? [])
+        {
+            Fans.AddRange(dev.Fans);
+            Temps.AddRange(dev.Temps);
         }
         Update();
     }
@@ -101,6 +126,7 @@ public sealed class HardwareHub : IDisposable
         foreach (var (s, t) in _lhmTemps) t.Value = s.Value;
         foreach (var f in _lhmFans) f.Refresh();
         foreach (var d in _hue2) d.Refresh();
+        _liquidctl?.Update();
     }
 
     /// <summary>Sends the duties set since the last flush (devices that batch their commands).</summary>
@@ -110,14 +136,23 @@ public sealed class HardwareHub : IDisposable
         {
             try { d.Flush(); } catch { }
         }
+        _liquidctl?.Flush();
     }
 
     /// <summary>Closes devices without touching fans; whoever drove them releases them first.</summary>
     public void Dispose()
     {
         foreach (var d in _hue2) d.Dispose();
+        _liquidctl?.Dispose();
         try { _lhm.Close(); } catch { }
     }
+}
+
+/// <summary>A device that can run on RigControl's own driver or on liquidctl.</summary>
+public sealed record DriverChoice(string Key, string Label, string Current, bool LiquidctlAvailable)
+{
+    public const string Native = "native";
+    public const string Liquidctl = "liquidctl";
 }
 
 sealed class LhmFan(ISensor control, ISensor? rpm, string device)

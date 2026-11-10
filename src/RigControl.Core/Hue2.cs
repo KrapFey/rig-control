@@ -60,12 +60,29 @@ sealed class Hue2Device : IDisposable
         _reader.Start();
     }
 
-    public static List<Hue2Device> FindAll(List<string> problems)
+    /// <summary>Key for this device in <see cref="AppConfig.Drivers"/>; same prefix as its fan ids.</summary>
+    public static string DriverKey(string serial) => $"nzxt-hue2/{serial}";
+
+    /// <summary>USB ids this driver handles (so the liquidctl helper can skip them).</summary>
+    public static IEnumerable<(int vid, int pid)> Supported => Products.Keys.Select(pid => (0x1E71, pid));
+
+    /// <summary>Every supported device present, without opening anything: (serial, product, hid path).</summary>
+    public static List<(string serial, string product, string path)> Present()
+    {
+        var list = new List<(string, string, string)>();
+        foreach (var dev in DeviceList.Local.GetHidDevices(0x1E71))
+            if (Products.TryGetValue(dev.ProductID, out var product)) list.Add((SafeSerial(dev), product, dev.DevicePath));
+        return list;
+    }
+
+    /// <summary>Opens every supported device except the serials in <paramref name="skip"/>.</summary>
+    public static List<Hue2Device> FindAll(List<string> problems, ISet<string>? skip = null)
     {
         var found = new List<Hue2Device>();
         foreach (var dev in DeviceList.Local.GetHidDevices(0x1E71))
         {
             if (!Products.TryGetValue(dev.ProductID, out var product)) continue;
+            if (skip?.Contains(SafeSerial(dev)) == true) continue;
             try
             {
                 if (dev.TryOpen(out HidStream stream) && dev.TryOpen(out HidStream writer)) found.Add(new Hue2Device(dev, stream, writer, product));

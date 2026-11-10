@@ -24,6 +24,11 @@ public partial class App : Application
     public App()
     {
         Instance = this;
+        AppConfig.Log = Log;
+#if UITEST
+        AppConfig.Folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RigControl-uitest");
+#endif
+        Log($"start pid {Environment.ProcessId} args [{string.Join(" ", Environment.GetCommandLineArgs().Skip(1))}]");
         InitializeComponent();
         // The tray keeps the app (and fan control) alive with no window open.
         DispatcherShutdownMode = DispatcherShutdownMode.OnExplicitShutdown;
@@ -43,7 +48,7 @@ public partial class App : Application
             Config = new AppConfig();
         }
 
-        Hub.Open();
+        Hub.Open(Config.Drivers);
         Engine = new FanEngine(Hub, Config) { Paused = OtherFanAppRunning() };
         Engine.Start();
 
@@ -56,7 +61,10 @@ public partial class App : Application
         _saveTimer = Ui.CreateTimer();
         _saveTimer.Interval = TimeSpan.FromMilliseconds(600);
         _saveTimer.IsRepeating = false;
-        _saveTimer.Tick += (_, _) => Config.Save();
+        _saveTimer.Tick += (_, _) =>
+        {
+            try { Config.Save(); } catch (Exception e) { Log($"config save failed: {e.Message}"); }
+        };
 
         CreateTray();
         if (!Environment.GetCommandLineArgs().Contains("--tray")) ShowWindow();
@@ -134,10 +142,20 @@ public partial class App : Application
         _tray.ForceCreate(enablesEfficiencyMode: false);
     }
 
+    /// <summary>Starts a fresh instance (it waits for this one to exit), then quits. Keeps admin, no UAC prompt.</summary>
+    public void Restart()
+    {
+        Log("restart requested");
+        var args = $"--after {Environment.ProcessId}" + (_window is null ? " --tray" : "");
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!, args) { UseShellExecute = false });
+        Quit();
+    }
+
     public void Quit()
     {
         _saveTimer?.Stop();
-        try { Config.Save(); } catch { }
+        try { Config.Save(); } catch (Exception e) { Log($"config save on exit failed: {e.Message}"); }
+        Log("quit");
         Engine.Dispose(); // hands every fan back to the hardware
         Hub.Dispose();
         _tray?.Dispose();

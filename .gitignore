@@ -4,3 +4,4 @@ bin-uitest/
 obj-uitest/
 *.user
 .vs/
+build/

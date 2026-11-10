@@ -13,9 +13,11 @@ public sealed record HardwareCatalog(
     public static HardwareCatalog From(HardwareHub hub) => new(
         [.. hub.Temps.Select(t => (t.Id, t.Name, t.Device))],
         [.. hub.Fans.Select(f => (f.Id, f.Name, f.Device))],
-        hub.Fans.OfType<Hue2Fan>().ToDictionary(
-            f => $"liquidctl/{f.Owner.Product.Replace(" ", "")}#{f.Owner.LiquidctlId}/Fan{f.Channel + 1}duty",
-            f => f.Id));
+        hub.Fans.OfType<Hue2Fan>()
+            .Select(f => (alias: $"liquidctl/{f.Owner.Product.Replace(" ", "")}#{f.Owner.LiquidctlId}/Fan{f.Channel + 1}duty", f.Id))
+            .Concat(hub.Fans.OfType<LiquidctlFan>().Select(f => (alias: f.FanControlAlias, f.Id)))
+            .DistinctBy(x => x.alias)
+            .ToDictionary(x => x.alias, x => x.Id));
 }
 
 public sealed record ImportResult(AppConfig Config, List<string> Notes);

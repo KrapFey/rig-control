@@ -46,6 +46,17 @@
                 </Grid>
             </Border>
 
+            <Border x:Name="DriversCard" Style="{StaticResource Card}" Visibility="Collapsed">
+                <StackPanel Spacing="10">
+                    <StackPanel>
+                        <TextBlock Text="Fan controller drivers" FontWeight="SemiBold" />
+                        <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap"
+                                   Text="Each controller uses RigControl's built-in driver. If one misbehaves, switch it to liquidctl's driver. Fan names, curves and limits move with it; RigControl restarts to apply." />
+                    </StackPanel>
+                    <StackPanel x:Name="DriversList" Spacing="8" />
+                </StackPanel>
+            </Border>
+
             <Border Style="{StaticResource Card}">
                 <Grid ColumnSpacing="16">
                     <Grid.ColumnDefinitions>

@@ -40,4 +40,10 @@
     <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- Bundled liquidctl runtime (tools\fetch-liquidctl.ps1 builds it into build\liquidctl). Without it the app
+       still runs; only devices without a built-in driver go unsupported. -->
+  <ItemGroup Condition="Exists('..\..\build\liquidctl\bridge.py')">
+    <Content Include="..\..\build\liquidctl\**" LinkBase="liquidctl" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

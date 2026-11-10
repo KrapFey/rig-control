@@ -25,6 +25,7 @@ public sealed partial class SettingsPage : Page
                 : "FanControl's config wasn't found on this PC.";
             FolderText.Text = AppConfig.Folder;
             AboutTitle.Text = $"RigControl {typeof(App).Assembly.GetName().Version?.ToString(3)}";
+            BuildDrivers();
             _loading = false;
         };
     }
@@ -42,6 +43,51 @@ public sealed partial class SettingsPage : Page
             AutoStart.IsOn = Startup.IsEnabled();
             _loading = false;
             _ = new ContentDialog { XamlRoot = XamlRoot, Title = "Couldn't change startup", Content = ex.Message, CloseButtonText = "OK" }.ShowAsync();
+        }
+    }
+
+    void BuildDrivers()
+    {
+        var choices = App.Instance!.Hub.DriverChoices;
+        DriversCard.Visibility = choices.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        DriversList.Children.Clear();
+        foreach (var choice in choices)
+        {
+            var row = new Grid { ColumnSpacing = 16 };
+            row.ColumnDefinitions.Add(new ColumnDefinition());
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.Children.Add(new TextBlock { Text = choice.Label, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+            var box = new ComboBox { Width = 160, IsEnabled = choice.LiquidctlAvailable, Items = { "Built-in", "liquidctl" } };
+            box.SelectedIndex = choice.Current == DriverChoice.Liquidctl ? 1 : 0;
+            if (!choice.LiquidctlAvailable) ToolTipService.SetToolTip(box, "This build doesn't include liquidctl.");
+            box.SelectionChanged += async (_, _) =>
+            {
+                var want = box.SelectedIndex == 1 ? DriverChoice.Liquidctl : DriverChoice.Native;
+                if (want == choice.Current) return;
+                var dialog = new ContentDialog
+                {
+                    XamlRoot = XamlRoot,
+                    Title = $"Switch {choice.Label} to {(want == DriverChoice.Liquidctl ? "liquidctl" : "the built-in driver")}?",
+                    Content = "RigControl restarts to apply it. Fans hold their speed for the few seconds that takes.",
+                    PrimaryButtonText = "Switch and restart",
+                    CloseButtonText = "Cancel",
+                    DefaultButton = ContentDialogButton.Primary,
+                };
+                if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+                {
+                    box.SelectedIndex = choice.Current == DriverChoice.Liquidctl ? 1 : 0;
+                    return;
+                }
+                var app = App.Instance!;
+                App.Log($"driver switch: {choice.Key} -> {want}");
+                if (want == DriverChoice.Liquidctl) app.Config.Drivers[choice.Key] = want; else app.Config.Drivers.Remove(choice.Key);
+                app.Config.MoveHue2Settings(choice.Key[(choice.Key.IndexOf('/') + 1)..], want == DriverChoice.Liquidctl);
+                app.Config.Save();
+                app.Restart();
+            };
+            Grid.SetColumn(box, 1);
+            row.Children.Add(box);
+            DriversList.Children.Add(row);
         }
     }
 
