@@ -88,7 +88,10 @@ sealed class OpenRgbTarget(OpenRgbClient client, RgbDevice dev) : IRgbTarget
     public int LedCount => dev.Leds.Count;
     public float[] LedX { get; } = Layout(dev);
     // ponytail: fixed caps; per-device tuning if another controller turns out to choke on its own.
-    public int MaxFps => dev.Vendor.Contains("NZXT", StringComparison.OrdinalIgnoreCase) ? 10 : 30;
+    public int MaxFps =>
+        dev.Vendor.Contains("NZXT", StringComparison.OrdinalIgnoreCase) ? 10 // shares its USB link with fan control
+        : dev.Location.StartsWith("I2C", StringComparison.OrdinalIgnoreCase) ? 15 // RAM/GPU: slow SMBus/I2C, can't keep up with 30
+        : 30;
 
     public void EnterDirect()
     {
@@ -235,6 +238,10 @@ public sealed class LightingEngine : IDisposable
     public IReadOnlyDictionary<string, Rgb[]> Frames { get; private set; } = new Dictionary<string, Rgb[]>();
     public IReadOnlyList<IRgbTarget> Targets { get { lock (_lock) return [.. _targets]; } }
     public event Action? TargetsChanged;
+    /// <summary>The effect clock. Previews use it so the app and the lights stay in step.</summary>
+    public double Now => _clock.Elapsed.TotalSeconds;
+    /// <summary>The temperature the effect is using now (smoothed), when the effect is Temperature.</summary>
+    public double? CurrentTemperature => double.IsNaN(_smoothTemp) ? null : _smoothTemp;
 
     public LightingEngine(Func<string, double?> temperature)
     {

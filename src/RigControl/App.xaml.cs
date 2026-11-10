@@ -184,10 +184,9 @@ public partial class App : Application
     void CreateTray()
     {
         var menu = new MenuFlyout();
-        var open = new MenuFlyoutItem { Text = "Open RigControl" };
-        open.Click += (_, _) => ShowWindow();
-        var quit = new MenuFlyoutItem { Text = "Exit" };
-        quit.Click += (_, _) => Quit();
+        // PopupMenu mode runs each item's Command, never its Click event.
+        var open = new MenuFlyoutItem { Text = "Open RigControl", Command = new Command(() => { Log("tray: open"); ShowWindow(); }) };
+        var quit = new MenuFlyoutItem { Text = "Exit", Command = new Command(() => { Log("tray: exit"); Ui.TryEnqueue(Quit); }) };
         menu.Items.Add(open);
         menu.Items.Add(new MenuFlyoutSeparator());
         menu.Items.Add(quit);

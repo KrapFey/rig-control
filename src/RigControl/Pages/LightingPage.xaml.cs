@@ -170,7 +170,6 @@ public sealed partial class LightingPage : Page
 
     readonly List<DeviceCard> _cards = [];
     readonly LinearGradientBrush _preview = new() { StartPoint = new(0, 0.5), EndPoint = new(1, 0.5) };
-    readonly Stopwatch _clock = Stopwatch.StartNew();
     DispatcherQueueTimer? _timer;
     bool _loading;
 
@@ -190,7 +189,7 @@ public sealed partial class LightingPage : Page
             AppI.LightingStateChanged += Rebuild;
             Rebuild();
             _timer = DispatcherQueue.CreateTimer();
-            _timer.Interval = TimeSpan.FromMilliseconds(33);
+            _timer.Interval = TimeSpan.FromMilliseconds(50); // 20 fps is plenty for previews
             _timer.Tick += (_, _) => RenderFrame();
             _timer.Start();
         };
@@ -297,13 +296,23 @@ public sealed partial class LightingPage : Page
 
     void RenderFrame()
     {
-        // Big preview bar: the synced effect itself.
+        // Big preview bar: the synced effect itself, on the engine's clock so it moves with the lights.
         var s = Sync;
         var x = new float[40];
         for (int i = 0; i < x.Length; i++) x[i] = i / (float)(x.Length - 1);
         var frame = new Rgb[x.Length];
-        double? temp = s.Sensor is string id ? AppI.Hub.Temps.FirstOrDefault(t => t.Id == id)?.Value : null;
-        EffectMath.Render(s, _clock.Elapsed.TotalSeconds, x, temp, frame);
+        double? temp = AppI.Lighting.CurrentTemperature
+            ?? (s.Sensor is string id ? AppI.Hub.Temps.FirstOrDefault(t => t.Id == id)?.Value : null);
+        bool heat = s.Kind == EffectKind.Temperature;
+        if (heat)
+        {
+            // Show the whole cold → hot scale, and mark where the reading is.
+            var stops = s.Colors.Count >= 2 ? s.Colors.Select(Rgb.Parse).ToArray() : [new Rgb(0, 212, 255), new Rgb(255, 40, 70)];
+            for (int i = 0; i < frame.Length; i++) frame[i] = EffectMath.Gradient(stops, x[i]).Scale(Math.Clamp(s.Brightness, 0, 100) / 100);
+            UpdateMarker(s, temp, stops);
+        }
+        else EffectMath.Render(s, AppI.Lighting.Now, x, temp, frame);
+        MarkerLayer.Visibility = TempLabel.Visibility = heat ? Visibility.Visible : Visibility.Collapsed;
         var g = _preview.GradientStops;
         while (g.Count < frame.Length) g.Add(new GradientStop());
         for (int i = 0; i < frame.Length; i++)
@@ -315,6 +324,28 @@ public sealed partial class LightingPage : Page
         // Device strips: what each device is showing right now.
         var frames = AppI.Lighting.Frames;
         foreach (var card in _cards) card.Render(frames.GetValueOrDefault(card.Key));
+    }
+
+    void UpdateMarker(EffectSettings s, double? temp, Rgb[] stops)
+    {
+        var sensor = AppI.Hub.Temps.FirstOrDefault(t => t.Id == s.Sensor);
+        if (temp is not double tv)
+        {
+            TempText.Text = sensor is null ? "Pick a sensor" : $"{sensor.Name} · no reading";
+            Marker.Visibility = MarkerGlow.Visibility = Visibility.Collapsed;
+            return;
+        }
+        double f = Math.Clamp((tv - s.ColdTemp) / Math.Max(1, s.HotTemp - s.ColdTemp), 0, 1);
+        var c = EffectMath.Gradient(stops, f);
+        var color = Color.FromArgb(255, c.R, c.G, c.B);
+        double w = PreviewBar.ActualWidth, left = 6 + f * Math.Max(0, w - 34);
+        Canvas.SetLeft(Marker, left);
+        Canvas.SetLeft(MarkerGlow, left - 11);
+        Marker.Fill = new SolidColorBrush(color);
+        MarkerGlowStop.Color = color;
+        Marker.Visibility = MarkerGlow.Visibility = Visibility.Visible;
+        TempText.Text = $"{sensor?.Name ?? "Temperature"} · {tv:0} °C";
+        TempText.Foreground = new SolidColorBrush(color);
     }
 
     void ProfileBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

@@ -56,6 +56,22 @@
                             <Border.RenderTransform><ScaleTransform ScaleY="1.25" CenterY="27" /></Border.RenderTransform>
                         </Border>
                         <Border x:Name="PreviewBar" CornerRadius="16" BorderBrush="#33FFFFFF" BorderThickness="1" />
+                        <!-- Temperature: where the current reading sits on the cold → hot scale -->
+                        <Canvas x:Name="MarkerLayer" Visibility="Collapsed" IsHitTestVisible="False">
+                            <Ellipse x:Name="MarkerGlow" Width="44" Height="44" Canvas.Top="5" Opacity="0.55">
+                                <Ellipse.Fill>
+                                    <RadialGradientBrush>
+                                        <GradientStop x:Name="MarkerGlowStop" Offset="0" Color="White" />
+                                        <GradientStop Offset="1" Color="Transparent" />
+                                    </RadialGradientBrush>
+                                </Ellipse.Fill>
+                            </Ellipse>
+                            <Ellipse x:Name="Marker" Width="22" Height="22" Canvas.Top="16" StrokeThickness="3" Stroke="White" />
+                        </Canvas>
+                        <Border x:Name="TempLabel" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0"
+                                Background="#B0101018" CornerRadius="12" Padding="12,4" IsHitTestVisible="False">
+                            <TextBlock x:Name="TempText" FontWeight="SemiBold" />
+                        </Border>
                     </Grid>
 
                     <ListView x:Name="EffectList" SelectionMode="Single" SelectionChanged="EffectList_SelectionChanged"
