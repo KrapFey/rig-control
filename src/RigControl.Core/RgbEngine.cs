@@ -68,9 +68,16 @@ public sealed class RgbEngine : IDisposable
         await ReloadAsync();
     }
 
+    readonly SemaphoreSlim _reload = new(1, 1);
+
+    /// <summary>
+    /// Reloads the device list. OpenRGB announces its list several times while detecting, so reloads run one at a
+    /// time; one that finds another already running waits for it and then loads the latest list itself.
+    /// </summary>
     public async Task ReloadAsync()
     {
         if (_client is null) return;
+        await _reload.WaitAsync();
         try
         {
             Devices = await _client.GetDevicesAsync();
@@ -85,6 +92,7 @@ public sealed class RgbEngine : IDisposable
             DevicesChanged?.Invoke();
         }
         catch (Exception e) { Problem = e.Message; }
+        finally { _reload.Release(); }
     }
 
     /// <summary>The LED count the user set for a resizable zone (device key, zone name), if any.</summary>
