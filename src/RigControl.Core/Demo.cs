@@ -99,6 +99,7 @@ public static class Demo
         {
             Dpi = s.Dpi ?? _state.Dpi, Stages = s.Stages ?? _state.Stages, ActiveStage = s.ActiveStage ?? _state.ActiveStage,
             PollRate = s.PollRate ?? _state.PollRate, Sidetone = s.Sidetone ?? _state.Sidetone,
+            GameMode = s.GameMode ?? _state.GameMode, FnSwap = s.FnSwap ?? _state.FnSwap, Backlight = s.Backlight ?? _state.Backlight,
             ActuationMm = s.ActuationMm ?? _state.ActuationMm, RapidTrigger = s.RapidTrigger ?? _state.RapidTrigger,
             LightBrightness = s.LightBrightness ?? _state.LightBrightness, LightEffect = s.LightEffect ?? _state.LightEffect,
             LightSpeed = s.LightSpeed ?? _state.LightSpeed, LightHue = s.LightHue ?? _state.LightHue, LightSaturation = s.LightSaturation ?? _state.LightSaturation,
@@ -115,8 +116,8 @@ public static class Demo
             new PeripheralCaps { Battery = true, Sidetone = true, InactiveMaxMinutes = 90, Lights = true, VoicePrompts = true, MicVolume = true, Chatmix = true, EqPresets = ["flat", "bass boost", "focus", "smiley"] },
             new PeripheralState { Connected = true, BatteryPercent = 64, Charging = false, Sidetone = 40, Chatmix = 64 }),
         new DemoPeripheral("demo/keyboard", "Hall-effect keyboard", "Keyboard",
-            new PeripheralCaps { ActuationMm = [.. Enumerable.Range(1, 40).Select(t => t / 10.0)], RapidTrigger = true, Lighting = "RGB matrix", LightingEffects = true, LightingSpeed = true, LightingColor = true },
-            new PeripheralState { ActuationMm = 1.2, RapidTrigger = true, LightBrightness = 200, LightEffect = 4, LightSpeed = 128, LightHue = 180, LightSaturation = 255 }),
+            new PeripheralCaps { ActuationMm = [.. Enumerable.Range(1, 40).Select(t => t / 10.0)], RapidTrigger = true, Lighting = "RGB matrix", LightingEffects = true, LightingSpeed = true, LightingColor = true, GameMode = true, FnSwap = true, Backlight = true, PollRates = [125, 500, 1000, 8000] },
+            new PeripheralState { ActuationMm = 1.2, RapidTrigger = true, LightBrightness = 200, LightEffect = 4, LightSpeed = 128, LightHue = 180, LightSaturation = 255, GameMode = false, FnSwap = true, Backlight = 70, PollRate = 1000 }),
     ];
 
     // ---------------- RGB devices
