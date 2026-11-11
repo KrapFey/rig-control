@@ -118,11 +118,16 @@
 
                                 <!-- Keyboard modes (Razer) -->
                                 <StackPanel Orientation="Horizontal" Spacing="40" Visibility="{x:Bind KeyboardSwitchesVisibility}">
-                                    <ToggleSwitch Header="Game mode (locks the Windows key, like Fn+F10)" IsOn="{x:Bind GameModeOn, Mode=OneWay}"
+                                    <ToggleSwitch Header="F1–F12 do media keys (hold Fn for F-keys)" IsOn="{x:Bind FnSwapOn, Mode=OneWay}"
+                                                  Tag="fnswap" Toggled="HeadsetToggle_Toggled" Visibility="{x:Bind FnSwapVisibility}" />
+                                    <ToggleSwitch Header="Game mode (locks the Windows key)" IsOn="{x:Bind GameModeOn, Mode=OneWay}"
                                                   Tag="gamemode" Toggled="HeadsetToggle_Toggled" Visibility="{x:Bind GameModeVisibility}" />
                                     <ToggleSwitch Header="Switch optimisation" IsOn="{x:Bind KeyswitchGaming, Mode=OneWay}" OnContent="Gaming" OffContent="Typing"
                                                   Tag="keyswitch" Toggled="HeadsetToggle_Toggled" Visibility="{x:Bind KeyswitchVisibility}" />
                                 </StackPanel>
+
+                                <Slider Header="{x:Bind BacklightText, Mode=OneWay}" Minimum="0" Maximum="100" StepFrequency="1" Value="{x:Bind BacklightValue, Mode=OneWay}"
+                                        Tag="backlight" ValueChanged="Slider_ValueChanged" Visibility="{x:Bind BacklightVisibility}" />
 
                                 <!-- DPI: type it, step it, pick a preset, or drag for big jumps -->
                                 <StackPanel Spacing="10" Visibility="{x:Bind DpiVisibility}">

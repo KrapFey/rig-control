@@ -541,6 +541,47 @@ else Console.WriteLine("skip rivalcfg checks (liquidctl runtime not fetched)");
     Check(bsent.SequenceEqual(["ff 0300 01 08 00"]) && !bw4.Caps.KeyswitchOptimization, "Razer keyboard: BlackWidow V4 game mode off with variable storage, tid 0xff");
     Check(RazerKeyboard.Lookup(0x0084) is null, "Razer keyboard: mice aren't in the keyboard table");
 }
+// --- Logitech keyboards (HID++ 2.0, Solaar's feature details), against a simulated keyboard
+{
+    int fnSwap = 0, disabled = 0x01 /* caps lock already disabled */, bright = 50, on = 1;
+    var writes = new List<string>();
+    ushort[] feats = [0x0000, 0x0005, 0x40A2, 0x4521, 0x8040];
+    LogitechDevice.Transport kbd = req =>
+    {
+        var rep = new byte[20];
+        Array.Copy(req, rep, 4);
+        var p = rep.AsSpan(4);
+        int fn = req[3] >> 4;
+        switch (feats.ElementAtOrDefault(req[2]))
+        {
+            case 0x0000 when fn == 1: p[0] = 4; p[2] = req[6]; break;
+            case 0x0000: p[0] = (byte)Math.Max(0, Array.IndexOf(feats, (ushort)(req[4] << 8 | req[5]))); break;
+            case 0x0005 when fn == 0: p[0] = 8; break;
+            case 0x0005 when fn == 1: "Keys 915"u8.ToArray().CopyTo(p); break;
+            case 0x0005: p[0] = 0; break; // keyboard
+            case 0x40A2 when fn == 0: p[0] = (byte)fnSwap; break;
+            case 0x40A2: fnSwap = req[4]; writes.Add($"fn {fnSwap}"); break;
+            case 0x4521 when fn == 0: p[0] = 0x1F; break; // caps, num, scroll, insert, win
+            case 0x4521 when fn == 1: p[0] = (byte)disabled; break;
+            case 0x4521: disabled = req[4]; writes.Add($"keys {disabled:x2}"); break;
+            case 0x8040 when fn == 0: p[1] = 100; p[3] = 0x04; p[5] = 10; break; // max 100, on/off, min 10
+            case 0x8040 when fn == 1: p[1] = (byte)bright; break;
+            case 0x8040 when fn == 2: bright = req[5]; writes.Add($"bright {bright}"); break;
+            case 0x8040 when fn == 3: p[0] = (byte)on; break;
+            case 0x8040 when fn == 4: on = req[4]; writes.Add($"on {on}"); break;
+            default: rep[2] = 0xFF; break;
+        }
+        return rep;
+    };
+    var lk = LogitechDevice.Open(kbd, 0xFF);
+    var ls2 = lk?.Read();
+    Check(lk is { Kind: "Keyboard" } && lk.Caps is { FnSwap: true, GameMode: true, Backlight: true } && ls2 is { FnSwap: false, GameMode: false, Backlight: 50 },
+        "Logitech keyboard: Fn swap, Windows-key lock and backlight found and read");
+    lk!.Apply(new PeripheralSettings { FnSwap = true, GameMode = true, Backlight = 0 }, ls2!);
+    Check(writes.SequenceEqual(["fn 1", "keys 11", "on 0"]), "Logitech keyboard: Fn swap on, Win key locked with Caps Lock kept disabled, backlight 0 % switches it off");
+    lk.Apply(new PeripheralSettings { Backlight = 80 }, lk.Read());
+    Check(writes.Skip(3).SequenceEqual(["on 1", "bright 80"]), "Logitech keyboard: backlight back on at 80 %");
+}
 // --- supported-devices list and its fuzzy search
 Check(SupportedDevices.List.Count > 2000 && SupportedDevices.List.Any(d => d.Kind == "Mouse") && SupportedDevices.List.Any(d => d.Kind == "Headset"), "supported list: loaded, every kind present");
 Check(SupportedDevices.Search("deathadder v2").FirstOrDefault()?.Name == "Razer DeathAdder V2", "search: exact words find the device first");

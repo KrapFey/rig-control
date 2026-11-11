@@ -770,6 +770,12 @@
 "source": "Razer protocol (openrazer data)"
 },
 {
+"name": "Logitech keyboards (HID++ 2.0: G and MX series, wired, Lightspeed, Unifying, Bolt)",
+"kind": "Keyboard",
+"features": "Fn-key swap, Windows-key lock, backlight brightness, report rate, battery",
+"source": "Logitech HID++ 2.0"
+},
+{
 "name": "QMK keyboards with VIA (protocol 12+): Keychron and many others",
 "kind": "Keyboard",
 "features": "lighting brightness, effect, speed, colour",

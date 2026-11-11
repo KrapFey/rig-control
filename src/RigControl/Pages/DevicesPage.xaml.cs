@@ -152,6 +152,8 @@ public sealed class PeripheralCard : Observable
             case "rapid": s.RapidTrigger = value != 0; break;
             case "gamemode": s.GameMode = value != 0; break;
             case "keyswitch": s.KeyswitchGaming = value != 0; break;
+            case "fnswap": s.FnSwap = value != 0; break;
+            case "backlight": s.Backlight = (int)Math.Round(value); break;
             case "lbright": s.LightBrightness = (int)Math.Round(value * 255 / 100); break;
             case "lspeed": s.LightSpeed = (int)Math.Round(value * 255 / 100); break;
             case "lhue": s.LightHue = (int)Math.Round(value); break;
@@ -178,7 +180,12 @@ public sealed class PeripheralCard : Observable
     public bool GameModeOn => Saved.GameMode ?? _state.GameMode ?? false;
     public Visibility KeyswitchVisibility => Show(Caps.KeyswitchOptimization);
     public bool KeyswitchGaming => Saved.KeyswitchGaming ?? _state.KeyswitchGaming ?? true;
-    public Visibility KeyboardSwitchesVisibility => Show(Caps.GameMode || Caps.KeyswitchOptimization);
+    public Visibility FnSwapVisibility => Show(Caps.FnSwap);
+    public bool FnSwapOn => Saved.FnSwap ?? _state.FnSwap ?? false;
+    public Visibility BacklightVisibility => Show(Caps.Backlight);
+    public double BacklightValue => Saved.Backlight ?? _state.Backlight ?? 100;
+    public string BacklightText => $"Backlight · {BacklightValue:0}%";
+    public Visibility KeyboardSwitchesVisibility => Show(Caps.GameMode || Caps.KeyswitchOptimization || Caps.FnSwap);
     public bool RapidOn => Saved.RapidTrigger ?? _state.RapidTrigger ?? false;
 
     // ---------------- On-board lighting (VIA keyboards)

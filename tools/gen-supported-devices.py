@@ -125,6 +125,7 @@ add("NVIDIA and AMD graphics cards", "Fans & cooling", "fan speed, temperatures"
 add("CPUs (Intel and AMD)", "Fans & cooling", "temperatures", "LibreHardwareMonitor")
 add("Razer Seiren V3 Chroma", "Lighting", "RGB lighting (built-in driver)", "RigControl")
 add("Logitech mice and keyboards (HID++ 2.0: wired, Lightspeed, Unifying, Bolt)", "Mouse", "DPI, report rate, battery", "Logitech HID++ 2.0")
+add("Logitech keyboards (HID++ 2.0: G and MX series, wired, Lightspeed, Unifying, Bolt)", "Keyboard", "Fn-key swap, Windows-key lock, backlight brightness, report rate, battery", "Logitech HID++ 2.0")
 add("SteelSeries Apex Pro TKL (2023, wired)", "Keyboard", "actuation depth, rapid trigger", "SteelSeries protocol")
 add("SteelSeries Apex Pro Gen 3 (firmware 4.16.8)", "Keyboard", "actuation depth", "SteelSeries protocol")
 add("QMK keyboards with VIA (protocol 12+): Keychron and many others", "Keyboard", "lighting brightness, effect, speed, colour", "VIA")

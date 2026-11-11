@@ -12,7 +12,11 @@ public sealed class LogitechDevice : IPeripheral
 {
     // HID++ 2.0 features RigControl uses.
     const ushort Root = 0x0000, DeviceName = 0x0005, BatteryStatus = 0x1000, UnifiedBattery = 0x1004,
-        AdjustableDpi = 0x2201, ReportRate = 0x8060, ExtendedReportRate = 0x8061;
+        AdjustableDpi = 0x2201, ReportRate = 0x8060, ExtendedReportRate = 0x8061,
+        FnInversion = 0x40A0, NewFnInversion = 0x40A2, DisableKeys = 0x4521, BrightnessControl = 0x8040;
+    const byte WinKey = 0x10; // 0x4521 bit
+    int _brightMin, _brightMax = 100;
+    bool _brightOnOff;
     const byte LongReport = 0x11, SoftwareId = 0x0B;
     static readonly int[] ExtendedRates = [125, 250, 500, 1000, 2000, 4000, 8000]; // 0x8061 bit/index → Hz
 
@@ -39,9 +43,17 @@ public sealed class LogitechDevice : IPeripheral
         Name = name;
         Kind = kind;
         Key = "logitech/" + new string([.. name.ToLowerInvariant().Select(c => char.IsLetterOrDigit(c) ? c : '-')]).Trim('-');
-        foreach (var f in new[] { AdjustableDpi, ReportRate, ExtendedReportRate, BatteryStatus, UnifiedBattery })
+        foreach (var f in new[] { AdjustableDpi, ReportRate, ExtendedReportRate, BatteryStatus, UnifiedBattery, FnInversion, NewFnInversion, DisableKeys, BrightnessControl })
             if (FeatureIndex(f) is byte i) _features[f] = i;
         if (_features.ContainsKey(AdjustableDpi)) _dpiList = ReadDpiList();
+        // Windows-key lock only when the keyboard lists the Win key among the keys it can disable.
+        bool winLock = Call(DisableKeys, 0) is { } dk && (dk[0] & WinKey) != 0;
+        if (Call(BrightnessControl, 0) is { } bi)
+        {
+            _brightMax = Math.Max(1, bi[0] << 8 | bi[1]);
+            _brightMin = bi[4] << 8 | bi[5];
+            _brightOnOff = (bi[3] & 0x04) != 0;
+        }
         Caps = new PeripheralCaps
         {
             DpiMin = _dpiList.Length > 0 ? _dpiList[0] : 100,
@@ -50,8 +62,13 @@ public sealed class LogitechDevice : IPeripheral
             PollRates = ReadRates(),
             Battery = _features.ContainsKey(BatteryStatus) || _features.ContainsKey(UnifiedBattery),
             Charging = _features.ContainsKey(BatteryStatus) || _features.ContainsKey(UnifiedBattery),
+            FnSwap = _features.ContainsKey(FnInversion) || _features.ContainsKey(NewFnInversion),
+            GameMode = winLock,
+            Backlight = _features.ContainsKey(BrightnessControl),
         };
     }
+
+    ushort FnFeature => _features.ContainsKey(NewFnInversion) ? NewFnInversion : FnInversion;
 
     /// <summary>
     /// Opens a device behind <paramref name="io"/> at <paramref name="index"/> (0xFF wired, 1–6 behind a receiver).
@@ -228,7 +245,15 @@ public sealed class LogitechDevice : IPeripheral
         }
         if (Call(ExtendedReportRate, 2) is { } x) poll = x[0] < ExtendedRates.Length ? ExtendedRates[x[0]] : null;
         else if (Call(ReportRate, 1) is { } r && r[0] > 0) poll = 1000 / r[0];
-        return new PeripheralState { Dpi = dpi, PollRate = poll, BatteryPercent = battery, Charging = charging };
+        bool? fn = Caps.FnSwap && Call(FnFeature, 0) is { } f ? f[0] == 1 : null;
+        bool? win = Caps.GameMode && Call(DisableKeys, 1) is { } w ? (w[0] & WinKey) != 0 : null;
+        int? light = null;
+        if (Caps.Backlight && Call(BrightnessControl, 1) is { } br)
+        {
+            bool off = _brightOnOff && Call(BrightnessControl, 3) is { } o && (o[0] & 0x01) == 0;
+            light = off ? 0 : (int)Math.Round((br[0] << 8 | br[1]) * 100.0 / _brightMax);
+        }
+        return new PeripheralState { Dpi = dpi, PollRate = poll, BatteryPercent = battery, Charging = charging, FnSwap = fn, GameMode = win, Backlight = light };
     }
 
     public void Apply(PeripheralSettings want, PeripheralState now)
@@ -244,6 +269,20 @@ public sealed class LogitechDevice : IPeripheral
             // ponytail: in onboard-profile mode some mice refuse this (the profile owns the rate); it then just doesn't stick.
             if (_features.ContainsKey(ExtendedReportRate)) Call(ExtendedReportRate, 3, (byte)Array.IndexOf(ExtendedRates, hz));
             else Call(ReportRate, 2, (byte)(1000 / hz));
+        }
+        if (want.FnSwap is bool fn && Caps.FnSwap && fn != now.FnSwap) Call(FnFeature, 1, (byte)(fn ? 1 : 0));
+        if (want.GameMode is bool lockWin && Caps.GameMode && lockWin != now.GameMode && Call(DisableKeys, 1) is { } keys)
+            Call(DisableKeys, 2, (byte)(lockWin ? keys[0] | WinKey : keys[0] & ~WinKey)); // other disabled keys stay as they are
+        if (want.Backlight is int pct && Caps.Backlight && pct != now.Backlight)
+        {
+            pct = Math.Clamp(pct, 0, 100);
+            if (pct == 0 && _brightOnOff) Call(BrightnessControl, 4, 0);
+            else
+            {
+                if (_brightOnOff && now.Backlight == 0) Call(BrightnessControl, 4, 1);
+                int raw = Math.Clamp((int)Math.Round(pct * _brightMax / 100.0), _brightMin, _brightMax);
+                Call(BrightnessControl, 2, (byte)(raw >> 8), (byte)raw);
+            }
         }
     }
 

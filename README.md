@@ -60,6 +60,8 @@ headset and keyboard, and watch it all live in a modern WinUI 3 interface.
     battery, sidetone, mic volume, auto-off, EQ preset, noise cancelling, lights, voice prompts, rotate to mute.
   - **VIA keyboards** (QMK firmware with VIA, protocol 12+: Keychron and many others): lighting brightness,
     effect, speed and colour, asked from the keyboard itself, set live.
+  - **Logitech keyboards** (HID++ 2.0): F-key/media-key swap, Windows-key lock, backlight brightness, report rate
+    and battery, each only when the keyboard lists that feature (details from Solaar).
   - **Razer keyboards** (59 models, data from openrazer): game mode (the keyboard's own Windows-key lock, also
     followed when you press Fn+F10), polling rate up to 8000 Hz on newer models, switch optimisation on the Huntsman
     V2, battery on wireless ones.

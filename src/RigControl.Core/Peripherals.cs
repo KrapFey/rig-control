@@ -41,6 +41,10 @@ public sealed class PeripheralCaps
     public bool GameMode { get; init; }
     /// <summary>Switches tuned for gaming or for typing (Razer Huntsman V2).</summary>
     public bool KeyswitchOptimization { get; init; }
+    /// <summary>F1–F12 can be swapped with their media/special functions.</summary>
+    public bool FnSwap { get; init; }
+    /// <summary>Keyboard backlight brightness (0–100 %).</summary>
+    public bool Backlight { get; init; }
 
     // On-board lighting a device sets itself (VIA keyboards); null = none
     public string? Lighting { get; init; }
@@ -69,6 +73,8 @@ public sealed record PeripheralState
     public bool? RapidTrigger { get; init; }
     public bool? GameMode { get; init; }
     public bool? KeyswitchGaming { get; init; }
+    public bool? FnSwap { get; init; }
+    public int? Backlight { get; init; }
     public int? LightBrightness { get; init; }
     public int? LightEffect { get; init; }
     public int? LightSpeed { get; init; }
@@ -103,6 +109,10 @@ public sealed class PeripheralSettings
     public bool? GameMode { get; set; }
     /// <summary>True: switches tuned for gaming; false: for typing.</summary>
     public bool? KeyswitchGaming { get; set; }
+    /// <summary>True: F1–F12 do their special functions; hold Fn for the F-keys.</summary>
+    public bool? FnSwap { get; set; }
+    /// <summary>Keyboard backlight, 0–100 %.</summary>
+    public int? Backlight { get; set; }
 
     // On-board lighting (0–255 each; effect 0 = off)
     public int? LightBrightness { get; set; }
