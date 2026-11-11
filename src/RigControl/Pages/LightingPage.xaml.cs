@@ -42,7 +42,16 @@ public sealed class DeviceCard : Observable
 
     public string Key => _target.Key;
     public string Name { get; }
-    public string Detail => $"{Label(_target.Type)} · {_target.LedCount} LED{(_target.LedCount == 1 ? "" : "s")}";
+    public string Detail => $"{Label(_target.Type)} · {_target.LedCount} LED{(_target.LedCount == 1 ? "" : "s")}{LayoutNote}";
+    bool HasFans => _target.Zones.Any(z => z.Segments.Count > 1);
+    /// <summary>Says so on the card when the effect repeats on each fan or zone.</summary>
+    string LayoutNote => Settings.Layout switch
+    {
+        EffectLayout.Fan when HasFans => " · per fan",
+        EffectLayout.Auto when HasFans => " · per fan",
+        EffectLayout.Zone => " · per zone",
+        _ => "",
+    };
     public string Glyph => _target.Type switch
     {
         RgbDeviceType.Keyboard => "",
@@ -104,14 +113,18 @@ public sealed class DeviceCard : Observable
             Changed();
             Raise(string.Empty);
             SourceChanged?.Invoke();
-            if (source == LightingSource.Effect) EditEffect();
+            Select();
         }
     }
 
-    /// <summary>Puts this device's own effect in the effect editor at the top of the page.</summary>
-    public void EditEffect() => EditRequested?.Invoke(Key);
-    public static event Action<string>? EditRequested;
-    public Visibility OwnEffectVisibility => Settings.Source == LightingSource.Effect ? Visibility.Visible : Visibility.Collapsed;
+    /// <summary>Clicking a card puts what it shows in the editor at the top: its own effect, or the synced one.</summary>
+    public void Select() => EditRequested?.Invoke(Settings.Source == LightingSource.Effect ? Key : null);
+    public static event Action<string?>? EditRequested;
+
+    bool _editing;
+    /// <summary>True while the editor at the top is changing what this device shows (the card gets an accent outline).</summary>
+    public bool Editing { get => _editing; set { if (Set(ref _editing, value)) Raise(nameof(Stroke)); } }
+    public Brush Stroke => (Brush)Application.Current.Resources[_editing ? "AccentGradient" : "CardStroke"];
 
     /// <summary>A card switched between the synced effect, a device effect and off (the page recounts who follows the effect).</summary>
     public static event Action? SourceChanged;
@@ -157,7 +170,7 @@ public sealed class DeviceCard : Observable
     public Visibility IdentifyTextVisibility => ZonesVisibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
     public Visibility ZonesVisibility => (_target.LedCount > 1 || _target.Zones.Any(z => z.Resizable)) && Settings.Source is LightingSource.Sync or LightingSource.Effect ? Visibility.Visible : Visibility.Collapsed;
     int CustomZones => _target.Zones.Count(z => Settings.Zones.TryGetValue(z.Name, out var zl) && zl.Source != ZoneSource.Sync);
-    string ZonesWord => _target.Zones.Count > 1 ? "Zones" : "LEDs";
+    string ZonesWord => _target.Zones.Count > 1 || HasFans ? "Layout" : "LEDs";
     public string ZonesLabel => CustomZones == 0 ? ZonesWord : $"{ZonesWord} · {CustomZones}";
     public string ZonesTip => _target.Zones.Count > 1
         ? (CustomZones == 0 ? $"{_target.Zones.Count} zones, all following the effect: give one its own colours, or turn it off"
@@ -197,7 +210,7 @@ public sealed class DeviceCard : Observable
             var layoutBox = new ComboBox { Header = "Effect layout", ItemsSource = layouts.Select(l => l.label).ToList(), HorizontalAlignment = HorizontalAlignment.Stretch,
                 SelectedIndex = Math.Max(0, layouts.FindIndex(l => l.layout == Settings.Layout)) };
             ToolTipService.SetToolTip(layoutBox, "Whether a wave or gradient runs once over the whole device, or plays on each zone or fan by itself");
-            layoutBox.SelectionChanged += (_, _) => { if (layoutBox.SelectedIndex >= 0) { Edit().Layout = layouts[layoutBox.SelectedIndex].layout; Changed(); } };
+            layoutBox.SelectionChanged += (_, _) => { if (layoutBox.SelectedIndex >= 0) { Edit().Layout = layouts[layoutBox.SelectedIndex].layout; Changed(); Raise(nameof(Detail)); } };
             panel.Children.Add(layoutBox);
         }
         panel.Children.Add(new TextBlock { Text = "Each zone can follow the effect, show one colour, get a colour per LED, or stay off."
@@ -455,10 +468,12 @@ public sealed partial class LightingPage : Page
         _loading = false;
     }
 
-    void EditDevice(string key)
+    void EditDevice(string? key)
     {
+        bool moved = key != _editKey;
         _editKey = key;
         SourcesChanged();
+        if (moved) EditBox.StartBringIntoView(); // the editor may be scrolled out of sight
     }
 
     void SourcesChanged()
@@ -497,6 +512,9 @@ public sealed partial class LightingPage : Page
         }
         BuildSwatches();
         UpdateSyncCount();
+        // Outline the devices the editor is changing right now.
+        foreach (var card in _cards)
+            card.Editing = _editKey is null ? Cfg.Current.Devices.GetValueOrDefault(card.Key)?.Source is null or LightingSource.Sync : card.Key == _editKey;
     }
 
     sealed record AudioDeviceOption(string? Id, string Label);

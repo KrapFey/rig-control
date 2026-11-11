@@ -9,7 +9,10 @@ public sealed class CurveItem(CurveDef def) : Observable
 {
     public CurveDef Def { get; } = def;
     public string Name { get => Def.Name; set { Def.Name = value; Raise(); } }
-    public string Kind => Def.Kind switch { CurveKind.Mix => $"Mix · {Def.Mix}", CurveKind.Flat => "Flat", _ => "Graph" };
+    public string Kind => (Def.Kind switch { CurveKind.Mix => $"Mix · {Def.Mix}", CurveKind.Flat => "Flat", _ => "Graph" })
+        + (Fans == 0 ? "" : Fans == 1 ? " · 1 fan" : $" · {Fans} fans");
+    /// <summary>How many fans follow this curve now.</summary>
+    public int Fans => App.Instance!.Config.Fans.Values.Count(f => f is { Enabled: true, Manual: null } && f.Curve == Def.Name);
     public string Glyph => Def.Kind switch { CurveKind.Mix => "", CurveKind.Flat => "", _ => "" };
     string _output = "–";
     public string Output { get => _output; set => Set(ref _output, value); }
@@ -73,7 +76,8 @@ public sealed partial class CurvesPage : Page
         ImportButton.Visibility = File.Exists(FanControlImport.DefaultPath) ? Visibility.Visible : Visibility.Collapsed;
         DeleteButton.IsEnabled = d is not null;
         bool graph = d?.Kind == CurveKind.Graph, mix = d?.Kind == CurveKind.Mix, flat = d?.Kind == CurveKind.Flat;
-        NameBox.Visibility = d is null ? Visibility.Collapsed : Visibility.Visible;
+        NameBox.Visibility = FansButton.Visibility = d is null ? Visibility.Collapsed : Visibility.Visible;
+        if (d is not null) ShowFans(d);
         Editor.Visibility = SourceBox.Visibility = DeadbandBox.Visibility = ResponseBox.Visibility = graph ? Visibility.Visible : Visibility.Collapsed;
         MixPanel.Visibility = MixBox.Visibility = mix ? Visibility.Visible : Visibility.Collapsed;
         FlatPanel.Visibility = flat ? Visibility.Visible : Visibility.Collapsed;
@@ -109,6 +113,32 @@ public sealed partial class CurvesPage : Page
         }
         _loading = false;
     }
+
+    /// <summary>The Fans button: a tick per fan that follows this curve. Ticking one puts the fan on it.</summary>
+    void ShowFans(CurveDef d)
+    {
+        FanChecks.Children.Clear();
+        foreach (var fan in Live.Instance.Fans.Where(f => f.Present || Cfg.Fans.TryGetValue(f.Id, out var s) && s.Enabled))
+        {
+            Cfg.Fans.TryGetValue(fan.Id, out var now);
+            var box = new CheckBox { Content = $"{fan.Name}  ·  {fan.Short}", IsChecked = now is { Enabled: true, Manual: null } && now.Curve == d.Name };
+            if (now is { Enabled: true, Manual: null, Curve: string other } && other != d.Name) ToolTipService.SetToolTip(box, $"Now on \"{other}\"");
+            box.Click += (_, _) =>
+            {
+                if (!Cfg.Fans.TryGetValue(fan.Id, out var fs)) Cfg.Fans[fan.Id] = fs = new FanSettings();
+                if (box.IsChecked == true) { fs.Enabled = true; fs.Manual = null; fs.Curve = d.Name; }
+                else fs.Curve = null; // no curve: the fan goes back to the hardware's own control
+                App.Instance!.ConfigChanged();
+                foreach (var it in _items) it.KindChanged(); // the counts in the list
+                FansLabel();
+            };
+            FanChecks.Children.Add(box);
+        }
+        if (FanChecks.Children.Count == 0) FanChecks.Children.Add(new TextBlock { Text = "No fans found.", Opacity = 0.7 });
+        FansLabel();
+    }
+
+    void FansLabel() => FansButton.Content = _sel?.Fans is int n and > 0 ? $"Fans · {n}" : "Fans · none";
 
     void NameBox_LostFocus(object sender, RoutedEventArgs e)
     {

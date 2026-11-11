@@ -26,7 +26,7 @@
 
             <ItemsRepeater x:Name="Tiles">
                 <ItemsRepeater.Layout>
-                    <UniformGridLayout MinItemWidth="320" MinItemHeight="104" MinRowSpacing="12" MinColumnSpacing="12" ItemsStretch="Fill" />
+                    <UniformGridLayout MinItemWidth="380" MinItemHeight="118" MinRowSpacing="12" MinColumnSpacing="12" ItemsStretch="Fill" />
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="p:PeripheralCard">
@@ -45,7 +45,7 @@
                                 </Border>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                                     <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" FontSize="16" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{x:Bind Vital, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{x:Bind Vital, Mode=OneWay}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
                                     <TextBlock Text="{x:Bind Source}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
                                 </StackPanel>
                                     <Border Grid.Column="2" VerticalAlignment="Center" CornerRadius="12" Padding="10,4" Background="#1AFFFFFF" Visibility="{x:Bind BatteryVisibility, Mode=OneWay}">

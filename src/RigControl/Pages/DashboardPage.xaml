@@ -48,7 +48,7 @@
                 </Border>
             </Grid>
 
-            <TextBlock Text="FANS" Style="{StaticResource Caption}" Margin="2,8,0,0" />
+            <TextBlock Text="FANS · CLICK ONE FOR ITS SETTINGS" Style="{StaticResource Caption}" Margin="2,8,0,0" />
 
 <ItemsRepeater x:Name="FanGrid" ElementPrepared="FanGrid_ElementPrepared">
                 <ItemsRepeater.Layout>
@@ -75,7 +75,10 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
+                                    <!-- the same "opens its settings" hint the device cards have -->
+                                    <FontIcon Grid.Column="2" Glyph="&#xE76C;" FontSize="12" Opacity="0.5" VerticalAlignment="Center" />
                                     <c:FanGlyph Rpm="{x:Bind Rpm.Value, Mode=OneWay}" />
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                         <TextBlock Text="{x:Bind Name, Mode=OneWay}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />

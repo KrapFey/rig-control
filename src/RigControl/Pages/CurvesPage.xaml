@@ -18,7 +18,7 @@
 
         <StackPanel Grid.ColumnSpan="2">
             <TextBlock Text="Curves" Style="{StaticResource PageTitle}" Margin="0" />
-            <TextBlock Text="Turn temperatures into fan speeds. Each fan picks its curve on its own page (click it on the Dashboard)." Style="{StaticResource Caption}" Margin="0,4,0,0" />
+            <TextBlock Text="Turn temperatures into fan speeds. Choose which fans follow a curve with its Fans button." Style="{StaticResource Caption}" Margin="0,4,0,0" />
         </StackPanel>
 
         <!-- Curve list -->
@@ -86,7 +86,15 @@
                         <ColumnDefinition />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
+                    <DropDownButton x:Name="FansButton" Grid.Column="4" VerticalAlignment="Bottom" MinWidth="96" ToolTipService.ToolTip="Which fans follow this curve">
+                        <DropDownButton.Flyout>
+                            <Flyout Placement="BottomEdgeAlignedRight">
+                                <StackPanel x:Name="FanChecks" Spacing="2" MinWidth="240" />
+                            </Flyout>
+                        </DropDownButton.Flyout>
+                    </DropDownButton>
                     <TextBox x:Name="NameBox" Header="Name" LostFocus="NameBox_LostFocus" />
                     <ComboBox x:Name="SourceBox" Grid.Column="1" Header="Temperature" HorizontalAlignment="Stretch" DisplayMemberPath="Label" SelectionChanged="SourceBox_SelectionChanged" />
                     <NumberBox x:Name="DeadbandBox" Grid.Column="2" Header="Deadband °C" Minimum="0" Maximum="20" SpinButtonPlacementMode="Compact" ValueChanged="Tuning_ValueChanged" ToolTipService.ToolTip="Ignore temperature changes smaller than this" />

@@ -45,12 +45,12 @@ static class Heat
 /// <summary>270° arc gauge with a heat-tinted, breathing glow behind it.</summary>
 public sealed class Gauge : Grid
 {
-    const double Size = 190, Stroke = 14, Start = 135, Sweep = 270;
+    const double Size = 140, Stroke = 11, Start = 135, Sweep = 270;
     readonly Path _track = new() { StrokeThickness = Stroke, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round };
     readonly Path _arc = new() { StrokeThickness = Stroke, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round };
     readonly Ellipse _glow = new() { Width = Size * 1.25, Height = Size * 1.25, IsHitTestVisible = false };
-    readonly TextBlock _value = new() { FontSize = 46, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
-    readonly TextBlock _label = new() { FontSize = 13, Opacity = 0.65, HorizontalAlignment = HorizontalAlignment.Center, CharacterSpacing = 80 };
+    readonly TextBlock _value = new() { FontSize = 36, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
+    readonly TextBlock _label = new() { FontSize = 12, Opacity = 0.65, HorizontalAlignment = HorizontalAlignment.Center, CharacterSpacing = 80 };
     readonly GradientStop _glowStop = new() { Offset = 0 };
     readonly LinearGradientBrush _arcBrush = new() { StartPoint = new(0, 1), EndPoint = new(1, 0) };
 
