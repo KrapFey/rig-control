@@ -196,12 +196,14 @@ public sealed class PeripheralHub : IDisposable
     void Rescan()
     {
         var found = new List<IPeripheral>();
+        if (Demo.On) found.AddRange(Demo.Peripherals()); else {
         found.AddRange(RazerMouse.FindAll());
         found.AddRange(HeadsetControlDevice.FindAll());
         found.AddRange(LogitechDevice.FindAll());
         found.AddRange(SteelSeriesKeyboard.FindAll());
         found.AddRange(ViaKeyboard.FindAll());
         found.AddRange(SteelSeriesMouse.FindAll());
+        }
 
         List<IPeripheral> old;
         lock (_lock)

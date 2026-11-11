@@ -422,6 +422,7 @@ Check(SupportedDevices.Search("deathadder v2").FirstOrDefault()?.Name == "Razer 
 Check(SupportedDevices.Search("dthaddr v2").Any(d => d.Name == "Razer DeathAdder V2"), "search: letters in order still match (typos with dropped letters)");
 Check(SupportedDevices.Search("kraken", "Fans & cooling").All(d => d.Kind.Contains("Fans & cooling")) && SupportedDevices.Search("kraken", "Fans & cooling").Count > 0, "search: kind filter");
 Check(SupportedDevices.Search("zzqqxx").Count == 0, "search: nonsense finds nothing");
+Check(SupportedDevices.Search("kraken x").TakeWhile(d => !d.Name.Contains("Kraken M")).Any(d => d.Name == "NZXT Kraken X2"), "search: a word that starts a later word beats the same letters inside an earlier one");
 Check(SupportedDevices.List.Single(d => d.Name == "Razer DeathAdder V2").Kind == "Mouse · Lighting", "supported list: one row per device, settings and lighting merged");
 
 // --- config round trip

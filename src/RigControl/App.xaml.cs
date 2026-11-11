@@ -33,7 +33,9 @@ public partial class App : Application
         Instance = this;
         AppConfig.Log = Log;
 #if UITEST
-        AppConfig.Folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RigControl-uitest");
+        // RIGCONTROL_DEMO=1: made-up hardware for screenshots (RigControl.Core.Demo), in its own settings folder.
+        Demo.On = Environment.GetEnvironmentVariable("RIGCONTROL_DEMO") == "1";
+        AppConfig.Folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Demo.On ? "RigControl-demo" : "RigControl-uitest");
 #endif
         Log($"start pid {Environment.ProcessId} args [{string.Join(" ", Environment.GetCommandLineArgs().Skip(1))}]");
         InitializeComponent();
@@ -46,6 +48,7 @@ public partial class App : Application
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         Ui = DispatcherQueue.GetForCurrentThread();
+        if (Demo.On && !File.Exists(AppConfig.FilePath)) Demo.Config().Save();
         try { Config = AppConfig.Load(); }
         catch (Exception e)
         {
@@ -74,7 +77,8 @@ public partial class App : Application
         };
 
 #if UITEST
-        Peripherals = new PeripheralHub(() => []); // the UI-test build reads devices but never writes settings
+        // the UI-test build reads devices but never writes settings (demo devices are made up, so they may)
+        Peripherals = new PeripheralHub(() => Demo.On ? Config.Clone().Peripherals : []);
 #else
         Peripherals = new PeripheralHub(() => Config.Clone().Peripherals);
 #endif
@@ -138,6 +142,7 @@ public partial class App : Application
     async Task StartLightingAsync()
     {
 #if UITEST
+        if (Demo.On) { Lighting.SetTargets(Demo.RgbDevices()); Ui.TryEnqueue(() => LightingStateChanged?.Invoke()); return; }
         LightingNotice = "The UI-test build doesn't start the lighting engine.";
         return;
 #endif
@@ -189,7 +194,7 @@ public partial class App : Application
     static bool OtherFanAppRunning()
     {
 #if UITEST
-        return true; // the UI-test build never touches fans
+        return !Demo.On; // the UI-test build never touches real fans (demo fans are made up)
 #endif
         var p = System.Diagnostics.Process.GetProcessesByName("FanControl");
         foreach (var x in p) x.Dispose();

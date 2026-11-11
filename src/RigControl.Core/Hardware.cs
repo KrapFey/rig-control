@@ -58,6 +58,7 @@ public sealed class HardwareHub : IDisposable
     public void Open(IReadOnlyDictionary<string, string>? drivers = null)
     {
         drivers ??= new Dictionary<string, string>();
+        if (Demo.On) { Demo.Fill(this); return; }
         try
         {
             _lhm.Open();
@@ -119,6 +120,7 @@ public sealed class HardwareHub : IDisposable
 
     public void Update()
     {
+        if (Demo.On) { Demo.Tick(); return; }
         foreach (var hw in _lhmHardware)
         {
             try { hw.Update(); } catch { /* one flaky chip must not stop the loop */ }

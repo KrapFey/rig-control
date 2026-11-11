@@ -53,8 +53,11 @@ public static class SupportedDevices
     /// <summary>How well <paramref name="word"/> matches <paramref name="text"/>: 0 = not at all.</summary>
     internal static int Match(string text, string word)
     {
-        int at = text.IndexOf(word, StringComparison.Ordinal);
-        if (at >= 0) return 1000 + (at == 0 || !char.IsLetterOrDigit(text[at - 1]) ? 500 : 0) - Math.Min(at, 100) / 10;
+        // Every place the word occurs counts; the best one wins (the "x" in "nzxt x2" is the one that starts "x2").
+        int best = 0;
+        for (int at = text.IndexOf(word, StringComparison.Ordinal); at >= 0; at = text.IndexOf(word, at + 1, StringComparison.Ordinal))
+            best = Math.Max(best, 1000 + (at == 0 || !char.IsLetterOrDigit(text[at - 1]) ? 500 : 0) - Math.Min(at, 100) / 10);
+        if (best > 0) return best;
         // Letters in order; each one right after the previous, or at a word start, scores more.
         int score = 0, i = 0, last = -2;
         foreach (char c in word)

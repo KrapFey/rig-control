@@ -208,7 +208,7 @@ public sealed partial class LightingPage : Page
         DeleteProfileItem.IsEnabled = Cfg.Profiles.Count > 1;
         EnabledSwitch.IsOn = Cfg.Enabled;
 
-        Notice.IsOpen = AppI.LightingNotice is not null || (AppI.Rgb is null && AppI.LightingNotice is null);
+        Notice.IsOpen = AppI.LightingNotice is not null || (AppI.Rgb is null && AppI.Lighting.Targets.Count == 0);
         Notice.Message = AppI.LightingNotice ?? "Finding your RGB devices…";
         Notice.Severity = AppI.LightingNotice is null ? InfoBarSeverity.Informational : InfoBarSeverity.Warning;
 

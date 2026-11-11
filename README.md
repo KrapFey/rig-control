@@ -2,9 +2,20 @@
 
 <img src="src/RigControl/Assets/RigControl.png" width="72" align="right">
 
-An open-source Windows app for your PC's fans and RGB lighting. Build temperature-based fan curves for
-motherboard, GPU, fan-controller and AIO fans, light every RGB device in sync, and watch it all live in a
-modern WinUI 3 interface.
+An open-source Windows app for your PC's fans, RGB lighting and gaming peripherals. Build temperature-based fan
+curves for motherboard, GPU, fan-controller and AIO fans, light every RGB device in sync, set up your mouse,
+headset and keyboard, and watch it all live in a modern WinUI 3 interface.
+
+![Dashboard: CPU, GPU and airflow gauges above live fan tiles](docs/screenshots/dashboard.png)
+
+| | |
+|---|---|
+| ![Fan curve editor](docs/screenshots/curves.png) | ![Lighting with a synced rainbow effect](docs/screenshots/lighting.png) |
+| ![Mouse settings: DPI, stages, polling rate](docs/screenshots/device-mouse.png) | ![Keyboard settings: lighting, actuation, rapid trigger](docs/screenshots/device-keyboard.png) |
+
+![Supported devices, fuzzy search for "kraken x"](docs/screenshots/supported.png)
+
+<sub>Screenshots use RigControl's demo mode (made-up hardware), not a real PC.</sub>
 
 ## Features
 
@@ -100,7 +111,8 @@ tests\RigControl.Checks\bin\Debug\net10.0-windows10.0.26100.0\RigControl.Checks.
 ```
 
 `-p:UiTest=true` builds a copy that runs without admin and never touches fans, for UI automation
-(`tools\ui.ps1`, `tools\shot.ps1`, `tools\tray.ps1`).
+(`tools\ui.ps1`, `tools\shot.ps1`, `tools\tray.ps1`). Start it with `RIGCONTROL_DEMO=1` for demo mode: made-up
+fans, sensors, devices and RGB devices in their own settings folder, which is how the screenshots are made.
 
 Settings live in `%APPDATA%\RigControl\config.json`; every load and save is logged to `rigcontrol.log` beside it.
 

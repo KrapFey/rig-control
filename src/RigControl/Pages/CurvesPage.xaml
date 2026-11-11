@@ -18,7 +18,7 @@
 
         <StackPanel Grid.ColumnSpan="2">
             <TextBlock Text="Curves" Style="{StaticResource PageTitle}" Margin="0" />
-            <TextBlock Text="Turn temperatures into fan speeds. Fans pick a curve on the Fans page." Style="{StaticResource Caption}" Margin="0,4,0,0" />
+            <TextBlock Text="Turn temperatures into fan speeds. Each fan picks its curve on its own page (click it on the Dashboard)." Style="{StaticResource Caption}" Margin="0,4,0,0" />
         </StackPanel>
 
         <!-- Curve list -->
