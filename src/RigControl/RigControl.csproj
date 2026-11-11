@@ -20,7 +20,7 @@
     <SelfContained>true</SelfContained>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\RigControl.ico</ApplicationIcon>
-    <Version>0.5.1</Version>
+    <Version>0.5.2</Version>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <!-- Program.cs owns Main (single instance) -->
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
