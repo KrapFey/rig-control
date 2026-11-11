@@ -1,0 +1,150 @@
+<Page
+    x:Class="RigControl.Pages.DevicePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:p="using:RigControl.Pages"
+    Background="Transparent">
+
+    <Page.Resources>
+        <DataTemplate x:Key="FullCard" x:DataType="p:PeripheralCard">
+                            <StackPanel Spacing="22">
+                                <Grid ColumnSpacing="18">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="64" Height="64" CornerRadius="18" Background="{StaticResource AccentGradient}">
+                                        <FontIcon Glyph="{x:Bind Glyph}" FontSize="30" Foreground="White" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock Text="{x:Bind Name}" Style="{StaticResource PageTitle}" Margin="0" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{x:Bind Source}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <Border Grid.Column="2" CornerRadius="14" Padding="12,6" Background="#1AFFFFFF" VerticalAlignment="Center" Visibility="{x:Bind BatteryVisibility, Mode=OneWay}">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <FontIcon Glyph="{x:Bind BatteryGlyph, Mode=OneWay}" FontSize="16" />
+                                            <TextBlock Text="{x:Bind BatteryText, Mode=OneWay}" FontWeight="SemiBold" FontSize="16" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                                <Rectangle Height="1" Fill="#14FFFFFF" />
+
+                                <!-- Headset -->
+                                <StackPanel Spacing="12" Visibility="{x:Bind HeadsetVisibility}">
+                                    <InfoBar IsOpen="{x:Bind HeadsetOff, Mode=OneWay}" IsClosable="False" Severity="Informational"
+                                             Message="The headset is off or out of range. Settings apply when it's back." />
+                                    <StackPanel Spacing="4" Visibility="{x:Bind ChatmixVisibility}">
+                                        <Grid>
+                                            <TextBlock Text="CHAT-MIX · set with the headset's dial" Style="{StaticResource Caption}" />
+                                            <TextBlock Text="{x:Bind ChatmixText, Mode=OneWay}" HorizontalAlignment="Right" Style="{StaticResource Caption}" />
+                                        </Grid>
+                                        <ProgressBar Minimum="0" Maximum="128" Value="{x:Bind ChatmixValue, Mode=OneWay}" />
+                                    </StackPanel>
+                                    <Slider Header="{x:Bind SidetoneText, Mode=OneWay}" Minimum="0" Maximum="128" StepFrequency="1" Value="{x:Bind SidetoneValue, Mode=OneWay}"
+                                            Tag="sidetone" ValueChanged="Slider_ValueChanged" Visibility="{x:Bind SidetoneVisibility}" />
+                                    <Slider Header="{x:Bind MicVolumeText, Mode=OneWay}" Minimum="0" Maximum="128" StepFrequency="1" Value="{x:Bind MicVolumeValue, Mode=OneWay}"
+                                            Tag="micvolume" ValueChanged="Slider_ValueChanged" Visibility="{x:Bind MicVolumeVisibility}" />
+                                    <Slider Header="{x:Bind InactiveText, Mode=OneWay}" Minimum="0" Maximum="90" StepFrequency="5" Value="{x:Bind InactiveValue, Mode=OneWay}"
+                                            Tag="inactive" ValueChanged="Slider_ValueChanged" Visibility="{x:Bind InactiveVisibility}" />
+                                    <Grid ColumnSpacing="16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition />
+                                            <ColumnDefinition />
+                                        </Grid.ColumnDefinitions>
+                                        <ComboBox Header="EQ preset" PlaceholderText="Choose… (the headset doesn't report it)" HorizontalAlignment="Stretch" ItemsSource="{x:Bind EqOptions}" SelectedIndex="{x:Bind EqIndex, Mode=OneWay}"
+                                                  Tag="eq" SelectionChanged="HeadsetCombo_SelectionChanged" Visibility="{x:Bind EqVisibility}" />
+                                        <ComboBox Grid.Column="1" Header="Noise cancelling" PlaceholderText="Choose…" HorizontalAlignment="Stretch" ItemsSource="{x:Bind AncOptions}" SelectedIndex="{x:Bind AncIndex, Mode=OneWay}"
+                                                  Tag="anc" SelectionChanged="HeadsetCombo_SelectionChanged" Visibility="{x:Bind AncVisibility}" />
+                                    </Grid>
+                                    <StackPanel Orientation="Horizontal" Spacing="24">
+                                        <ToggleSwitch Header="Lights" IsOn="{x:Bind LightsOn, Mode=OneWay}" Tag="lights" Toggled="HeadsetToggle_Toggled" Visibility="{x:Bind LightsVisibility}" />
+                                        <ToggleSwitch Header="Voice prompts" IsOn="{x:Bind VoicePromptsOn, Mode=OneWay}" Tag="voice" Toggled="HeadsetToggle_Toggled" Visibility="{x:Bind VoiceVisibility}" />
+                                        <ToggleSwitch Header="Rotate to mute" IsOn="{x:Bind RotateOn, Mode=OneWay}" Tag="rotate" Toggled="HeadsetToggle_Toggled" Visibility="{x:Bind RotateVisibility}" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <!-- DPI: type it, step it, pick a preset, or drag for big jumps -->
+                                <StackPanel Spacing="10" Visibility="{x:Bind DpiVisibility}">
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="DPI" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                        <Button Grid.Column="1" Width="44" Height="42" Padding="0" Click="{x:Bind StepDown}" ToolTipService.ToolTip="−50 DPI">
+                                            <FontIcon Glyph="&#xE949;" FontSize="12" />
+                                        </Button>
+                                        <NumberBox Grid.Column="2" Width="140" Minimum="{x:Bind DpiMin}" Maximum="{x:Bind DpiMax}" Value="{x:Bind Dpi, Mode=OneWay}"
+                                                   SmallChange="50" LargeChange="400" SpinButtonPlacementMode="Hidden" FontSize="22" FontWeight="SemiBold"
+                                                   ValueChanged="Dpi_NumberChanged" GotFocus="Number_GotFocus" ToolTipService.ToolTip="Type a DPI and press Enter" />
+                                        <Button Grid.Column="3" Width="44" Height="42" Padding="0" Click="{x:Bind StepUp}" ToolTipService.ToolTip="+50 DPI">
+                                            <FontIcon Glyph="&#xE948;" FontSize="12" />
+                                        </Button>
+                                    </Grid>
+                                    <ItemsControl ItemsSource="{x:Bind Presets}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="p:DpiPreset">
+                                                <Button Content="{x:Bind Label}" Click="{x:Bind Pick}" Padding="10,4" MinWidth="0" CornerRadius="12"
+                                                        Background="{x:Bind Background, Mode=OneWay}" BorderBrush="{StaticResource CardStroke}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <Slider Minimum="{x:Bind DpiMin}" Maximum="{x:Bind DpiMax}" StepFrequency="50" Value="{x:Bind Dpi, Mode=OneWay}" IsThumbToolTipEnabled="False" Tag="dpi" ValueChanged="Slider_ValueChanged" />
+                                </StackPanel>
+
+                                <!-- DPI stages -->
+                                <StackPanel Spacing="6" Visibility="{x:Bind StagesVisibility}">
+                                    <TextBlock Text="DPI STAGES · the DPI button cycles through these" Style="{StaticResource Caption}" />
+                                    <ItemsControl ItemsSource="{x:Bind Stages}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="14" /></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="p:StageVm">
+                                                <StackPanel Spacing="4">
+                                                    <RadioButton GroupName="{x:Bind Group}" IsChecked="{x:Bind Active, Mode=OneWay}" Content="{x:Bind Label}" MinWidth="0" Checked="Stage_Checked" />
+                                                    <NumberBox Minimum="100" Maximum="{x:Bind Max}" Value="{x:Bind Value, Mode=OneWay}" ValueChanged="Stage_ValueChanged" GotFocus="Number_GotFocus" SmallChange="50" LargeChange="400" Width="120" SpinButtonPlacementMode="Hidden" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+
+                                <!-- Polling rate -->
+                                <StackPanel Spacing="4" Visibility="{x:Bind PollVisibility}">
+                                    <TextBlock Text="POLLING RATE" Style="{StaticResource Caption}" />
+                                    <ComboBox ItemsSource="{x:Bind PollOptions}" SelectedIndex="{x:Bind PollIndex, Mode=OneWay}" MinWidth="160" SelectionChanged="Poll_SelectionChanged" />
+                                </StackPanel>
+
+                                <!-- Power -->
+                                <Grid ColumnSpacing="20" Visibility="{x:Bind PowerVisibility}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition />
+                                        <ColumnDefinition />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Header="{x:Bind SleepText, Mode=OneWay}" Minimum="1" Maximum="15" StepFrequency="1" Value="{x:Bind SleepMinutes, Mode=OneWay}" Tag="sleep" ValueChanged="Slider_ValueChanged" Visibility="{x:Bind SleepVisibility}" />
+                                    <Slider Grid.Column="1" Header="{x:Bind LowBatteryText, Mode=OneWay}" Minimum="5" Maximum="25" StepFrequency="1" Value="{x:Bind LowBattery, Mode=OneWay}" Tag="lowbat" ValueChanged="Slider_ValueChanged" Visibility="{x:Bind LowBatteryVisibility}" />
+                                </Grid>
+                            </StackPanel>
+        </DataTemplate>
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="16" Padding="0,0,24,24">
+            <Button Click="Back_Click" Padding="10,6" Background="Transparent" BorderThickness="0">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE72B;" FontSize="14" />
+                    <TextBlock Text="Devices" />
+                </StackPanel>
+            </Button>
+            <InfoBar x:Name="Gone" IsOpen="True" Visibility="Collapsed" IsClosable="False" Severity="Informational"
+                     Message="This device isn't connected right now. Its settings are kept and applied when it's back." />
+            <ContentControl x:Name="CardHost" ContentTemplate="{StaticResource FullCard}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

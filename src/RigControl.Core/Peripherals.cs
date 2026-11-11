@@ -18,6 +18,18 @@ public sealed class PeripheralCaps
     public bool LowBatteryThreshold { get; init; }
     public bool Battery { get; init; }
     public bool Charging { get; init; }
+
+    // Headsets
+    public bool Sidetone { get; init; }
+    public int InactiveMaxMinutes { get; init; }
+    public bool Lights { get; init; }
+    public bool VoicePrompts { get; init; }
+    public bool RotateToMute { get; init; }
+    public bool MicVolume { get; init; }
+    public bool Anc { get; init; }
+    public bool Chatmix { get; init; }
+    /// <summary>Names of the built-in EQ presets (empty = none).</summary>
+    public string[] EqPresets { get; init; } = [];
 }
 
 /// <summary>What the device reports right now (null = unknown or not supported).</summary>
@@ -31,6 +43,11 @@ public sealed record PeripheralState
     public int? LowBatteryPercent { get; init; }
     public int? BatteryPercent { get; init; }
     public bool? Charging { get; init; }
+    /// <summary>Headsets: false when the headset is off or out of range (the dongle is still there).</summary>
+    public bool? Connected { get; init; }
+    public int? Sidetone { get; init; }
+    public int? Chatmix { get; init; }
+    public bool? MicMuted { get; init; }
 }
 
 /// <summary>Settings saved per device; only the ones set are applied.</summary>
@@ -42,6 +59,17 @@ public sealed class PeripheralSettings
     public int? PollRate { get; set; }
     public int? SleepSeconds { get; set; }
     public int? LowBatteryPercent { get; set; }
+
+    // Headsets
+    public int? Sidetone { get; set; }
+    public int? InactiveMinutes { get; set; }
+    public bool? Lights { get; set; }
+    public bool? VoicePrompts { get; set; }
+    public bool? RotateToMute { get; set; }
+    public int? MicVolume { get; set; }
+    public int? EqPreset { get; set; }
+    /// <summary>0 off, 1 noise cancelling, 2 ambient.</summary>
+    public int? Anc { get; set; }
 }
 
 /// <summary>A mouse, headset or other device whose settings RigControl can change.</summary>
@@ -140,6 +168,7 @@ public sealed class PeripheralHub : IDisposable
     {
         var found = new List<IPeripheral>();
         found.AddRange(RazerMouse.FindAll());
+        found.AddRange(HeadsetControlDevice.FindAll());
 
         List<IPeripheral> old;
         lock (_lock)

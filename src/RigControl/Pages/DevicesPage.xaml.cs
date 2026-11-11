@@ -53,6 +53,27 @@ public sealed class PeripheralCard : Observable
     public string Key => _device.Key;
     public string Name => _device.Name;
     public string Source => $"{_device.Kind} · {_device.Source}";
+    /// <summary>One line of what matters now, for the overview tile.</summary>
+    public string Vital
+    {
+        get
+        {
+            if (_device.Kind == "Headset")
+            {
+                if (_state.Connected == false) return "Off or out of range";
+                var parts = new List<string> { "On" };
+                if (_state.MicMuted == true) parts.Add("mic muted");
+                if (_state.Sidetone is int st) parts.Add($"sidetone {st * 100 / 128}%");
+                return string.Join(" · ", parts);
+            }
+            var bits = new List<string>();
+            if (Caps.Dpi) bits.Add($"{Dpi:0} DPI");
+            if (Caps.MaxStages > 0) bits.Add($"stage {ActiveStage} of {CurrentStages.Count}");
+            if ((Saved.PollRate ?? _state.PollRate) is int hz) bits.Add($"{hz} Hz");
+            return bits.Count > 0 ? string.Join(" · ", bits) : _device.Kind;
+        }
+    }
+
     public string Glyph => _device.Kind switch { "Headset" => "", "Keyboard" => "", _ => "" };
     PeripheralCaps Caps => _device.Caps;
 
@@ -78,6 +99,55 @@ public sealed class PeripheralCard : Observable
 
     static bool Same(PeripheralState a, PeripheralState b) =>
         a with { Stages = null } == b with { Stages = null } && (a.Stages ?? []).SequenceEqual(b.Stages ?? []);
+
+    // ---------------- Headsets
+    public Visibility HeadsetVisibility => _device.Kind == "Headset" ? Visibility.Visible : Visibility.Collapsed;
+    public bool HeadsetOff => _state.Connected == false;
+    static Visibility Show(bool b) => b ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility ChatmixVisibility => Show(Caps.Chatmix && _state.Chatmix is not null);
+    public double ChatmixValue => _state.Chatmix ?? 64;
+    public string ChatmixText => _state.Chatmix is int c ? (c < 60 ? $"more game · {100 - c * 100 / 128}%" : c > 68 ? $"more chat · {c * 100 / 128}%" : "balanced") : "";
+    public Visibility SidetoneVisibility => Show(Caps.Sidetone);
+    public double SidetoneValue => Saved.Sidetone ?? _state.Sidetone ?? 0;
+    public string SidetoneText => $"Sidetone (hear your own voice) · {SidetoneValue * 100 / 128:0}%";
+    public Visibility MicVolumeVisibility => Show(Caps.MicVolume);
+    public double MicVolumeValue => Saved.MicVolume ?? 100;
+    public string MicVolumeText => $"Microphone volume · {MicVolumeValue * 100 / 128:0}%";
+    public Visibility InactiveVisibility => Show(Caps.InactiveMaxMinutes > 0);
+    public double InactiveValue => Saved.InactiveMinutes ?? 30;
+    public string InactiveText => InactiveValue == 0 ? "Auto-off: never" : $"Auto-off after {InactiveValue:0} min idle";
+    public Visibility EqVisibility => Show(Caps.EqPresets.Length > 0);
+    public List<string> EqOptions => [.. Caps.EqPresets.Select(p => System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(p))];
+    public int EqIndex => Saved.EqPreset ?? -1;
+    public Visibility AncVisibility => Show(Caps.Anc);
+    public List<string> AncOptions { get; } = ["Off", "Noise cancelling", "Ambient sound"];
+    public int AncIndex => Saved.Anc ?? -1;
+    public Visibility LightsVisibility => Show(Caps.Lights);
+    public bool LightsOn => Saved.Lights ?? true;
+    public Visibility VoiceVisibility => Show(Caps.VoicePrompts);
+    public bool VoicePromptsOn => Saved.VoicePrompts ?? true;
+    public Visibility RotateVisibility => Show(Caps.RotateToMute);
+    public bool RotateOn => Saved.RotateToMute ?? true;
+
+    /// <summary>Headset controls report here (only from user input); saves and sends.</summary>
+    public void SetHeadset(string what, double value)
+    {
+        var s = Edit();
+        switch (what)
+        {
+            case "sidetone": s.Sidetone = (int)Math.Round(value); break;
+            case "micvolume": s.MicVolume = (int)Math.Round(value); break;
+            case "inactive": s.InactiveMinutes = (int)Math.Round(value); break;
+            case "eq": s.EqPreset = (int)value; break;
+            case "anc": s.Anc = (int)value; break;
+            case "lights": s.Lights = value != 0; break;
+            case "voice": s.VoicePrompts = value != 0; break;
+            case "rotate": s.RotateToMute = value != 0; break;
+            default: return;
+        }
+        Raise(string.Empty);
+        Changed();
+    }
 
     public List<DpiPreset> Presets { get; }
     public void StepUp() => Dpi = Dpi + 50;
@@ -237,59 +307,36 @@ public sealed partial class DevicesPage : Page
         else Build();
     });
 
-    // Device settings are only written for changes the user makes. While a card is being set up, a slider can
-    // get its value before its range (5000 DPI clamped to the default maximum of 100), and that must never
-    // reach the mouse: so ignore value changes unless the control has focus (being dragged, clicked, typed in).
-    void Slider_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
-    {
-        if (sender is not Slider { FocusState: not FocusState.Unfocused, DataContext: PeripheralCard card } s) return;
-        switch (s.Tag as string)
-        {
-            case "dpi": card.Dpi = e.NewValue; break;
-            case "sleep": card.SleepMinutes = e.NewValue; break;
-            case "lowbat": card.LowBattery = e.NewValue; break;
-        }
-    }
-
-    // A NumberBox keeps focus on the text box inside it, so its own FocusState reads Unfocused even while you type.
-    // Instead: once you've focused a box (clicked or tabbed into it), its committed values (Enter or clicking away) count.
-    readonly HashSet<NumberBox> _touched = [];
-    void Number_GotFocus(object sender, RoutedEventArgs e)
-    {
-        if (sender is NumberBox box) _touched.Add(box);
-    }
-
-    void Dpi_NumberChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
-    {
-        if (!_touched.Contains(sender) || sender.DataContext is not PeripheralCard card || double.IsNaN(args.NewValue)) return;
-        card.Dpi = args.NewValue;
-    }
-
-    void Stage_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
-    {
-        if (!_touched.Contains(sender) || sender.DataContext is not StageVm stage || double.IsNaN(args.NewValue)) return;
-        stage.Value = args.NewValue;
-    }
-
-    void Poll_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (sender is ComboBox { FocusState: not FocusState.Unfocused, DataContext: PeripheralCard card } box) card.PollIndex = box.SelectedIndex;
-    }
-
-    void Stage_Checked(object sender, RoutedEventArgs e)
-    {
-        if (sender is RadioButton { FocusState: not FocusState.Unfocused, DataContext: StageVm stage }) stage.Active = true;
-    }
-
     void Build()
     {
         var hub = App.Instance!.Peripherals;
         var states = hub.States;
         _cards.Clear();
         _cards.AddRange(hub.Devices.Select(d => new PeripheralCard(d, states.GetValueOrDefault(d.Key))));
-        Cards.ItemsSource = null;
-        Cards.ItemsSource = _cards;
+        Tiles.ItemsSource = null;
+        Tiles.ItemsSource = _cards;
         Empty.Visibility = _cards.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        Summary.Text = _cards.Count == 0 ? "Mice, headsets and keyboards with settings show up here." : $"{_cards.Count} configurable device{(_cards.Count == 1 ? "" : "s")}";
+        Summary.Text = _cards.Count == 0 ? "Mice, headsets and keyboards with settings show up here." : $"{_cards.Count} device{(_cards.Count == 1 ? "" : "s")} · click one for its settings";
+    }
+
+    void Tile_Tapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is PeripheralCard card)
+            Frame.Navigate(typeof(DevicePage), card.Key, new Microsoft.UI.Xaml.Media.Animation.DrillInNavigationTransitionInfo());
+    }
+
+    // Hover lift (composition, like the dashboard fan tiles).
+    void Tile_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e) => Lift((UIElement)sender, 1.03f);
+    void Tile_PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e) => Lift((UIElement)sender, 1f);
+
+    static void Lift(UIElement el, float scale)
+    {
+        var visual = Microsoft.UI.Xaml.Hosting.ElementCompositionPreview.GetElementVisual(el);
+        visual.CenterPoint = new System.Numerics.Vector3(el.ActualSize.X / 2, el.ActualSize.Y / 2, 0);
+        var comp = visual.Compositor;
+        var anim = comp.CreateVector3KeyFrameAnimation();
+        anim.InsertKeyFrame(1, new System.Numerics.Vector3(scale, scale, 1), comp.CreateCubicBezierEasingFunction(new(0.2f, 0.9f), new(0.3f, 1.2f)));
+        anim.Duration = TimeSpan.FromMilliseconds(220);
+        visual.StartAnimation("Scale", anim);
     }
 }

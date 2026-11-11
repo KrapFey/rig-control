@@ -47,6 +47,11 @@
     <Content Include="..\..\build\openrgb\**" LinkBase="openrgb" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- Bundled HeadsetControl (tools\fetch-headsetcontrol.ps1). Without it, headset settings are unavailable. -->
+  <ItemGroup Condition="Exists('..\..\build\headsetcontrol\headsetcontrol.exe')">
+    <Content Include="..\..\build\headsetcontrol\**" LinkBase="headsetcontrol" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup Condition="Exists('..\..\build\liquidctl\bridge.py')">
     <Content Include="..\..\build\liquidctl\**" LinkBase="liquidctl" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

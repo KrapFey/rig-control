@@ -19,109 +19,43 @@
             </StackPanel>
 
             <StackPanel x:Name="Empty" Spacing="8" Visibility="Collapsed" HorizontalAlignment="Center" Margin="0,40,0,0">
-                <FontIcon Glyph="&#xE962;" FontSize="40" Opacity="0.5" />
+                <FontIcon Glyph="&#xE772;" FontSize="40" Opacity="0.5" />
                 <TextBlock Text="No configurable devices found yet." Opacity="0.7" HorizontalAlignment="Center" />
-                <TextBlock Text="Supported so far: Razer mice. Headsets, Logitech and SteelSeries mice are coming." Style="{StaticResource Caption}" HorizontalAlignment="Center" />
+                <TextBlock Text="Supported so far: Razer mice and ~50 headsets (via HeadsetControl). Logitech and SteelSeries mice are coming." Style="{StaticResource Caption}" HorizontalAlignment="Center" />
             </StackPanel>
 
-            <ItemsRepeater x:Name="Cards">
+            <ItemsRepeater x:Name="Tiles">
                 <ItemsRepeater.Layout>
-                    <UniformGridLayout MinItemWidth="420" MinRowSpacing="14" MinColumnSpacing="14" ItemsStretch="Fill" />
+                    <UniformGridLayout MinItemWidth="320" MinItemHeight="104" MinRowSpacing="12" MinColumnSpacing="12" ItemsStretch="Fill" />
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="p:PeripheralCard">
-                        <!-- ItemsRepeater doesn't set DataContext on its items; the event handlers need it -->
-                        <Border Style="{StaticResource Card}" Padding="20" DataContext="{x:Bind}">
-                            <StackPanel Spacing="14">
-                                <Grid ColumnSpacing="12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Border Width="42" Height="42" CornerRadius="12" Background="{StaticResource AccentGradient}">
-                                        <FontIcon Glyph="{x:Bind Glyph}" FontSize="20" Foreground="White" />
-                                    </Border>
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" FontSize="16" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Text="{x:Bind Source}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
-                                    </StackPanel>
-                                    <Border Grid.Column="2" CornerRadius="12" Padding="10,4" Background="#1AFFFFFF" VerticalAlignment="Center" Visibility="{x:Bind BatteryVisibility, Mode=OneWay}">
+                        <!-- ItemsRepeater doesn't set DataContext on its items; Tile_Tapped needs it -->
+                        <Border Style="{StaticResource Card}" Padding="18" DataContext="{x:Bind}"
+                                Tapped="Tile_Tapped" PointerEntered="Tile_PointerEntered" PointerExited="Tile_PointerExited">
+                            <Grid ColumnSpacing="14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="48" Height="48" CornerRadius="14" Background="{StaticResource AccentGradient}" VerticalAlignment="Center">
+                                    <FontIcon Glyph="{x:Bind Glyph}" FontSize="22" Foreground="White" />
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                    <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" FontSize="16" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{x:Bind Vital, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{x:Bind Source}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                    <Border Grid.Column="2" VerticalAlignment="Center" CornerRadius="12" Padding="10,4" Background="#1AFFFFFF" Visibility="{x:Bind BatteryVisibility, Mode=OneWay}">
                                         <StackPanel Orientation="Horizontal" Spacing="6">
                                             <FontIcon Glyph="{x:Bind BatteryGlyph, Mode=OneWay}" FontSize="14" />
                                             <TextBlock Text="{x:Bind BatteryText, Mode=OneWay}" FontWeight="SemiBold" />
                                         </StackPanel>
                                     </Border>
-                                </Grid>
-
-                                <!-- DPI: type it, step it, pick a preset, or drag for big jumps -->
-                                <StackPanel Spacing="10" Visibility="{x:Bind DpiVisibility}">
-                                    <Grid ColumnSpacing="8">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="DPI" Style="{StaticResource Caption}" VerticalAlignment="Center" />
-                                        <Button Grid.Column="1" Width="36" Height="34" Padding="0" Click="{x:Bind StepDown}" ToolTipService.ToolTip="−50 DPI">
-                                            <FontIcon Glyph="&#xE949;" FontSize="12" />
-                                        </Button>
-                                        <NumberBox Grid.Column="2" Width="110" Minimum="{x:Bind DpiMin}" Maximum="{x:Bind DpiMax}" Value="{x:Bind Dpi, Mode=OneWay}"
-                                                   SmallChange="50" LargeChange="400" SpinButtonPlacementMode="Hidden" FontSize="18" FontWeight="SemiBold"
-                                                   ValueChanged="Dpi_NumberChanged" GotFocus="Number_GotFocus" ToolTipService.ToolTip="Type a DPI and press Enter" />
-                                        <Button Grid.Column="3" Width="36" Height="34" Padding="0" Click="{x:Bind StepUp}" ToolTipService.ToolTip="+50 DPI">
-                                            <FontIcon Glyph="&#xE948;" FontSize="12" />
-                                        </Button>
-                                    </Grid>
-                                    <ItemsControl ItemsSource="{x:Bind Presets}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="p:DpiPreset">
-                                                <Button Content="{x:Bind Label}" Click="{x:Bind Pick}" Padding="10,4" MinWidth="0" CornerRadius="12"
-                                                        Background="{x:Bind Background, Mode=OneWay}" BorderBrush="{StaticResource CardStroke}" />
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                    <Slider Minimum="{x:Bind DpiMin}" Maximum="{x:Bind DpiMax}" StepFrequency="50" Value="{x:Bind Dpi, Mode=OneWay}" IsThumbToolTipEnabled="False" Tag="dpi" ValueChanged="Slider_ValueChanged" />
-                                </StackPanel>
-
-                                <!-- DPI stages -->
-                                <StackPanel Spacing="6" Visibility="{x:Bind StagesVisibility}">
-                                    <TextBlock Text="DPI STAGES · the DPI button cycles through these" Style="{StaticResource Caption}" />
-                                    <ItemsControl ItemsSource="{x:Bind Stages}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8" /></ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="p:StageVm">
-                                                <StackPanel Spacing="4">
-                                                    <RadioButton GroupName="{x:Bind Group}" IsChecked="{x:Bind Active, Mode=OneWay}" Content="{x:Bind Label}" MinWidth="0" Checked="Stage_Checked" />
-                                                    <NumberBox Minimum="100" Maximum="{x:Bind Max}" Value="{x:Bind Value, Mode=OneWay}" ValueChanged="Stage_ValueChanged" GotFocus="Number_GotFocus" SmallChange="50" LargeChange="400" Width="88" SpinButtonPlacementMode="Hidden" />
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel>
-
-                                <!-- Polling rate -->
-                                <StackPanel Spacing="4" Visibility="{x:Bind PollVisibility}">
-                                    <TextBlock Text="POLLING RATE" Style="{StaticResource Caption}" />
-                                    <ComboBox ItemsSource="{x:Bind PollOptions}" SelectedIndex="{x:Bind PollIndex, Mode=OneWay}" MinWidth="160" SelectionChanged="Poll_SelectionChanged" />
-                                </StackPanel>
-
-                                <!-- Power -->
-                                <Grid ColumnSpacing="20" Visibility="{x:Bind PowerVisibility}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition />
-                                        <ColumnDefinition />
-                                    </Grid.ColumnDefinitions>
-                                    <Slider Header="{x:Bind SleepText, Mode=OneWay}" Minimum="1" Maximum="15" StepFrequency="1" Value="{x:Bind SleepMinutes, Mode=OneWay}" Tag="sleep" ValueChanged="Slider_ValueChanged" Visibility="{x:Bind SleepVisibility}" />
-                                    <Slider Grid.Column="1" Header="{x:Bind LowBatteryText, Mode=OneWay}" Minimum="5" Maximum="25" StepFrequency="1" Value="{x:Bind LowBattery, Mode=OneWay}" Tag="lowbat" ValueChanged="Slider_ValueChanged" Visibility="{x:Bind LowBatteryVisibility}" />
-                                </Grid>
-                            </StackPanel>
+                                <FontIcon Grid.Column="3" Glyph="&#xE76C;" FontSize="12" Opacity="0.5" VerticalAlignment="Center" />
+                            </Grid>
                         </Border>
                     </DataTemplate>
                 </ItemsRepeater.ItemTemplate>

@@ -30,6 +30,11 @@ modern WinUI 3 interface.
   - **Per device:** keep the synced effect, use one of the device's own effects, or turn it off.
   - **Profiles,** live LED previews, and **Identify**, which pulses one device.
   - RigControl steps aside while another OpenRGB is running.
+- **Devices:** a page per mouse and headset, with live battery in the tray tooltip.
+  - **Mice:** 115 Razer mice: DPI (type it, step it, presets or slider), on-device DPI stages that follow the
+    mouse's DPI button live, polling rate, sleep and low-battery thresholds.
+  - **Headsets:** about 50 headsets through a bundled [HeadsetControl](https://github.com/Sapd/HeadsetControl):
+    battery, sidetone, mic volume, auto-off, EQ preset, noise cancelling, lights, voice prompts, rotate to mute.
 - **Import from FanControl:** curves, fan names and fan settings, including NZXT controllers driven through
   the FanControl.Liquidctl plugin (matched by the plugin's own device ids).
 - **Identify** stops one fan for 8 seconds so you can see which it is; **Swap with…** exchanges two fans'
@@ -56,12 +61,13 @@ If another fan app is running, exit it first. RigControl stays hands-off while F
 
 ## Build
 
-Needs the .NET 10 SDK, and Python 3.13 x64 to build the bundled liquidctl runtime. Without `build\liquidctl` or
-`build\openrgb` the app still builds; those features are then unavailable.
+Needs the .NET 10 SDK, and Python 3.13 x64 to build the bundled liquidctl runtime. Without `build\liquidctl`,
+`build\openrgb` or `build\headsetcontrol` the app still builds; those features are then unavailable.
 
 ```powershell
 tools\fetch-liquidctl.ps1                                    # build\liquidctl: Python + liquidctl, SHA-256 pinned (optional)
 tools\fetch-openrgb.ps1                                      # build\openrgb: OpenRGB 1.1 engine, SHA-256 pinned (optional)
+tools\fetch-headsetcontrol.ps1                               # build\headsetcontrol: HeadsetControl 4.2.0, SHA-256 pinned (optional)
 dotnet run --project tests\RigControl.Checks                 # self-checks
 dotnet build src\RigControl                                  # app (asks for admin when started)
 dotnet publish src\RigControl -c Release -r win-x64 --self-contained -o "$env:LOCALAPPDATA\Programs\RigControl"
@@ -86,6 +92,9 @@ GPL-3.0-or-later, see [LICENSE](LICENSE).
 
 - [OpenRGB](https://codeberg.org/OpenRGB/OpenRGB) 1.1 (GPL-2.0): bundled unmodified as a separate program; its
   licence and source link ship beside it (`openrgb\SOURCE.txt`).
+- [HeadsetControl](https://github.com/Sapd/HeadsetControl) 4.2.0 (GPL-3.0): bundled unmodified as a separate
+  program, with its licence and source link (`headsetcontrol\SOURCE.txt`).
+- Razer mouse protocol and device table: from [openrazer](https://github.com/openrazer/openrazer) (GPL-2.0-or-later).
 - Razer Seiren V3 Chroma lighting protocol: from [openrazer PR #2896](https://github.com/openrazer/openrazer/pull/2896).
 - [liquidctl](https://github.com/liquidctl/liquidctl) (GPL-3.0-or-later): bundled, and the source of the
   NZXT HUE 2 fan protocol; bundled with [Python](https://www.python.org) (PSF licence) and its dependencies

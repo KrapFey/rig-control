@@ -201,6 +201,23 @@ var da2 = RazerMouse.Describe(0x0084);
 Check(da2 is { name: "Razer DeathAdder V2", dpiMax: 20000 } && da2.Value.features.Contains("dpi_write") && da2.Value.features.Contains("poll_read"), "Razer table: DeathAdder V2 with DPI and polling");
 Check(RazerMouse.Describe(0x056F) is null, "Razer table: the Seiren (a mic) isn't treated as a mouse");
 
+// --- headsets, against HeadsetControl's simulated device (when build\headsetcontrol exists)
+var hsExe = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "build", "headsetcontrol", "headsetcontrol.exe"));
+if (File.Exists(hsExe))
+{
+    HeadsetControlDevice.ExeOverride = hsExe;
+    HeadsetControlDevice.UseTestDevice = true;
+    var heads = HeadsetControlDevice.FindAll();
+    var head = heads.FirstOrDefault();
+    Check(heads.Count == 1 && head is { Kind: "Headset" } && head.Caps is { Sidetone: true, Battery: true, InactiveMaxMinutes: 90, EqPresets.Length: 4 }, "headset: test device found with its capabilities");
+    var hs = head?.Read();
+    Check(hs is { BatteryPercent: 42, Connected: true, Sidetone: 85, Chatmix: 64 }, "headset: battery, sidetone and chat-mix read");
+    head?.Apply(new PeripheralSettings { Sidetone = 40, InactiveMinutes = 30, EqPreset = 1, Lights = false }, hs!);
+    Check(true, "headset: settings applied without error");
+    HeadsetControlDevice.UseTestDevice = false;
+}
+else Console.WriteLine("skip headset checks (HeadsetControl not fetched)");
+
 // --- config round trip
 var path = Path.Combine(Path.GetTempPath(), $"rigcontrol-{Guid.NewGuid():N}.json");
 cfg.Save(path);

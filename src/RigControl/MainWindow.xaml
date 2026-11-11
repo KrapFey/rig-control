@@ -90,7 +90,7 @@
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE781;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem Content="Devices" Tag="Devices">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE962;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE772;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem Content="Sensors" Tag="Sensors">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE9CA;" /></NavigationViewItem.Icon>
