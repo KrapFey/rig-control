@@ -96,8 +96,12 @@ public sealed class DeviceCard : Observable
             }
             Changed();
             Raise(string.Empty);
+            SourceChanged?.Invoke();
         }
     }
+
+    /// <summary>A card switched between the synced effect, a device effect and off (the page recounts who follows the effect).</summary>
+    public static event Action? SourceChanged;
 
     public Visibility HardwareVisibility => HardwareMode is null ? Visibility.Collapsed : Visibility.Visible;
     public Visibility ColorVisibility => HardwareMode?.Flags.HasFlag(ModeFlags.HasModeSpecificColor) == true ? Visibility.Visible : Visibility.Collapsed;
@@ -134,6 +138,67 @@ public sealed class DeviceCard : Observable
         });
 
     public void Identify() => App.Instance!.Lighting.Identify(Key);
+
+    // ---------------- Zones (devices with several, following the synced effect)
+    public Visibility ZonesVisibility => _target.Zones.Count > 1 && Settings.Source == LightingSource.Sync ? Visibility.Visible : Visibility.Collapsed;
+    int CustomZones => _target.Zones.Count(z => Settings.Zones.TryGetValue(z.Name, out var zl) && zl.Source != ZoneSource.Sync);
+    public string ZonesLabel => CustomZones == 0 ? "Zones" : $"Zones · {CustomZones}";
+    public string ZonesTip => CustomZones == 0
+        ? $"{_target.Zones.Count} zones, all following the synced effect: give one its own colour, or turn it off"
+        : $"{CustomZones} of {_target.Zones.Count} zones have their own colour or are off";
+
+    static readonly string[] ZoneOptions = ["Synced effect", "Colour", "Off"];
+
+    /// <summary>Opens a panel listing the zones: each follows the effect, shows one colour, or is off.</summary>
+    public void ShowZones(object sender, RoutedEventArgs e)
+    {
+        var panel = new StackPanel { Spacing = 10, MinWidth = 340 };
+        panel.Children.Add(new TextBlock { Text = "Each zone can follow the synced effect, show one colour, or stay off.", TextWrapping = TextWrapping.Wrap, Opacity = 0.7, FontSize = 12 });
+        foreach (var zone in _target.Zones)
+        {
+            var row = new Grid { ColumnSpacing = 10 };
+            row.ColumnDefinitions.Add(new ColumnDefinition());
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(36) });
+            var name = string.IsNullOrWhiteSpace(zone.DisplayName) ? zone.Name : zone.DisplayName;
+            row.Children.Add(new TextBlock { Text = $"{name} · {zone.LedsCount} LED{(zone.LedsCount == 1 ? "" : "s")}", VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+            var current = Settings.Zones.GetValueOrDefault(zone.Name);
+            var box = new ComboBox { ItemsSource = ZoneOptions, SelectedIndex = (int)(current?.Source ?? ZoneSource.Sync), MinWidth = 150 };
+            Grid.SetColumn(box, 1);
+            var swatch = new Button { Width = 32, Height = 28, Padding = new Thickness(0), CornerRadius = new CornerRadius(8) };
+            Grid.SetColumn(swatch, 2);
+            void Show()
+            {
+                var zl = Settings.Zones.GetValueOrDefault(zone.Name);
+                swatch.Visibility = zl?.Source == ZoneSource.Color ? Visibility.Visible : Visibility.Collapsed;
+                var c = Rgb.Parse(zl?.Color ?? "#FFFFFF");
+                swatch.Background = new SolidColorBrush(Color.FromArgb(255, c.R, c.G, c.B));
+            }
+            box.SelectionChanged += (_, _) =>
+            {
+                if (box.SelectedIndex < 0) return;
+                var d = Edit();
+                var source = (ZoneSource)box.SelectedIndex;
+                if (source == ZoneSource.Sync) d.Zones.Remove(zone.Name);
+                else d.Zones[zone.Name] = new ZoneLighting { Source = source, Color = d.Zones.GetValueOrDefault(zone.Name)?.Color ?? "#FFFFFF" };
+                Show();
+                Changed();
+                Raise(nameof(ZonesLabel));
+                Raise(nameof(ZonesTip));
+            };
+            swatch.Click += (_, _) => LightingPage.ShowColorPicker(swatch, Rgb.Parse(Settings.Zones.GetValueOrDefault(zone.Name)?.Color ?? "#FFFFFF"), c =>
+            {
+                if (Edit().Zones.GetValueOrDefault(zone.Name) is { } zl) zl.Color = c.ToString();
+                Show();
+                Changed();
+            });
+            Show();
+            row.Children.Add(box);
+            row.Children.Add(swatch);
+            panel.Children.Add(row);
+        }
+        new Flyout { Content = panel, Placement = FlyoutPlacementMode.Bottom }.ShowAt((FrameworkElement)sender);
+    }
 
     static void Changed() => App.Instance!.ConfigChanged();
 
@@ -183,10 +248,11 @@ public sealed partial class LightingPage : Page
         PreviewBar.Background = _preview;
         PreviewGlow.Background = _preview;
         EffectList.ItemsSource = Effects;
-        SensorBox.ItemsSource = AppI.Hub.Temps.OrderBy(t => t.Device).ThenBy(t => t.Name).Select(t => new SensorOption(t.Id, $"{t.Name} · {t.Device}")).ToList();
+        SensorBox.ItemsSource = AppI.Hub.Temps.OrderBy(t => t.Device).ThenBy(t => t.Name).Select(t => new SensorOption(t.Id, $"{AppI.SensorLabel(t)} · {t.Device}")).ToList();
         Loaded += (_, _) =>
         {
             AppI.LightingStateChanged += Rebuild;
+            DeviceCard.SourceChanged += UpdateSyncCount;
             Rebuild();
             _timer = DispatcherQueue.CreateTimer();
             _timer.Interval = TimeSpan.FromMilliseconds(50); // 20 fps is plenty for previews
@@ -196,6 +262,7 @@ public sealed partial class LightingPage : Page
         Unloaded += (_, _) =>
         {
             AppI.LightingStateChanged -= Rebuild;
+            DeviceCard.SourceChanged -= UpdateSyncCount;
             _timer?.Stop();
         };
     }
@@ -243,8 +310,10 @@ public sealed partial class LightingPage : Page
             HotBox.Value = s.HotTemp;
         }
         BuildSwatches();
-        SyncCount.Text = $"{_cards.Count(c => c.Selected == 0)} of {_cards.Count} devices follow it";
+        UpdateSyncCount();
     }
+
+    void UpdateSyncCount() => SyncCount.Text = $"{_cards.Count(c => c.Selected == 0)} of {_cards.Count} devices follow it";
 
     void BuildSwatches()
     {
@@ -331,7 +400,7 @@ public sealed partial class LightingPage : Page
         var sensor = AppI.Hub.Temps.FirstOrDefault(t => t.Id == s.Sensor);
         if (temp is not double tv)
         {
-            TempText.Text = sensor is null ? "Pick a sensor" : $"{sensor.Name} · no reading";
+            TempText.Text = sensor is null ? "Pick a sensor" : $"{AppI.SensorLabel(sensor)} · no reading";
             Marker.Visibility = MarkerGlow.Visibility = Visibility.Collapsed;
             return;
         }

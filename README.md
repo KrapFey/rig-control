@@ -39,6 +39,8 @@ headset and keyboard, and watch it all live in a modern WinUI 3 interface.
   - **Synced effects across every device:** rainbow wave, colour cycle, breathing, static and gradients.
   - **Temperature lighting:** colour follows any sensor.
   - **Per device:** keep the synced effect, use one of the device's own effects, or turn it off.
+  - **Per zone:** on devices with several zones (fans, motherboard headers…), any zone can show its own colour or
+    stay off while the rest follow the synced effect.
   - **Profiles,** live LED previews, and **Identify**, which pulses one device.
   - RigControl steps aside while another OpenRGB is running.
 - **Devices:** a page per mouse, keyboard and headset, with live battery in the tray tooltip.
@@ -61,6 +63,8 @@ headset and keyboard, and watch it all live in a modern WinUI 3 interface.
     are written, never the keyboard's saved profiles.
 - **Supported devices:** a searchable list (fuzzy: "dthaddr v2" finds the DeathAdder V2) of every device and
   device family RigControl handles, built by `tools/gen-supported-devices.py` from each source's own data.
+- **Sensor names:** rename any temperature sensor on the Sensors page; the name is used everywhere (dashboard,
+  curves, temperature lighting).
 - **Import from FanControl:** curves, fan names and fan settings, including NZXT controllers driven through
   the FanControl.Liquidctl plugin (matched by the plugin's own device ids).
 - **Identify** stops one fan for 8 seconds so you can see which it is; **Swap with…** exchanges two fans'

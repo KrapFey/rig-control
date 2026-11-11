@@ -103,6 +103,9 @@ public partial class App : Application
         _ = UpdateLoopAsync();
     }
 
+    /// <summary>What a sensor is called in the app: the name you gave it, or the hardware's own.</summary>
+    public string SensorLabel(TempSensor t) => Config.SensorNames.TryGetValue(t.Id, out var n) && !string.IsNullOrWhiteSpace(n) ? n : t.Name;
+
     /// <summary>A newer release, once a check found one (shown on the dashboard and in Settings).</summary>
     public UpdateInfo? Update { get; private set; }
     public event Action? UpdateFound;

@@ -33,6 +33,17 @@ public sealed class DeviceLighting
     public uint? Speed { get; set; }
     public uint? Brightness { get; set; }
     public uint? Direction { get; set; }
+    /// <summary>Synced effect: zones that do something else, by zone name. Zones not listed follow the effect.</summary>
+    public Dictionary<string, ZoneLighting> Zones { get; set; } = [];
+}
+
+public enum ZoneSource { Sync, Color, Off }
+
+/// <summary>One zone of a device that follows the synced effect: keep following it, one fixed colour, or off.</summary>
+public sealed class ZoneLighting
+{
+    public ZoneSource Source { get; set; } = ZoneSource.Sync;
+    public string Color { get; set; } = "#FFFFFF";
 }
 
 public sealed class LightingProfile
@@ -207,6 +218,19 @@ public static class EffectMath
         return Rgb.Lerp(stops[i], stops[i + 1], f - i);
     }
 
+    /// <summary>Paints zones that don't follow the synced effect over its frame (a fixed colour, or off).</summary>
+    public static void ApplyZones(Span<Rgb> frame, IReadOnlyList<RgbZone> zones, IReadOnlyDictionary<string, ZoneLighting>? settings)
+    {
+        if (settings is null || settings.Count == 0) return;
+        foreach (var z in zones)
+        {
+            if (!settings.TryGetValue(z.Name, out var zl) || zl.Source == ZoneSource.Sync) continue;
+            var c = zl.Source == ZoneSource.Color ? Rgb.Parse(zl.Color) : default;
+            int start = Math.Clamp(z.StartLed, 0, frame.Length), end = Math.Clamp(z.StartLed + (int)z.LedsCount, start, frame.Length);
+            frame[start..end].Fill(c);
+        }
+    }
+
     /// <summary>Static frames never change; everything else animates.</summary>
     public static bool Animated(EffectSettings e) => e.Kind is EffectKind.Breathing or EffectKind.Rainbow or EffectKind.ColorCycle or EffectKind.Temperature;
 }
@@ -359,7 +383,11 @@ public sealed class LightingEngine : IDisposable
 
                 var frame = new Rgb[target.LedCount];
                 if (identify) Array.Fill(frame, new Rgb(255, 255, 255).Scale(0.15 + 0.85 * Math.Abs(Math.Sin(t * Math.PI * 2))));
-                else if (source == LightingSource.Sync) EffectMath.Render(sync, t, target.LedX, temp, frame);
+                else if (source == LightingSource.Sync)
+                {
+                    EffectMath.Render(sync, t, target.LedX, temp, frame);
+                    EffectMath.ApplyZones(frame, target.Zones, dl?.Zones);
+                }
                 frames[target.Key] = frame;
 
                 bool animated = identify || (source == LightingSource.Sync && EffectMath.Animated(sync));

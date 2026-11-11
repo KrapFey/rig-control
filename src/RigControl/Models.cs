@@ -120,7 +120,25 @@ public sealed class TempVm(TempSensor sensor) : Observable
 {
     public TempSensor Sensor { get; } = sensor;
     public string Id => Sensor.Id;
-    public string Name => Sensor.Name;
+    /// <summary>Shown name: yours if you renamed it.</summary>
+    public string Name => App.Instance!.SensorLabel(Sensor);
+    /// <summary>The hardware's own name (also what CPU/GPU detection looks for).</summary>
+    public string OriginalName => Sensor.Name;
+    /// <summary>Your name for it; empty clears it.</summary>
+    public string CustomName
+    {
+        get => App.Instance!.Config.SensorNames.GetValueOrDefault(Id) ?? "";
+        set
+        {
+            var v = value.Trim();
+            var names = App.Instance!.Config.SensorNames;
+            if (v == CustomName) return;
+            if (v.Length == 0 || v == Sensor.Name) names.Remove(Id); else names[Id] = v;
+            App.Instance.ConfigChanged();
+            Raise(nameof(Name));
+            Raise(nameof(CustomName));
+        }
+    }
     public string Device => Sensor.Device;
     public Smooth Value { get; } = new(5);
 }
@@ -202,7 +220,7 @@ public sealed class Live
     {
         foreach (var n in names)
         {
-            var hit = Temps.FirstOrDefault(t => t.Name == n && t.Id.Contains(idHint, StringComparison.OrdinalIgnoreCase));
+            var hit = Temps.FirstOrDefault(t => t.OriginalName == n && t.Id.Contains(idHint, StringComparison.OrdinalIgnoreCase));
             if (hit is not null) return hit;
         }
         return Temps.FirstOrDefault(t => t.Id.Contains(idHint, StringComparison.OrdinalIgnoreCase));

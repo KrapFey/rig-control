@@ -33,7 +33,7 @@ public sealed partial class CurvesPage : Page
         Editor.PointsChanged += pts => { if (_sel is null) return; _sel.Def.Points = pts; App.Instance!.ConfigChanged(); };
         Loaded += (_, _) =>
         {
-            _temps = [.. App.Instance!.Hub.Temps.OrderBy(t => t.Device).ThenBy(t => t.Name).Select(t => new TempOption(t.Id, $"{t.Name} · {t.Device}"))];
+            _temps = [.. App.Instance!.Hub.Temps.OrderBy(t => t.Device).ThenBy(t => t.Name).Select(t => new TempOption(t.Id, $"{App.Instance.SensorLabel(t)} · {t.Device}"))];
             foreach (var c in Cfg.Curves) _items.Add(new CurveItem(c));
             CurveList.ItemsSource = _items;
             CurveList.SelectedIndex = _items.Count > 0 ? 0 : -1;

@@ -16,6 +16,7 @@ public sealed partial class SensorsPage : Page
         var q = Filter.Text.Trim();
         var temps = Live.Instance.Temps.Where(t => q.Length == 0
             || t.Name.Contains(q, StringComparison.OrdinalIgnoreCase)
+            || t.OriginalName.Contains(q, StringComparison.OrdinalIgnoreCase)
             || t.Device.Contains(q, StringComparison.OrdinalIgnoreCase));
         var groups = temps.GroupBy(t => t.Device).Select(g => new TempGroup(g.Key, g)).ToList();
         Groups.ItemsSource = groups;

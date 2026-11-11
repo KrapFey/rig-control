@@ -14,6 +14,7 @@
             <StackPanel>
                 <TextBlock Text="Sensors" Style="{StaticResource PageTitle}" Margin="0" />
                 <TextBlock x:Name="Count" Style="{StaticResource Caption}" Margin="0,4,0,0" />
+                <TextBlock Text="Click a name to rename it; clear it to get the hardware's name back." Style="{StaticResource Caption}" Opacity="0.7" />
             </StackPanel>
             <AutoSuggestBox x:Name="Filter" Width="260" HorizontalAlignment="Right" VerticalAlignment="Center" PlaceholderText="Filter" QueryIcon="Find" TextChanged="Filter_TextChanged" />
         </Grid>
@@ -33,13 +34,14 @@
                                 <ItemsControl ItemsSource="{x:Bind}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="local:TempVm">
-                                            <Grid ColumnSpacing="14" Height="28">
+                                            <Grid ColumnSpacing="14" Height="34">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="240" />
                                                     <ColumnDefinition />
                                                     <ColumnDefinition Width="80" />
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Opacity="0.85" />
+                                                <TextBox Text="{x:Bind CustomName, Mode=TwoWay}" PlaceholderText="{x:Bind OriginalName}" VerticalAlignment="Center" MinHeight="28" Padding="8,3"
+                                                         Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="{x:Bind OriginalName}" />
                                                 <Grid Grid.Column="1" Height="6" CornerRadius="3" Background="#14FFFFFF" VerticalAlignment="Center">
                                                     <Border CornerRadius="3" Background="{StaticResource AccentGradient}">
                                                         <Border.RenderTransform>

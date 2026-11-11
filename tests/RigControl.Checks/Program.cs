@@ -495,6 +495,15 @@ else Console.WriteLine("skip rivalcfg checks (liquidctl runtime not fetched)");
     Check(LogitechHidpp10Mouse.Lookup(0x1028) is null, "HID++ 1.0: mice without DPI data (M570) aren't listed");
 }
 
+// --- per-zone lighting
+{
+    var frame = Enumerable.Repeat(new Rgb(10, 20, 30), 10).ToArray();
+    RgbZone[] zones = [new() { Name = "Logo", StartLed = 0, LedsCount = 2 }, new() { Name = "Ring", StartLed = 2, LedsCount = 6 }, new() { Name = "Strip", StartLed = 8, LedsCount = 5 }];
+    EffectMath.ApplyZones(frame, zones, new Dictionary<string, ZoneLighting> { ["Ring"] = new() { Source = ZoneSource.Color, Color = "#FF0000" }, ["Strip"] = new() { Source = ZoneSource.Off } });
+    Check(frame[..2].All(c => c == new Rgb(10, 20, 30)) && frame[2..8].All(c => c == new Rgb(255, 0, 0)) && frame[8..].All(c => c == default(Rgb)),
+        "zones: unlisted zones keep the effect, a colour zone and an off zone paint only their LEDs (an overlong zone is clipped)");
+}
+
 // --- supported-devices list and its fuzzy search
 Check(SupportedDevices.List.Count > 2000 && SupportedDevices.List.Any(d => d.Kind == "Mouse") && SupportedDevices.List.Any(d => d.Kind == "Headset"), "supported list: loaded, every kind present");
 Check(SupportedDevices.Search("deathadder v2").FirstOrDefault()?.Name == "Razer DeathAdder V2", "search: exact words find the device first");

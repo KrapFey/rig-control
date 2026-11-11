@@ -120,7 +120,7 @@ public static class Demo
     ];
 
     // ---------------- RGB devices
-    sealed class DemoRgb(string key, string name, RgbDeviceType type, int leds) : IRgbTarget
+    sealed class DemoRgb(string key, string name, RgbDeviceType type, int leds, params (string name, int leds)[] zones) : IRgbTarget
     {
         static readonly RgbMode[] ModeList = [new() { Name = "Direct", Flags = ModeFlags.HasPerLedColor, ColorMode = ColorMode.PerLed }, new() { Name = "Off" }];
         public string Key => key;
@@ -128,7 +128,9 @@ public static class Demo
         public string Tag => "";
         public RgbDeviceType Type => type;
         public IReadOnlyList<RgbMode> Modes => ModeList;
-        public IReadOnlyList<RgbZone> Zones { get; } = [new RgbZone { Name = "LEDs", Type = 1, LedsCount = (uint)leds, LedsMin = (uint)leds, LedsMax = (uint)leds }];
+        public IReadOnlyList<RgbZone> Zones { get; } = zones.Length == 0
+            ? [new RgbZone { Name = "LEDs", Type = 1, LedsCount = (uint)leds, LedsMin = (uint)leds, LedsMax = (uint)leds }]
+            : [.. zones.Select((z, i) => new RgbZone { Name = z.name, Type = 1, LedsCount = (uint)z.leds, LedsMin = (uint)z.leds, LedsMax = (uint)z.leds, StartLed = zones.Take(i).Sum(p => p.leds) })];
         public int LedCount => leds;
         public float[] LedX { get; } = [.. Enumerable.Range(0, leds).Select(i => i / (float)Math.Max(1, leds - 1))];
         public int MaxFps => 30;
@@ -142,8 +144,8 @@ public static class Demo
         new DemoRgb("demo/rgb/ram1", "RGB memory", RgbDeviceType.Dram, 8),
         new DemoRgb("demo/rgb/ram2", "RGB memory", RgbDeviceType.Dram, 8),
         new DemoRgb("demo/rgb/gpu", "Graphics card", RgbDeviceType.Gpu, 12),
-        new DemoRgb("demo/rgb/board", "Motherboard", RgbDeviceType.Motherboard, 16),
-        new DemoRgb("demo/rgb/fans", "Case fans (ARGB)", RgbDeviceType.Cooler, 48),
+        new DemoRgb("demo/rgb/board", "Motherboard", RgbDeviceType.Motherboard, 16, ("Back panel", 4), ("Chipset", 4), ("ARGB header 1", 8)),
+        new DemoRgb("demo/rgb/fans", "Case fans (ARGB)", RgbDeviceType.Cooler, 48, ("Front fan 1", 16), ("Front fan 2", 16), ("Front fan 3", 16)),
         new DemoRgb("demo/rgb/kb", "Keyboard", RgbDeviceType.Keyboard, 104),
     ];
 }
