@@ -404,7 +404,7 @@ if (File.Exists(Path.Combine(rivalPy, "rival.py")))
         var psi = new System.Diagnostics.ProcessStartInfo(Path.Combine(rivalPy, "python", "python.exe")) { RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true };
         psi.Environment["RIVALCFG_DRY"] = "1";
         psi.Environment["RIVALCFG_PROFILE"] = profile;
-        foreach (var x in new[] { "-I", Path.Combine(rivalPy, "rival.py") }.Concat(a)) psi.ArgumentList.Add(x);
+        foreach (var x in new[] { "-I", "-B", Path.Combine(rivalPy, "rival.py") }.Concat(a)) psi.ArgumentList.Add(x);
         using var p = System.Diagnostics.Process.Start(psi)!;
         var o = p.StandardOutput.ReadToEnd(); p.WaitForExit();
         return o.Trim();

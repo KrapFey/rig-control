@@ -88,6 +88,7 @@ sealed class LiquidctlBridge : IDisposable
             RedirectStandardError = true,
         };
         psi.ArgumentList.Add("-I"); // isolated: ignore PYTHON* env vars and user site-packages
+        psi.ArgumentList.Add("-B"); // no __pycache__ beside the app
         psi.ArgumentList.Add("-u");
         psi.ArgumentList.Add("-B"); // never write .pyc files next to the app
         psi.ArgumentList.Add(Path.Combine(_dir, "bridge.py"));

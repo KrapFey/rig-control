@@ -20,6 +20,19 @@ if ($LASTEXITCODE -ne 0) { throw 'self-checks failed' }
 dotnet publish (Join-Path $root 'src\RigControl') -c Release -o $app -p:DebugType=none -p:DebugSymbols=false -p:ContinuousIntegrationBuild=true -nologo -v q
 if ($LASTEXITCODE -ne 0) { throw 'publish failed' }
 
+# Python caches embed the paths of the PC that made them (running the helpers or checks creates them): never ship them.
+Get-ChildItem $app -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force
+Get-ChildItem $app -Recurse -File -Include *.pyc | Remove-Item -Force
+# Nothing in a release may name this PC's user or where the repo lives.
+$latin1 = [Text.Encoding]::Latin1
+$needles = @($env:USERNAME, $root) | Where-Object { $_.Length -ge 4 }
+$leaks = foreach ($f in Get-ChildItem $app -Recurse -File) {
+    $bytes = [IO.File]::ReadAllBytes($f.FullName)
+    $text = $latin1.GetString($bytes) + [Text.Encoding]::Unicode.GetString($bytes)
+    foreach ($n in $needles) { if ($text.IndexOf($n, [StringComparison]::OrdinalIgnoreCase) -ge 0) { "$($f.FullName.Substring($app.Length)): $n"; break } }
+}
+if ($leaks) { $leaks | Select-Object -First 20; throw 'the release would contain personal data (listed above)' }
+
 $zip = Join-Path $out "rig-control-$version-win-x64.zip"
 Compress-Archive -Path "$app\*" -DestinationPath $zip -CompressionLevel Optimal
 & $iscc /Q "/DAppVersion=$version" "/DSourceDir=$app" (Join-Path $root 'installer\RigControl.iss')

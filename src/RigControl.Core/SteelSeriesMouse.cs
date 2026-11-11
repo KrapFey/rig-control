@@ -117,6 +117,7 @@ public sealed class SteelSeriesMouse : IPeripheral
         if (RunOverride is { } o) return o(args);
         var psi = new ProcessStartInfo(Python) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
         psi.ArgumentList.Add("-I"); // isolated: ignore PYTHON* env vars and user site-packages
+        psi.ArgumentList.Add("-B"); // no __pycache__ beside the app
         psi.ArgumentList.Add(Helper);
         foreach (var a in args) psi.ArgumentList.Add(a);
         try
