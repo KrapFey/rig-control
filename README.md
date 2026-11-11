@@ -41,7 +41,10 @@ headset and keyboard, and watch it all live in a modern WinUI 3 interface.
   - **Audio lighting:** a level meter, a spectrum (bass to treble) or a beat pulse, following what your PC plays or
     a microphone. Only loudness and pitch are measured; nothing is recorded, saved or sent, and it listens only while
     an audio effect is on.
-  - **Per device:** keep the synced effect, use one of the device's own effects, or turn it off.
+  - **Per device:** keep the synced effect, give it its own effect (any of RigControl's effects, with its own colours
+    and speed), use one of the device's built-in effects, or turn it off.
+  - **Per fan:** on controllers that report their fans (NZXT hubs, for example) each fan plays the whole effect by itself
+    instead of one slice of it; an effect can also run per zone or once across the whole device.
   - **Per zone and per LED:** any zone (fans, motherboard headers…) can show its own colour, a colour for each LED
     (paint them with a brush), or stay off while the rest follow the synced effect.
   - **ARGB headers:** set how many LEDs hang off each addressable header (the board can't detect it); RigControl keeps

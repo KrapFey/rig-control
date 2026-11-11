@@ -143,6 +143,14 @@ public static class Demo
     public static IEnumerable<IRgbTarget> RgbDevices(Func<string, string, int?>? size = null)
     {
         int header = size?.Invoke("demo/rgb/board", "ARGB header 1") ?? 8;
+        // A controller that reports which fans hang off each channel (like an NZXT hub does), so effects can run per fan.
+        static DemoRgb Fans(DemoRgb d, int perFan)
+        {
+            foreach (var z in d.Zones)
+                for (uint s = 0; s < z.LedsCount / perFan; s++)
+                    z.Segments.Add(new RgbSegment { Name = $"Fan {s + 1}", StartIndex = s * (uint)perFan, LedsCount = (uint)perFan });
+            return d;
+        }
         return
     [
         new DemoRgb("demo/rgb/ram1", "RGB memory", RgbDeviceType.Dram, 8),
@@ -151,6 +159,7 @@ public static class Demo
         new DemoRgb("demo/rgb/board", "Motherboard", RgbDeviceType.Motherboard, 8 + header, ("Back panel", 4, false), ("Chipset", 4, false), ("ARGB header 1", header, true)),
         new DemoRgb("demo/rgb/fans", "Case fans (ARGB)", RgbDeviceType.Cooler, 48, ("Front fan 1", 16, false), ("Front fan 2", 16, false), ("Front fan 3", 16, false)),
         new DemoRgb("demo/rgb/kb", "Keyboard", RgbDeviceType.Keyboard, 104),
+        Fans(new DemoRgb("demo/rgb/hub", "Fan & LED controller", RgbDeviceType.LedStrip, 40, ("Channel 1", 24, false), ("Channel 2", 16, false)), 8),
     ];
     }
 }

@@ -46,7 +46,8 @@
             <Border Style="{StaticResource Card}" Padding="22">
                 <StackPanel Spacing="16">
                     <Grid>
-                        <TextBlock Text="SYNCED EFFECT" Style="{StaticResource Caption}" VerticalAlignment="Center" />
+                        <ComboBox x:Name="EditBox" MinWidth="220" VerticalAlignment="Center" AutomationProperties.Name="Effect being edited"
+                                  ToolTipService.ToolTip="The synced effect, or a device with its own effect" SelectionChanged="EditBox_SelectionChanged" />
                         <TextBlock x:Name="SyncCount" Style="{StaticResource Caption}" HorizontalAlignment="Right" />
                     </Grid>
 
@@ -181,6 +182,8 @@
                                 </Grid>
 
                                 <ComboBox Header="Lighting" HorizontalAlignment="Stretch" ItemsSource="{x:Bind Options}" SelectedIndex="{x:Bind Selected, Mode=TwoWay}" />
+
+                                <Button Content="Edit this device's effect" Click="{x:Bind EditEffect}" Visibility="{x:Bind OwnEffectVisibility, Mode=OneWay}" HorizontalAlignment="Stretch" />
 
                                 <StackPanel Spacing="8" Visibility="{x:Bind HardwareVisibility, Mode=OneWay}">
                                     <StackPanel Orientation="Horizontal" Spacing="8" Visibility="{x:Bind ColorVisibility, Mode=OneWay}">

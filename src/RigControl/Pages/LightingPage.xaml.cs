@@ -26,12 +26,14 @@ public sealed class DeviceCard : Observable
         _target = target;
         Name = showTag && target.Tag.Length > 0 ? $"{target.Name} · {target.Tag}" : target.Name;
         _choices.Add((LightingSource.Sync, null));
+        _choices.Add((LightingSource.Effect, null));
         foreach (var m in target.Modes.Where(m => !m.Name.Equals("Direct", StringComparison.OrdinalIgnoreCase)))
             _choices.Add((LightingSource.Hardware, m.Name));
         _choices.Add((LightingSource.Off, null));
         Options = [.. _choices.Select(c => c.source switch
         {
             LightingSource.Sync => "Synced effect",
+            LightingSource.Effect => "Own effect",
             LightingSource.Off => "Off",
             _ => $"Device effect: {c.mode}",
         })];
@@ -92,6 +94,8 @@ public sealed class DeviceCard : Observable
             var d = Edit();
             d.Source = source;
             d.Mode = mode;
+            if (source == LightingSource.Effect && d.Effect is null)
+                d.Effect = System.Text.Json.JsonSerializer.Deserialize<EffectSettings>(System.Text.Json.JsonSerializer.Serialize(Profile.Sync)); // start from the synced one
             if (mode is not null && _target.Modes.FirstOrDefault(m => m.Name == mode) is { } m)
             {
                 d.Colors = [.. m.Colors.Select(c => c.ToString())];
@@ -100,8 +104,14 @@ public sealed class DeviceCard : Observable
             Changed();
             Raise(string.Empty);
             SourceChanged?.Invoke();
+            if (source == LightingSource.Effect) EditEffect();
         }
     }
+
+    /// <summary>Puts this device's own effect in the effect editor at the top of the page.</summary>
+    public void EditEffect() => EditRequested?.Invoke(Key);
+    public static event Action<string>? EditRequested;
+    public Visibility OwnEffectVisibility => Settings.Source == LightingSource.Effect ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>A card switched between the synced effect, a device effect and off (the page recounts who follows the effect).</summary>
     public static event Action? SourceChanged;
@@ -145,17 +155,17 @@ public sealed class DeviceCard : Observable
     // ---------------- Zones and single LEDs (devices following the synced effect)
     /// <summary>With the Zones button in the header too, Identify shows just its icon so the name keeps room.</summary>
     public Visibility IdentifyTextVisibility => ZonesVisibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
-    public Visibility ZonesVisibility => (_target.LedCount > 1 || _target.Zones.Any(z => z.Resizable)) && Settings.Source == LightingSource.Sync ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility ZonesVisibility => (_target.LedCount > 1 || _target.Zones.Any(z => z.Resizable)) && Settings.Source is LightingSource.Sync or LightingSource.Effect ? Visibility.Visible : Visibility.Collapsed;
     int CustomZones => _target.Zones.Count(z => Settings.Zones.TryGetValue(z.Name, out var zl) && zl.Source != ZoneSource.Sync);
     string ZonesWord => _target.Zones.Count > 1 ? "Zones" : "LEDs";
     public string ZonesLabel => CustomZones == 0 ? ZonesWord : $"{ZonesWord} · {CustomZones}";
     public string ZonesTip => _target.Zones.Count > 1
-        ? (CustomZones == 0 ? $"{_target.Zones.Count} zones, all following the synced effect: give one its own colours, or turn it off"
+        ? (CustomZones == 0 ? $"{_target.Zones.Count} zones, all following the effect: give one its own colours, or turn it off"
                             : $"{CustomZones} of {_target.Zones.Count} zones have their own colours or are off")
         : "Colour single LEDs, give the whole device one colour, or turn it off";
 
     static readonly (string label, ZoneSource source)[] ZoneOptions =
-        [("Synced effect", ZoneSource.Sync), ("Colour", ZoneSource.Color), ("Each LED", ZoneSource.Leds), ("Off", ZoneSource.Off)];
+        [("Effect", ZoneSource.Sync), ("Colour", ZoneSource.Color), ("Each LED", ZoneSource.Leds), ("Off", ZoneSource.Off)];
 
     static string ZoneName(RgbZone z) => string.IsNullOrWhiteSpace(z.DisplayName) ? z.Name : z.DisplayName;
 
@@ -177,7 +187,20 @@ public sealed class DeviceCard : Observable
     FrameworkElement ZoneList(Flyout flyout)
     {
         var panel = new StackPanel { Spacing = 10, Width = 420 };
-        panel.Children.Add(new TextBlock { Text = "Each zone can follow the synced effect, show one colour, get a colour per LED, or stay off."
+        // How the effect is laid out: once across everything, or starting over per zone or per fan.
+        bool fans = _target.Zones.Any(z => z.Segments.Count > 1);
+        var layouts = new List<(string label, EffectLayout layout)> { ("Automatic" + (fans ? " (each fan)" : " (whole device)"), EffectLayout.Auto), ("Across the whole device", EffectLayout.Device) };
+        if (_target.Zones.Count > 1) layouts.Add(("Each zone separately", EffectLayout.Zone));
+        if (fans) layouts.Add(("Each fan separately", EffectLayout.Fan));
+        if (layouts.Count > 2)
+        {
+            var layoutBox = new ComboBox { Header = "Effect layout", ItemsSource = layouts.Select(l => l.label).ToList(), HorizontalAlignment = HorizontalAlignment.Stretch,
+                SelectedIndex = Math.Max(0, layouts.FindIndex(l => l.layout == Settings.Layout)) };
+            ToolTipService.SetToolTip(layoutBox, "Whether a wave or gradient runs once over the whole device, or plays on each zone or fan by itself");
+            layoutBox.SelectionChanged += (_, _) => { if (layoutBox.SelectedIndex >= 0) { Edit().Layout = layouts[layoutBox.SelectedIndex].layout; Changed(); } };
+            panel.Children.Add(layoutBox);
+        }
+        panel.Children.Add(new TextBlock { Text = "Each zone can follow the effect, show one colour, get a colour per LED, or stay off."
             + (_target.Zones.Any(z => z.Resizable) ? " For addressable (ARGB) headers, set how many LEDs are connected." : ""), TextWrapping = TextWrapping.Wrap, Opacity = 0.7, FontSize = 12 });
         foreach (var zone in _target.Zones)
         {
@@ -203,7 +226,7 @@ public sealed class DeviceCard : Observable
                 row.Children.Add(cell);
             }
             else
-                row.Children.Add(new TextBlock { Text = $"{ZoneName(zone)} · {zone.LedsCount} LED{(zone.LedsCount == 1 ? "" : "s")}", VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+                row.Children.Add(new TextBlock { Text = $"{ZoneName(zone)} · {(zone.Segments.Count > 1 ? $"{zone.Segments.Count} fans, " : "")}{zone.LedsCount} LED{(zone.LedsCount == 1 ? "" : "s")}", VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
             var current = Settings.Zones.GetValueOrDefault(zone.Name)?.Source ?? ZoneSource.Sync;
             var box = new ComboBox { ItemsSource = ZoneOptions.Select(o => o.label).ToList(), SelectedIndex = Array.FindIndex(ZoneOptions, o => o.source == current), MinWidth = 150 };
             Grid.SetColumn(box, 1);
@@ -356,7 +379,10 @@ public sealed partial class LightingPage : Page
 
     static App AppI => App.Instance!;
     static LightingConfig Cfg => AppI.Config.Lighting;
-    static EffectSettings Sync => Cfg.Current.Sync;
+    /// <summary>The device whose own effect the editor shows (null: the synced effect).</summary>
+    static string? _editKey;
+    /// <summary>The effect in the editor: the synced one, or a device's own.</summary>
+    static EffectSettings Sync => _editKey is string k && Cfg.Current.Devices.GetValueOrDefault(k) is { Source: LightingSource.Effect, Effect: { } e } ? e : Cfg.Current.Sync;
 
     public LightingPage()
     {
@@ -368,7 +394,8 @@ public sealed partial class LightingPage : Page
         Loaded += (_, _) =>
         {
             AppI.LightingStateChanged += Rebuild;
-            DeviceCard.SourceChanged += UpdateSyncCount;
+            DeviceCard.SourceChanged += SourcesChanged;
+            DeviceCard.EditRequested += EditDevice;
             Rebuild();
             _timer = DispatcherQueue.CreateTimer();
             _timer.Interval = TimeSpan.FromMilliseconds(50); // 20 fps is plenty for previews
@@ -378,7 +405,8 @@ public sealed partial class LightingPage : Page
         Unloaded += (_, _) =>
         {
             AppI.LightingStateChanged -= Rebuild;
-            DeviceCard.SourceChanged -= UpdateSyncCount;
+            DeviceCard.SourceChanged -= SourcesChanged;
+            DeviceCard.EditRequested -= EditDevice;
             _timer?.Stop();
         };
     }
@@ -402,6 +430,42 @@ public sealed partial class LightingPage : Page
         DeviceGrid.ItemsSource = null;
         DeviceGrid.ItemsSource = _cards;
         Summary.Text = _cards.Count == 0 ? "No RGB devices yet." : $"{_cards.Count} devices · profile \"{Cfg.Current.Name}\"";
+        LoadEditTargets();
+        LoadEffect();
+        _loading = false;
+    }
+
+    /// <summary>The editor's picker: the synced effect, then every device with its own effect.</summary>
+    void LoadEditTargets()
+    {
+        var own = _cards.Where(c => Cfg.Current.Devices.GetValueOrDefault(c.Key)?.Source == LightingSource.Effect).ToList();
+        if (_editKey is not null && own.All(c => c.Key != _editKey)) _editKey = null;
+        EditBox.ItemsSource = new[] { "Synced effect" }.Concat(own.Select(c => $"{c.Name} · own effect")).ToList();
+        _editTargets = [null, .. own.Select(c => c.Key)];
+        EditBox.SelectedIndex = Math.Max(0, _editTargets.IndexOf(_editKey));
+    }
+
+    List<string?> _editTargets = [null];
+
+    void EditBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || EditBox.SelectedIndex < 0) return;
+        _editKey = _editTargets[EditBox.SelectedIndex];
+        _loading = true;
+        LoadEffect();
+        _loading = false;
+    }
+
+    void EditDevice(string key)
+    {
+        _editKey = key;
+        SourcesChanged();
+    }
+
+    void SourcesChanged()
+    {
+        _loading = true;
+        LoadEditTargets();
         LoadEffect();
         _loading = false;
     }
@@ -476,7 +540,7 @@ public sealed partial class LightingPage : Page
         EffectChanged();
     }
 
-    void UpdateSyncCount() => SyncCount.Text = $"{_cards.Count(c => c.Selected == 0)} of {_cards.Count} devices follow it";
+    void UpdateSyncCount() => SyncCount.Text = _editKey is null ? $"{_cards.Count(c => c.Selected == 0)} of {_cards.Count} devices follow it" : "Only this device";
 
     void BuildSwatches()
     {
@@ -533,7 +597,7 @@ public sealed partial class LightingPage : Page
         var x = new float[40];
         for (int i = 0; i < x.Length; i++) x[i] = i / (float)(x.Length - 1);
         var frame = new Rgb[x.Length];
-        double? temp = AppI.Lighting.CurrentTemperature
+        double? temp = (_editKey is null ? AppI.Lighting.CurrentTemperature : null)
             ?? (s.Sensor is string id ? AppI.Hub.Temps.FirstOrDefault(t => t.Id == id)?.Value : null);
         bool heat = s.Kind == EffectKind.Temperature;
         if (heat)

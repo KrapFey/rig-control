@@ -210,6 +210,17 @@ else Console.WriteLine("skip liquidctl bridge selftest (runtime not built)");
 
 // --- lighting effects
 Check(EffectMath.Gradient([new(0, 0, 0), new(200, 100, 50)], 0.5) == new Rgb(100, 50, 25), "gradient midpoint");
+// Layouts: per fan, each 8-LED fan runs 0..1 on its own; per zone, each channel does; auto picks per fan when fans are known.
+{
+    var hub = Demo.RgbDevices().First(d => d.Key == "demo/rgb/hub");
+    var fan = EffectMath.LayoutX(hub, EffectLayout.Fan);
+    Check(fan[0] == 0 && fan[7] == 1 && fan[8] == 0 && fan[39] == 1 && Math.Abs(fan[3] - 3 / 7f) < 1e-6, "layout: x restarts on every fan");
+    var zone = EffectMath.LayoutX(hub, EffectLayout.Zone);
+    Check(zone[0] == 0 && zone[23] == 1 && zone[24] == 0 && zone[39] == 1, "layout: x restarts on every zone");
+    Check(EffectMath.LayoutX(hub, EffectLayout.Auto).SequenceEqual(fan), "layout: automatic = per fan when the controller lists fans");
+    var gpu = Demo.RgbDevices().First(d => d.Key == "demo/rgb/gpu");
+    Check(ReferenceEquals(EffectMath.LayoutX(gpu, EffectLayout.Auto), gpu.LedX), "layout: automatic = whole device otherwise");
+}
 Check(Math.Abs(EffectMath.Period(0) - 10) < 1e-9 && Math.Abs(EffectMath.Period(100) - 1) < 1e-9, "speed 0..100 -> 10 s..1 s per cycle");
 var px = new Rgb[3];
 EffectMath.Render(new EffectSettings { Kind = EffectKind.Static, Colors = ["#FF0000", "#0000FF"], Brightness = 50 }, 0, [0f, 0.5f, 1f], null, px);

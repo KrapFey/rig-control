@@ -30,7 +30,20 @@ public sealed class EffectSettings
     public bool IsAudio => Kind is EffectKind.AudioLevel or EffectKind.AudioSpectrum or EffectKind.AudioPulse;
 }
 
-public enum LightingSource { Sync, Hardware, Off }
+public enum LightingSource { Sync, Hardware, Off, Effect }
+
+/// <summary>How an effect is laid over a device's LEDs.</summary>
+public enum EffectLayout
+{
+    /// <summary>Each fan on its own where the controller reports its fans, otherwise across the device.</summary>
+    Auto,
+    /// <summary>Once across all the device's LEDs.</summary>
+    Device,
+    /// <summary>Each zone (header, channel) on its own.</summary>
+    Zone,
+    /// <summary>Each fan or strip on its own (the segments the controller reports), zones without them as a whole.</summary>
+    Fan,
+}
 
 /// <summary>What one device does in a profile.</summary>
 public sealed class DeviceLighting
@@ -42,6 +55,10 @@ public sealed class DeviceLighting
     public uint? Speed { get; set; }
     public uint? Brightness { get; set; }
     public uint? Direction { get; set; }
+    /// <summary>Own effect: what this device shows instead of the synced effect.</summary>
+    public EffectSettings? Effect { get; set; }
+    /// <summary>How the effect is laid over the LEDs (across the device, per zone or per fan).</summary>
+    public EffectLayout Layout { get; set; } = EffectLayout.Auto;
     /// <summary>Synced effect: zones that do something else, by zone name. Zones not listed follow the effect.</summary>
     public Dictionary<string, ZoneLighting> Zones { get; set; } = [];
 }
@@ -256,6 +273,30 @@ public static class EffectMath
         }
     }
 
+    /// <summary>
+    /// Where each LED sits along the effect (0..1) for a layout: once across the device, or starting over in each zone or
+    /// each fan, so every fan shows the whole effect instead of one slice of it.
+    /// </summary>
+    public static float[] LayoutX(IRgbTarget target, EffectLayout layout)
+    {
+        bool hasFans = target.Zones.Any(z => z.Segments.Count > 1);
+        if (layout == EffectLayout.Auto) layout = hasFans ? EffectLayout.Fan : EffectLayout.Device;
+        if (layout == EffectLayout.Device) return target.LedX;
+        var x = (float[])target.LedX.Clone();
+        foreach (var z in target.Zones)
+        {
+            void Span(int start, int count)
+            {
+                for (int i = 0; i < count && start + i < x.Length; i++)
+                    if (start + i >= 0) x[start + i] = count <= 1 ? 0 : i / (float)(count - 1);
+            }
+            Span(z.StartLed, (int)z.LedsCount);
+            if (layout == EffectLayout.Fan)
+                foreach (var s in z.Segments) Span(z.StartLed + (int)s.StartIndex, (int)s.LedsCount);
+        }
+        return x;
+    }
+
     /// <summary>Sensitivity 0..100 as a gain: 50 = 1x, 0 = 0.25x, 100 = 4x.</summary>
     public static double Gain(double sensitivity) => Math.Pow(2, (Math.Clamp(sensitivity, 0, 100) - 50) / 25);
 
@@ -322,6 +363,8 @@ public sealed class LightingEngine : IDisposable
     readonly ManualResetEventSlim _wake = new();
     volatile bool _stop;
     double _smoothTemp = double.NaN;
+    readonly Dictionary<string, double> _smoothBySensor = [];
+    readonly Dictionary<(string key, EffectLayout layout), float[]> _layouts = [];
     string? _identify;
     double _identifyUntil;
 
@@ -359,6 +402,7 @@ public sealed class LightingEngine : IDisposable
         lock (_lock)
         {
             _targets = [.. targets];
+            _layouts.Clear();
             _applied.Clear();
             _sent.Clear();
         }
@@ -385,8 +429,10 @@ public sealed class LightingEngine : IDisposable
             _profile = Clone(config.Current);
             _enabled = config.Enabled;
             // Listen only while an audio effect is lit (the microphone only when chosen; Windows shows it in use).
-            var s = _profile.Sync;
-            _audio.Listen(_enabled && s.IsAudio ? (s.AudioInput, s.AudioDevice) : null);
+            // One source at a time: the synced effect's, else the first device's own audio effect.
+            var s = _profile.Sync.IsAudio ? _profile.Sync
+                : _profile.Devices.Values.Where(d => d.Source == LightingSource.Effect).Select(d => d.Effect).FirstOrDefault(e => e?.IsAudio == true);
+            _audio.Listen(_enabled && s is { IsAudio: true } ? (s.AudioInput, s.AudioDevice) : null);
             _applied.Clear(); // re-apply modes; settings may have changed
             _sent.Clear();
         }
@@ -432,7 +478,15 @@ public sealed class LightingEngine : IDisposable
             temp = _smoothTemp;
         }
 
-        var audio = sync.IsAudio ? _audio.Current : null;
+        var audioNow = _audio.Current;
+        double? TempFor(EffectSettings e)
+        {
+            if (e == sync) return temp;
+            if (e.Kind != EffectKind.Temperature || e.Sensor is null || _temperature(e.Sensor) is not double r) return null;
+            var v = _smoothBySensor.TryGetValue(e.Sensor, out var prev) ? prev + (r - prev) * 0.15 : r;
+            _smoothBySensor[e.Sensor] = v;
+            return v;
+        }
         var frames = new Dictionary<string, Rgb[]>(Frames);
         foreach (var target in targets)
         {
@@ -458,14 +512,17 @@ public sealed class LightingEngine : IDisposable
 
                 var frame = new Rgb[target.LedCount];
                 if (identify) Array.Fill(frame, new Rgb(255, 255, 255).Scale(0.15 + 0.85 * Math.Abs(Math.Sin(t * Math.PI * 2))));
-                else if (source == LightingSource.Sync)
+                var effect = source == LightingSource.Effect && dl?.Effect is { } own ? own : source == LightingSource.Sync ? sync : null;
+                if (!identify && effect is not null)
                 {
-                    EffectMath.Render(sync, t, target.LedX, temp, frame, audio);
+                    var layout = dl?.Layout ?? EffectLayout.Auto;
+                    if (!_layouts.TryGetValue((target.Key, layout), out var x)) _layouts[(target.Key, layout)] = x = EffectMath.LayoutX(target, layout);
+                    EffectMath.Render(effect, t, x, TempFor(effect), frame, effect.IsAudio ? audioNow : null);
                     EffectMath.ApplyZones(frame, target.Zones, dl?.Zones);
                 }
                 frames[target.Key] = frame;
 
-                bool animated = identify || (source == LightingSource.Sync && EffectMath.Animated(sync));
+                bool animated = identify || (effect is not null && EffectMath.Animated(effect));
                 if (animated) fps = Math.Max(fps, target.MaxFps);
                 var last = _sent.GetValueOrDefault(target.Key);
                 bool due = last.frame is null || t - last.at >= 1.0 / target.MaxFps;
