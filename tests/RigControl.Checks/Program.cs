@@ -279,6 +279,55 @@ Check(LogitechDevice.ParseDpiList([0x01, 0x90, 0x03, 0x20, 0x06, 0x40, 0x00, 0x0
     Check(LogitechDevice.Open(sim, 0xFF) is null, "Logitech: headsets are left to HeadsetControl");
 }
 
+// --- SteelSeries Apex Pro keyboards, against simulated boards
+{
+    // Gen 3: per-key reads answer {hid, …}; 0x31 writes {hid, press, release}. ISO/JIS-only keys report "no magnet".
+    var points = new Dictionary<byte, (byte press, byte release)>();
+    int writes = 0;
+    byte[] notFitted = [0x89, 0x64, 0x32, 0x87, 0x88, 0x8A, 0x8B];
+    SteelSeriesKeyboard.Transport gen3 = (req, valid) =>
+    {
+        int cmd = req[1], n = req[2];
+        if (cmd == 0x31) { for (int i = 0; i < n; i++) points[req[3 + i * 3]] = (req[4 + i * 3], req[5 + i * 3]); writes++; return null; }
+        int stride = cmd == 0xDA ? 5 : 3;
+        var reply = new byte[64];
+        for (int i = 0; i < n; i++)
+        {
+            byte hid = req[3 + i * stride];
+            reply[i * stride] = hid;
+            if (cmd == 0xDA)
+            {
+                (int top, int rest) = notFitted.Contains(hid) ? (2900, 928) : (3000, 1200);
+                reply[i * stride + 1] = (byte)top; reply[i * stride + 2] = (byte)(top >> 8);
+                reply[i * stride + 3] = (byte)rest; reply[i * stride + 4] = (byte)(rest >> 8);
+            }
+            else { var (press, release) = points.TryGetValue(hid, out var p) ? p : ((byte)50, (byte)46); reply[i * stride + 1] = press; reply[i * stride + 2] = release; }
+        }
+        return valid is null || valid(reply) ? reply : null;
+    };
+    var g3 = new SteelSeriesKeyboard(SteelSeriesKeyboard.Family.Gen3, gen3);
+    Check(g3.Caps.ActuationMm.Length == 20 && !g3.Caps.RapidTrigger, "Apex Pro Gen 3: 20 firmware actuation levels, no rapid trigger claimed");
+    Check(g3.Read().ActuationMm == 1.8, "Apex Pro Gen 3: actuation read back as the nearest firmware level (raw 50 -> 1.8 mm)");
+    Check(SteelSeriesKeyboard.Gen3Level(0.1) == (5, 5) && SteelSeriesKeyboard.Gen3Level(4.0) == (215, 210) && SteelSeriesKeyboard.Gen3Level(1.0) == (23, 21),
+        "Apex Pro Gen 3: mm -> press/release points match apex-analog's table");
+    g3.Apply(new PeripheralSettings { ActuationMm = 1.0 }, g3.Read());
+    Check(writes == 3 && points.Count == 60 && points.Values.All(p => p == (23, 21)) && !points.ContainsKey(0xE3) && notFitted.All(h => !points.ContainsKey(h)),
+        "Apex Pro Gen 3: every fitted key set (20 per report), LGUI and missing keys untouched");
+    Check(g3.Read().ActuationMm == 1.0, "Apex Pro Gen 3: the new depth reads back");
+    g3.Apply(new PeripheralSettings { ActuationMm = 1.0 }, g3.Read());
+    Check(writes == 3, "Apex Pro Gen 3: nothing re-sent when it already matches");
+
+    // TKL (2023): write-only feature frames.
+    var frames = new List<byte[]>();
+    var tkl = new SteelSeriesKeyboard(SteelSeriesKeyboard.Family.Tkl2023, (req, _) => { frames.Add(req); return null; });
+    tkl.Apply(new PeripheralSettings { ActuationMm = 0.5, RapidTrigger = true }, tkl.Read());
+    Check(frames.Count == 2, "Apex Pro TKL 2023: one actuation frame and one rapid-trigger frame");
+    var f = frames[0];
+    Check(f[0] == 0 && f[1] == 0x38 && f[2] == 0x61 && f[3] == 68 && f[4] == 0 && f[5] == 0x35 && f[6] == 10 && f[7] == 8 && f.Length == 5 + 68 * 3,
+        "Apex Pro TKL 2023: 00 38 61 44 00 {hid, 10, 8}×68 for 0.5 mm");
+    Check(frames[1][1] == 0x38 && frames[1][2] == 0x62 && frames[1][3] == 68 && frames[1][5] == 2 && frames[1].Length == 4 + 68 * 2, "Apex Pro TKL 2023: rapid trigger as release mode 2 on all 68 keys");
+}
+
 // --- config round trip
 var path = Path.Combine(Path.GetTempPath(), $"rigcontrol-{Guid.NewGuid():N}.json");
 cfg.Save(path);

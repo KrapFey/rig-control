@@ -63,6 +63,19 @@
                                         <ToggleSwitch Header="Rotate to mute" IsOn="{x:Bind RotateOn, Mode=OneWay}" Tag="rotate" Toggled="HeadsetToggle_Toggled" Visibility="{x:Bind RotateVisibility}" />
                                     </StackPanel>
                                 </StackPanel>
+                                <!-- Keyboard switches -->
+                                <StackPanel Spacing="8" Visibility="{x:Bind ActuationVisibility}">
+                                    <Slider Header="{x:Bind ActuationText, Mode=OneWay}" Minimum="0" Maximum="{x:Bind ActuationMax}" StepFrequency="1" TickFrequency="1" TickPlacement="BottomRight"
+                                            Value="{x:Bind ActuationIndex, Mode=OneWay}" IsThumbToolTipEnabled="False" Tag="actuation" ValueChanged="Slider_ValueChanged" />
+                                    <Grid>
+                                        <TextBlock Text="Shallow · fast" Style="{StaticResource Caption}" />
+                                        <TextBlock Text="Deep · fewer mistypes" Style="{StaticResource Caption}" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <TextBlock Text="{x:Bind ActuationNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                                    <ToggleSwitch Header="Rapid trigger (a key resets as soon as it starts coming back up)" IsOn="{x:Bind RapidOn, Mode=OneWay}"
+                                                  Tag="rapid" Toggled="HeadsetToggle_Toggled" Visibility="{x:Bind RapidVisibility}" />
+                                </StackPanel>
+
                                 <!-- DPI: type it, step it, pick a preset, or drag for big jumps -->
                                 <StackPanel Spacing="10" Visibility="{x:Bind DpiVisibility}">
                                     <Grid ColumnSpacing="8">

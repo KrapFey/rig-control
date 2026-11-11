@@ -62,7 +62,7 @@ public sealed partial class DevicePage : Page
             case "dpi": card.Dpi = e.NewValue; break;
             case "sleep": card.SleepMinutes = e.NewValue; break;
             case "lowbat": card.LowBattery = e.NewValue; break;
-            case "sidetone" or "micvolume" or "inactive": card.SetHeadset((string)s.Tag, e.NewValue); break;
+            case "sidetone" or "micvolume" or "inactive" or "actuation": card.Set((string)s.Tag, e.NewValue); break;
         }
     }
 
@@ -89,13 +89,13 @@ public sealed partial class DevicePage : Page
     void HeadsetCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (sender is ComboBox { FocusState: not FocusState.Unfocused, DataContext: PeripheralCard card, SelectedIndex: >= 0 } box)
-            card.SetHeadset((string)box.Tag, box.SelectedIndex);
+            card.Set((string)box.Tag, box.SelectedIndex);
     }
 
     void HeadsetToggle_Toggled(object sender, RoutedEventArgs e)
     {
         if (sender is ToggleSwitch { FocusState: not FocusState.Unfocused, DataContext: PeripheralCard card } t)
-            card.SetHeadset((string)t.Tag, t.IsOn ? 1 : 0);
+            card.Set((string)t.Tag, t.IsOn ? 1 : 0);
     }
 
     void Poll_SelectionChanged(object sender, SelectionChangedEventArgs e)

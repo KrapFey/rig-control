@@ -30,6 +30,11 @@ public sealed class PeripheralCaps
     public bool Chatmix { get; init; }
     /// <summary>Names of the built-in EQ presets (empty = none).</summary>
     public string[] EqPresets { get; init; } = [];
+
+    // Keyboards with adjustable switches
+    /// <summary>The actuation depths (mm) the keyboard offers, shallow to deep (empty = not adjustable).</summary>
+    public double[] ActuationMm { get; init; } = [];
+    public bool RapidTrigger { get; init; }
 }
 
 /// <summary>What the device reports right now (null = unknown or not supported).</summary>
@@ -48,6 +53,8 @@ public sealed record PeripheralState
     public int? Sidetone { get; init; }
     public int? Chatmix { get; init; }
     public bool? MicMuted { get; init; }
+    public double? ActuationMm { get; init; }
+    public bool? RapidTrigger { get; init; }
 }
 
 /// <summary>Settings saved per device; only the ones set are applied.</summary>
@@ -70,6 +77,10 @@ public sealed class PeripheralSettings
     public int? EqPreset { get; set; }
     /// <summary>0 off, 1 noise cancelling, 2 ambient.</summary>
     public int? Anc { get; set; }
+
+    // Keyboards: one actuation depth for every analog key
+    public double? ActuationMm { get; set; }
+    public bool? RapidTrigger { get; set; }
 }
 
 /// <summary>A mouse, headset or other device whose settings RigControl can change.</summary>
@@ -170,6 +181,7 @@ public sealed class PeripheralHub : IDisposable
         found.AddRange(RazerMouse.FindAll());
         found.AddRange(HeadsetControlDevice.FindAll());
         found.AddRange(LogitechDevice.FindAll());
+        found.AddRange(SteelSeriesKeyboard.FindAll());
 
         List<IPeripheral> old;
         lock (_lock)

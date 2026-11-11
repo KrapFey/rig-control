@@ -67,6 +67,8 @@ public sealed class PeripheralCard : Observable
                 return string.Join(" · ", parts);
             }
             var bits = new List<string>();
+            if (Caps.ActuationMm.Length > 0 && ActuationKnown) bits.Add($"actuation {ActuationMm:0.0} mm");
+            if (Caps.RapidTrigger && (Saved.RapidTrigger ?? _state.RapidTrigger) is bool rt) bits.Add(rt ? "rapid trigger" : "rapid trigger off");
             if (Caps.Dpi) bits.Add($"{Dpi:0} DPI");
             if (Caps.MaxStages > 0) bits.Add($"stage {ActiveStage} of {CurrentStages.Count}");
             if ((Saved.PollRate ?? _state.PollRate) is int hz) bits.Add($"{hz} Hz");
@@ -129,8 +131,8 @@ public sealed class PeripheralCard : Observable
     public Visibility RotateVisibility => Show(Caps.RotateToMute);
     public bool RotateOn => Saved.RotateToMute ?? true;
 
-    /// <summary>Headset controls report here (only from user input); saves and sends.</summary>
-    public void SetHeadset(string what, double value)
+    /// <summary>Headset and keyboard controls report here (only from user input); saves and sends.</summary>
+    public void Set(string what, double value)
     {
         var s = Edit();
         switch (what)
@@ -143,11 +145,27 @@ public sealed class PeripheralCard : Observable
             case "lights": s.Lights = value != 0; break;
             case "voice": s.VoicePrompts = value != 0; break;
             case "rotate": s.RotateToMute = value != 0; break;
+            case "actuation": s.ActuationMm = Caps.ActuationMm[Math.Clamp((int)Math.Round(value), 0, Caps.ActuationMm.Length - 1)]; break;
+            case "rapid": s.RapidTrigger = value != 0; break;
             default: return;
         }
         Raise(string.Empty);
         Changed();
     }
+
+    // ---------------- Keyboards
+    public Visibility ActuationVisibility => Show(Caps.ActuationMm.Length > 0);
+    bool ActuationKnown => (Saved.ActuationMm ?? _state.ActuationMm) is not null;
+    double ActuationMm => Saved.ActuationMm ?? _state.ActuationMm ?? 2.0;
+    public double ActuationMax => Math.Max(0, Caps.ActuationMm.Length - 1);
+    public double ActuationIndex => Caps.ActuationMm.Length == 0 ? 0
+        : Array.IndexOf(Caps.ActuationMm, Caps.ActuationMm.MinBy(m => Math.Abs(m - ActuationMm)));
+    public string ActuationText => ActuationKnown
+        ? $"Actuation (how far a key travels before it counts) · {ActuationMm:0.0} mm"
+        : "Actuation (how far a key travels before it counts) · the keyboard's own setting until you move this";
+    public string ActuationNote => "Applies to every analog key. Lives in the keyboard's memory: a replug brings back its own profile, and RigControl sets it again.";
+    public Visibility RapidVisibility => Show(Caps.RapidTrigger);
+    public bool RapidOn => Saved.RapidTrigger ?? _state.RapidTrigger ?? false;
 
     public List<DpiPreset> Presets { get; }
     public void StepUp() => Dpi = Dpi + 50;
