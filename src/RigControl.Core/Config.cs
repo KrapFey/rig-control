@@ -54,6 +54,8 @@ public sealed class AppConfig
     /// <summary>Friendly names for temperature sensors.</summary>
     public Dictionary<string, string> SensorNames { get; set; } = [];
     public double IntervalSeconds { get; set; } = 1;
+    /// <summary>Ask GitHub for a newer release at start and once a day.</summary>
+    public bool CheckForUpdates { get; set; } = true;
     /// <summary>Per-device driver: device key (e.g. "nzxt-hue2/&lt;serial&gt;") -> "liquidctl". Missing = built-in.</summary>
     public Dictionary<string, string> Drivers { get; set; } = [];
     public LightingConfig Lighting { get; set; } = new();

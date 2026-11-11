@@ -96,6 +96,43 @@ public partial class App : Application
 
         CreateTray();
         if (!Environment.GetCommandLineArgs().Contains("--tray")) ShowWindow();
+        _ = UpdateLoopAsync();
+    }
+
+    /// <summary>A newer release, once a check found one (shown on the dashboard and in Settings).</summary>
+    public UpdateInfo? Update { get; private set; }
+    public event Action? UpdateFound;
+
+    async Task UpdateLoopAsync()
+    {
+#if UITEST
+        return;
+#endif
+        await Task.Delay(TimeSpan.FromSeconds(30)); // let start-up (sensors, fans, lighting) settle first
+        while (true)
+        {
+            if (Config.CheckForUpdates) await CheckForUpdateAsync();
+            await Task.Delay(TimeSpan.FromHours(24));
+        }
+    }
+
+    /// <summary>Returns a line for the user: what was found, or why the check failed.</summary>
+    public async Task<string> CheckForUpdateAsync()
+    {
+        try
+        {
+            var found = await Updates.CheckAsync();
+            Log(found is null ? $"update check: {Updates.Current} is the latest" : $"update check: {found.Version} available");
+            if (found is null) return $"RigControl {Updates.Current} is the latest version.";
+            Update = found;
+            Ui.TryEnqueue(() => UpdateFound?.Invoke());
+            return $"RigControl {found.Version} is available.";
+        }
+        catch (Exception e)
+        {
+            Log($"update check failed: {e.Message}");
+            return $"Couldn't check for updates: {e.Message}";
+        }
     }
 
     async Task StartLightingAsync()

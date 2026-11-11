@@ -29,6 +29,28 @@
             </Border>
 
             <Border Style="{StaticResource Card}">
+                <StackPanel Spacing="10">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Updates" FontWeight="SemiBold" />
+                            <TextBlock Text="Asks GitHub for a newer release at start and once a day. Nothing about you or your PC is sent." Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ToggleSwitch x:Name="AutoUpdate" Grid.Column="1" Toggled="AutoUpdate_Toggled" />
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="CheckNow" Content="Check now" Click="CheckNow_Click" />
+                        <Button x:Name="InstallUpdate" Content="Update" Style="{StaticResource AccentButtonStyle}" Visibility="Collapsed" Click="InstallUpdate_Click" />
+                        <HyperlinkButton x:Name="ReleaseNotes" Content="What's new" Visibility="Collapsed" />
+                        <TextBlock x:Name="UpdateStatus" Style="{StaticResource Caption}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
                 <Grid ColumnSpacing="16">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />

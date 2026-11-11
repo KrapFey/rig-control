@@ -37,11 +37,13 @@ public sealed partial class DashboardPage : Page
         _live.Refreshed += OnRefreshed;
         OnRefreshed();
         BuildNotices();
+        App.Instance!.UpdateFound += BuildNotices;
     }
 
     void OnUnloaded(object sender, RoutedEventArgs e)
     {
         _live.Refreshed -= OnRefreshed;
+        App.Instance!.UpdateFound -= BuildNotices;
         foreach (var (s, h) in _hooks) s.PropertyChanged -= h;
         _hooks.Clear();
         _live.Detach();
@@ -75,6 +77,15 @@ public sealed partial class DashboardPage : Page
         var app = App.Instance!;
         foreach (var note in app.StartupNotes.Concat(app.Hub.Problems))
             Notices.Children.Add(new InfoBar { IsOpen = true, Severity = InfoBarSeverity.Warning, Message = note });
+
+        if (app.Update is { } update)
+        {
+            var bar = new InfoBar { IsOpen = true, Severity = InfoBarSeverity.Success, Title = $"RigControl {update.Version} is available", Message = $"You have {Updates.Current}." };
+            var button = new Button { Content = update.SetupUrl is null ? "Open release page" : "Update", Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
+            button.Click += (_, _) => _ = SettingsPage.InstallUpdateAsync(XamlRoot);
+            bar.ActionButton = button;
+            Notices.Children.Add(bar);
+        }
 
         if (app.Config.Curves.Count == 0 && !app.Config.Fans.Values.Any(f => f.Enabled) && File.Exists(FanControlImport.DefaultPath))
         {

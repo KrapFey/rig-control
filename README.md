@@ -59,15 +59,19 @@ modern WinUI 3 interface.
 ## Install
 
 1. Install [PawnIO](https://pawnio.eu) (`winget install namazso.PawnIO`).
-2. Download `rig-control-<version>-win-x64.zip` from [Releases](https://github.com/KrapFey/rig-control/releases)
-   and extract it somewhere permanent, e.g. `%LOCALAPPDATA%\Programs\RigControl`.
-3. Run `RigControl.exe` and accept the admin prompt.
-4. Optional:
+2. Download `rig-control-<version>-setup.exe` from [Releases](https://github.com/KrapFey/rig-control/releases) and run it.
+   It installs for your user only (no admin prompt) into `%LOCALAPPDATA%\Programs\RigControl` and adds a Start
+   menu shortcut. RigControl asks for admin rights when it starts. Prefer no installer? The
+   `rig-control-<version>-win-x64.zip` is the same app: extract it somewhere permanent.
+3. Optional:
    - **Import FanControl setup** on the dashboard brings over your curves and fan names.
    - **Settings → Start with Windows** starts RigControl in the tray at logon.
 
-If another fan app is running, exit it first. RigControl stays hands-off while FanControl runs.
+RigControl checks GitHub for a newer release at start and once a day, and offers to update in one click (the
+installer is checked against the SHA-256 GitHub publishes for it). Turn it off in **Settings → Updates**.
+Uninstalling keeps your settings unless you choose to remove them.
 
+If another fan app is running, exit it first. RigControl stays hands-off while FanControl runs.
 ## Build
 
 Needs the .NET 10 SDK, and Python 3.13 x64 to build the bundled liquidctl runtime. Without `build\liquidctl`,
@@ -79,7 +83,7 @@ tools\fetch-openrgb.ps1                                      # build\openrgb: Op
 tools\fetch-headsetcontrol.ps1                               # build\headsetcontrol: HeadsetControl 4.2.0, SHA-256 pinned (optional)
 dotnet run --project tests\RigControl.Checks                 # self-checks
 dotnet build src\RigControl                                  # app (asks for admin when started)
-dotnet publish src\RigControl -c Release -r win-x64 --self-contained -o "$env:LOCALAPPDATA\Programs\RigControl"
+tools\build-release.ps1                                      # build\release: app folder, zip and installer (needs Inno Setup 6)
 ```
 
 Read-only hardware diagnostics (admin for `--probe` / `--lhm`):

@@ -16,6 +16,8 @@
     <!-- never glob other configurations' build output into this one -->
     <DefaultItemExcludes>$(DefaultItemExcludes);bin/**;bin-uitest/**</DefaultItemExcludes>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- ship the .NET runtime too: users shouldn't need .NET installed -->
+    <SelfContained>true</SelfContained>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\RigControl.ico</ApplicationIcon>
     <Version>0.4.0</Version>

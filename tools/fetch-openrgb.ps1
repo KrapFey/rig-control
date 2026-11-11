@@ -24,6 +24,17 @@ try {
 }
 finally { Remove-Item -Recurse -Force $dl -ErrorAction SilentlyContinue }
 
+# OpenRGB is built with Visual C++ and needs its runtime, which a clean Windows doesn't have. Microsoft allows
+# shipping these DLLs next to an app ("app-local"); they come from Visual Studio's redistributable folder.
+$crt = @('msvcp140.dll', 'msvcp140_1.dll', 'msvcp140_2.dll', 'msvcp140_codecvt_ids.dll', 'vcruntime140.dll', 'vcruntime140_1.dll')
+$vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+$redist = if (Test-Path $vswhere) {
+    & $vswhere -all -products * -property installationPath | ForEach-Object {
+        Get-ChildItem "$_\VC\Redist\MSVC\*\x64\Microsoft.VC14*.CRT" -Directory -ErrorAction SilentlyContinue
+    } | Sort-Object FullName -Descending | Select-Object -First 1
+}
+if (-not $redist) { throw 'Visual C++ redistributable files not found: install Visual Studio (or Build Tools) with the C++ workload' }
+foreach ($dll in $crt) { Copy-Item (Join-Path $redist.FullName $dll) $out }
 # OpenRGB is GPL-2.0: ship its licence and where its exact source lives.
 Invoke-WebRequest https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt -OutFile (Join-Path $out 'LICENSE-OpenRGB.txt') -UseBasicParsing
 @"
@@ -31,6 +42,7 @@ OpenRGB 1.1 (unmodified official Windows 64-bit build), used by RigControl as it
 Licence: GPL-2.0, see LICENSE-OpenRGB.txt.
 Source for this exact build: https://codeberg.org/OpenRGB/OpenRGB/src/commit/$commit
 Release: https://codeberg.org/OpenRGB/OpenRGB/releases/tag/release_1.1
+The msvcp140*/vcruntime140* DLLs beside it are the Microsoft Visual C++ runtime, redistributed app-local.
 "@ | Set-Content (Join-Path $out 'SOURCE.txt') -Encoding utf8
 
 "OpenRGB engine ready: {0:N1} MB in {1}" -f ((Get-ChildItem $out -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), $out
