@@ -39,8 +39,8 @@ headset and keyboard, and watch it all live in a modern WinUI 3 interface.
   - **Synced effects across every device:** rainbow wave, colour cycle, breathing, static and gradients.
   - **Temperature lighting:** colour follows any sensor.
   - **Per device:** keep the synced effect, use one of the device's own effects, or turn it off.
-  - **Per zone:** on devices with several zones (fans, motherboard headers…), any zone can show its own colour or
-    stay off while the rest follow the synced effect.
+  - **Per zone and per LED:** any zone (fans, motherboard headers…) can show its own colour, a colour for each LED
+    (paint them with a brush), or stay off while the rest follow the synced effect.
   - **Profiles,** live LED previews, and **Identify**, which pulses one device.
   - RigControl steps aside while another OpenRGB is running.
 - **Devices:** a page per mouse, keyboard and headset, with live battery in the tray tooltip.

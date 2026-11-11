@@ -502,6 +502,11 @@ else Console.WriteLine("skip rivalcfg checks (liquidctl runtime not fetched)");
     EffectMath.ApplyZones(frame, zones, new Dictionary<string, ZoneLighting> { ["Ring"] = new() { Source = ZoneSource.Color, Color = "#FF0000" }, ["Strip"] = new() { Source = ZoneSource.Off } });
     Check(frame[..2].All(c => c == new Rgb(10, 20, 30)) && frame[2..8].All(c => c == new Rgb(255, 0, 0)) && frame[8..].All(c => c == default(Rgb)),
         "zones: unlisted zones keep the effect, a colour zone and an off zone paint only their LEDs (an overlong zone is clipped)");
+    var leds = Enumerable.Repeat(new Rgb(10, 20, 30), 6).ToArray();
+    EffectMath.ApplyZones(leds, [new RgbZone { Name = "Ring", StartLed = 1, LedsCount = 4 }],
+        new Dictionary<string, ZoneLighting> { ["Ring"] = new() { Source = ZoneSource.Leds, Color = "#0000FF", Leds = ["#FF0000", "#00FF00"] } });
+    Check(leds[0] == new Rgb(10, 20, 30) && leds[1] == new Rgb(255, 0, 0) && leds[2] == new Rgb(0, 255, 0) && leds[3] == new Rgb(0, 0, 255) && leds[4] == new Rgb(0, 0, 255) && leds[5] == new Rgb(10, 20, 30),
+        "zones: each LED gets its own colour, unpainted ones the zone colour, LEDs outside the zone untouched");
 }
 
 // --- supported-devices list and its fuzzy search

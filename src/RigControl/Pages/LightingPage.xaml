@@ -89,18 +89,19 @@
                         </ListView.ItemTemplate>
                     </ListView>
 
-                    <Grid ColumnSpacing="24" RowSpacing="12">
+                    <StackPanel x:Name="ColorsPanel" Spacing="6">
+                        <TextBlock x:Name="ColorsLabel" Text="Colours" Style="{StaticResource Caption}" />
+                        <StackPanel x:Name="Swatches" Orientation="Horizontal" Spacing="8" />
+                    </StackPanel>
+
+                    <!-- Speed and brightness share the row -->
+                    <Grid ColumnSpacing="32">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition />
                             <ColumnDefinition />
-                            <ColumnDefinition />
                         </Grid.ColumnDefinitions>
-                        <StackPanel x:Name="ColorsPanel" Spacing="6">
-                            <TextBlock x:Name="ColorsLabel" Text="Colours" Style="{StaticResource Caption}" />
-                            <StackPanel x:Name="Swatches" Orientation="Horizontal" Spacing="8" />
-                        </StackPanel>
-                        <Slider x:Name="SpeedSlider" Grid.Column="1" Header="Speed" Minimum="0" Maximum="100" ValueChanged="Tuning_Changed" />
-                        <Slider x:Name="BrightnessSlider" Grid.Column="2" Header="Brightness" Minimum="0" Maximum="100" ValueChanged="Tuning_Changed" />
+                        <Slider x:Name="SpeedSlider" Header="Speed" Minimum="0" Maximum="100" ValueChanged="Tuning_Changed" />
+                        <Slider x:Name="BrightnessSlider" Grid.Column="1" Header="Brightness" Minimum="0" Maximum="100" ValueChanged="Tuning_Changed" />
                     </Grid>
 
                     <Grid x:Name="TempPanel" ColumnSpacing="16" Visibility="Collapsed">

@@ -139,38 +139,60 @@ public sealed class DeviceCard : Observable
 
     public void Identify() => App.Instance!.Lighting.Identify(Key);
 
-    // ---------------- Zones (devices with several, following the synced effect)
-    public Visibility ZonesVisibility => _target.Zones.Count > 1 && Settings.Source == LightingSource.Sync ? Visibility.Visible : Visibility.Collapsed;
+    // ---------------- Zones and single LEDs (devices following the synced effect)
+    public Visibility ZonesVisibility => _target.LedCount > 1 && Settings.Source == LightingSource.Sync ? Visibility.Visible : Visibility.Collapsed;
     int CustomZones => _target.Zones.Count(z => Settings.Zones.TryGetValue(z.Name, out var zl) && zl.Source != ZoneSource.Sync);
-    public string ZonesLabel => CustomZones == 0 ? "Zones" : $"Zones · {CustomZones}";
-    public string ZonesTip => CustomZones == 0
-        ? $"{_target.Zones.Count} zones, all following the synced effect: give one its own colour, or turn it off"
-        : $"{CustomZones} of {_target.Zones.Count} zones have their own colour or are off";
+    string ZonesWord => _target.Zones.Count > 1 ? "Zones" : "LEDs";
+    public string ZonesLabel => CustomZones == 0 ? ZonesWord : $"{ZonesWord} · {CustomZones}";
+    public string ZonesTip => _target.Zones.Count > 1
+        ? (CustomZones == 0 ? $"{_target.Zones.Count} zones, all following the synced effect: give one its own colours, or turn it off"
+                            : $"{CustomZones} of {_target.Zones.Count} zones have their own colours or are off")
+        : "Colour single LEDs, give the whole device one colour, or turn it off";
 
-    static readonly string[] ZoneOptions = ["Synced effect", "Colour", "Off"];
+    static readonly (string label, ZoneSource source)[] ZoneOptions =
+        [("Synced effect", ZoneSource.Sync), ("Colour", ZoneSource.Color), ("Each LED", ZoneSource.Leds), ("Off", ZoneSource.Off)];
 
-    /// <summary>Opens a panel listing the zones: each follows the effect, shows one colour, or is off.</summary>
+    static string ZoneName(RgbZone z) => string.IsNullOrWhiteSpace(z.DisplayName) ? z.Name : z.DisplayName;
+
+    void ZonesChanged()
+    {
+        Changed();
+        Raise(nameof(ZonesLabel));
+        Raise(nameof(ZonesTip));
+    }
+
+    /// <summary>Opens a panel listing the zones: each follows the effect, shows one colour, a colour per LED, or is off.</summary>
     public void ShowZones(object sender, RoutedEventArgs e)
     {
-        var panel = new StackPanel { Spacing = 10, MinWidth = 340 };
-        panel.Children.Add(new TextBlock { Text = "Each zone can follow the synced effect, show one colour, or stay off.", TextWrapping = TextWrapping.Wrap, Opacity = 0.7, FontSize = 12 });
+        var flyout = new Flyout { Placement = FlyoutPlacementMode.Bottom };
+        flyout.Content = ZoneList(flyout);
+        flyout.ShowAt((FrameworkElement)sender);
+    }
+
+    FrameworkElement ZoneList(Flyout flyout)
+    {
+        var panel = new StackPanel { Spacing = 10, MinWidth = 360 };
+        panel.Children.Add(new TextBlock { Text = "Each zone can follow the synced effect, show one colour, get a colour per LED, or stay off.", TextWrapping = TextWrapping.Wrap, Opacity = 0.7, FontSize = 12, MaxWidth = 420 });
         foreach (var zone in _target.Zones)
         {
             var row = new Grid { ColumnSpacing = 10 };
             row.ColumnDefinitions.Add(new ColumnDefinition());
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(36) });
-            var name = string.IsNullOrWhiteSpace(zone.DisplayName) ? zone.Name : zone.DisplayName;
-            row.Children.Add(new TextBlock { Text = $"{name} · {zone.LedsCount} LED{(zone.LedsCount == 1 ? "" : "s")}", VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
-            var current = Settings.Zones.GetValueOrDefault(zone.Name);
-            var box = new ComboBox { ItemsSource = ZoneOptions, SelectedIndex = (int)(current?.Source ?? ZoneSource.Sync), MinWidth = 150 };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
+            row.Children.Add(new TextBlock { Text = $"{ZoneName(zone)} · {zone.LedsCount} LED{(zone.LedsCount == 1 ? "" : "s")}", VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+            var current = Settings.Zones.GetValueOrDefault(zone.Name)?.Source ?? ZoneSource.Sync;
+            var box = new ComboBox { ItemsSource = ZoneOptions.Select(o => o.label).ToList(), SelectedIndex = Array.FindIndex(ZoneOptions, o => o.source == current), MinWidth = 150 };
             Grid.SetColumn(box, 1);
-            var swatch = new Button { Width = 32, Height = 28, Padding = new Thickness(0), CornerRadius = new CornerRadius(8) };
+            var swatch = new Button { Width = 36, Height = 30, Padding = new Thickness(0), CornerRadius = new CornerRadius(8) };
+            var edit = new Button { Width = 36, Height = 30, Padding = new Thickness(0), Content = new FontIcon { Glyph = "\uE70F", FontSize = 14 } };
+            ToolTipService.SetToolTip(edit, "Colour each LED");
             Grid.SetColumn(swatch, 2);
+            Grid.SetColumn(edit, 2);
             void Show()
             {
                 var zl = Settings.Zones.GetValueOrDefault(zone.Name);
                 swatch.Visibility = zl?.Source == ZoneSource.Color ? Visibility.Visible : Visibility.Collapsed;
+                edit.Visibility = zl?.Source == ZoneSource.Leds ? Visibility.Visible : Visibility.Collapsed;
                 var c = Rgb.Parse(zl?.Color ?? "#FFFFFF");
                 swatch.Background = new SolidColorBrush(Color.FromArgb(255, c.R, c.G, c.B));
             }
@@ -178,13 +200,13 @@ public sealed class DeviceCard : Observable
             {
                 if (box.SelectedIndex < 0) return;
                 var d = Edit();
-                var source = (ZoneSource)box.SelectedIndex;
+                var source = ZoneOptions[box.SelectedIndex].source;
+                var old = d.Zones.GetValueOrDefault(zone.Name);
                 if (source == ZoneSource.Sync) d.Zones.Remove(zone.Name);
-                else d.Zones[zone.Name] = new ZoneLighting { Source = source, Color = d.Zones.GetValueOrDefault(zone.Name)?.Color ?? "#FFFFFF" };
+                else d.Zones[zone.Name] = new ZoneLighting { Source = source, Color = old?.Color ?? "#FFFFFF", Leds = old?.Leds ?? [] };
                 Show();
-                Changed();
-                Raise(nameof(ZonesLabel));
-                Raise(nameof(ZonesTip));
+                ZonesChanged();
+                if (source == ZoneSource.Leds) flyout.Content = LedEditor(flyout, zone); // straight to painting
             };
             swatch.Click += (_, _) => LightingPage.ShowColorPicker(swatch, Rgb.Parse(Settings.Zones.GetValueOrDefault(zone.Name)?.Color ?? "#FFFFFF"), c =>
             {
@@ -192,12 +214,79 @@ public sealed class DeviceCard : Observable
                 Show();
                 Changed();
             });
+            edit.Click += (_, _) => flyout.Content = LedEditor(flyout, zone);
             Show();
             row.Children.Add(box);
             row.Children.Add(swatch);
+            row.Children.Add(edit);
             panel.Children.Add(row);
         }
-        new Flyout { Content = panel, Placement = FlyoutPlacementMode.Bottom }.ShowAt((FrameworkElement)sender);
+        return panel;
+    }
+
+    /// <summary>One dot per LED: pick a brush colour, then click or drag across the dots to paint them.</summary>
+    FrameworkElement LedEditor(Flyout flyout, RgbZone zone)
+    {
+        var zl = Edit().Zones.GetValueOrDefault(zone.Name) ?? new ZoneLighting { Source = ZoneSource.Leds };
+        Edit().Zones[zone.Name] = zl;
+        int count = (int)zone.LedsCount;
+        while (zl.Leds.Count < count) zl.Leds.Add(zl.Color);
+        var brush = Rgb.Parse(zl.Color);
+
+        var panel = new StackPanel { Spacing = 12, MinWidth = 360 };
+        var header = new Grid { ColumnSpacing = 8 };
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        header.ColumnDefinitions.Add(new ColumnDefinition());
+        var back = new Button { Content = new FontIcon { Glyph = "\uE72B", FontSize = 12 }, Padding = new Thickness(8, 6, 8, 6) };
+        ToolTipService.SetToolTip(back, "Back to the zones");
+        back.Click += (_, _) => flyout.Content = ZoneList(flyout);
+        var title = new TextBlock { Text = $"{(_target.Zones.Count > 1 ? ZoneName(zone) : _target.Name)} · {count} LEDs", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetColumn(title, 1);
+        header.Children.Add(back);
+        header.Children.Add(title);
+        panel.Children.Add(header);
+        panel.Children.Add(new TextBlock { Text = "Pick a colour, then click or drag over the LEDs.", Opacity = 0.7, FontSize = 12 });
+
+        var tools = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var brushButton = new Button { Width = 44, Height = 30, Padding = new Thickness(0), CornerRadius = new CornerRadius(8) };
+        ToolTipService.SetToolTip(brushButton, "Brush colour");
+        var fill = new Button { Content = "Fill all" };
+        tools.Children.Add(brushButton);
+        tools.Children.Add(fill);
+        panel.Children.Add(tools);
+
+        static SolidColorBrush Solid(Rgb c) => new(Color.FromArgb(255, c.R, c.G, c.B));
+        void ShowBrush() => brushButton.Background = Solid(brush);
+        ShowBrush();
+        brushButton.Click += (_, _) => LightingPage.ShowColorPicker(brushButton, brush, c => { brush = c; zl.Color = c.ToString(); ShowBrush(); Changed(); });
+
+        int columns = Math.Min(16, count);
+        var grid = new Grid { RowSpacing = 6, ColumnSpacing = 6 };
+        for (int c = 0; c < columns; c++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(22) });
+        for (int r = 0; r < (count + columns - 1) / columns; r++) grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(22) });
+        var dots = new Border[count];
+        void Paint(int i)
+        {
+            zl.Leds[i] = brush.ToString();
+            dots[i].Background = Solid(brush);
+            Changed();
+        }
+        for (int i = 0; i < count; i++)
+        {
+            int index = i;
+            var dot = new Border { CornerRadius = new CornerRadius(11), BorderBrush = new SolidColorBrush(Color.FromArgb(0x40, 255, 255, 255)), BorderThickness = new Thickness(1), Background = Solid(Rgb.Parse(zl.Leds[i])) };
+            ToolTipService.SetToolTip(dot, $"LED {i + 1}");
+            dot.PointerPressed += (s, ev) => { Paint(index); ev.Handled = true; };
+            dot.PointerEntered += (s, ev) => { if (ev.GetCurrentPoint(dot).Properties.IsLeftButtonPressed) Paint(index); };
+            Grid.SetRow(dot, i / columns);
+            Grid.SetColumn(dot, i % columns);
+            dots[i] = dot;
+            grid.Children.Add(dot);
+        }
+        fill.Click += (_, _) => { for (int i = 0; i < count; i++) Paint(i); };
+        panel.Children.Add(new ScrollViewer { Content = grid, MaxHeight = 320, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
+        ZonesChanged();
+        return panel;
     }
 
     static void Changed() => App.Instance!.ConfigChanged();
