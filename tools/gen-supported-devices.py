@@ -7,6 +7,7 @@ Sources (read as text, nothing from them is run):
   - HeadsetControl 4.2.0 source: headset names
   - razer-mice.json (generated from openrazer by gen-razer-devices.py)
   - rivalcfg device profiles from the bundled runtime: SteelSeries mice
+  - libratbag-mice.json (generated from libratbag by gen-libratbag-devices.py): ASUS mice
   - RigControl's own drivers (NZXT HUE 2, SteelSeries, Seiren) and families matched by protocol, listed by hand
 
 Run: python -I tools/gen-supported-devices.py   (needs build\\liquidctl from tools\\fetch-liquidctl.ps1)
@@ -98,6 +99,10 @@ for py in sorted(next((ROOT / "build" / "liquidctl").rglob("rivalcfg/devices")).
     feats += ["battery"] if "battery_level" in src else []
     for name in model.findall(src):
         add(re.sub(r"\s*\((wired|wireless) mode\)", "", name), "Mouse", ", ".join(feats), "rivalcfg")
+
+# --- mice ported from libratbag (libratbag-mice.json, tools/gen-libratbag-devices.py)
+for m in json.loads((ROOT / "src" / "RigControl.Core" / "libratbag-mice.json").read_text(encoding="utf-8"))["mice"]:
+    add(m["name"], "Mouse", f"DPI presets ({m['presets']}), polling rate", "ASUS protocol (libratbag data)")
 
 # --- RigControl's own drivers and protocol families
 for name in ["NZXT Smart Device V2", "NZXT RGB & Fan Controller", "NZXT RGB & Fan Controller (3+6 channels)"]:

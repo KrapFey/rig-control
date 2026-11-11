@@ -19,6 +19,7 @@ public sealed class DpiPreset(PeripheralCard card, int value) : Observable
 public sealed class StageVm(PeripheralCard card, int index, int max) : Observable
 {
     public string Group { get; } = $"stages-{card.Key}";
+    public bool Selectable => card.StagesSelectable;
     public string Label { get; } = $"{index + 1}";
     public double Max { get; } = max;
     public bool Active
@@ -247,6 +248,8 @@ public sealed class PeripheralCard : Observable
 
     // Stages
     public Visibility StagesVisibility => Caps.MaxStages > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public bool StagesSelectable => Caps.StageSelectable;
+    public string StagesTitle => Caps.StageSelectable ? "DPI STAGES · the DPI button cycles through these" : "DPI STAGES · the DPI button cycles through these (it also picks the active one)";
     public List<StageVm> Stages { get; }
     List<int> CurrentStages => Saved.Stages ?? _state.Stages ?? [400, 800, 1600, 3200, 6400];
     public int ActiveStage

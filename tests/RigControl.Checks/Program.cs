@@ -416,6 +416,54 @@ if (File.Exists(Path.Combine(rivalPy, "rival.py")))
 }
 else Console.WriteLine("skip rivalcfg checks (liquidctl runtime not fetched)");
 
+// --- ASUS mice (libratbag's protocol), against a simulated mouse
+{
+    (AsusMouse mouse, List<string> log, int[] raw) Sim(int pid, int presets, int[] startRaw, int rate, int active)
+    {
+        var raw = (int[])startRaw.Clone();
+        var log = new List<string>();
+        AsusMouse.Transport io = req =>
+        {
+            var r = new byte[64];
+            int cmd = req[0] | req[1] << 8;
+            r[0] = req[0]; r[1] = req[1];
+            switch (cmd)
+            {
+                case 0x0012: r[11] = (byte)active; break;
+                case 0x0412:
+                    for (int i = 0; i < presets; i++) { r[4 + 2 * i] = (byte)raw[i]; r[5 + 2 * i] = (byte)(raw[i] >> 8); }
+                    r[4 + 2 * presets] = (byte)rate; break;
+                case 0x3151:
+                    int field = req[2], v = req[4] | req[5] << 8;
+                    if (field < presets) raw[field] = v; else rate = v;
+                    log.Add($"set {field}={v}"); break;
+                case 0x0350: log.Add("save"); break;
+                default: r[0] = 0xff; r[1] = 0xaa; break;
+            }
+            return r;
+        };
+        return (new AsusMouse(AsusMouse.Lookup(0x0B05, pid)!, pid, io), log, raw);
+    }
+
+    // ROG Chakram: 4 presets, DOUBLE_DPI. Raw 7 -> (7*50+50)*2 = 800 DPI.
+    var (chakram, clog, craw) = Sim(0x18e3, 4, [7, 15, 31, 63], 3, 2);
+    var cs = chakram.Read();
+    Check(chakram is { Name: "ASUS ROG Chakram", Key: "asus/18E3" } && chakram.Caps is { MaxStages: 4, DpiMax: 16000, StageSelectable: false }, "ASUS: model from libratbag's data, presets switch only on the mouse");
+    Check(cs.Stages!.SequenceEqual([800, 1600, 3200, 6400]) && cs.ActiveStage == 2 && cs.Dpi == 1600 && cs.PollRate == 1000, "ASUS: doubled-DPI presets, active preset and polling rate read");
+    chakram.Apply(new PeripheralSettings { Stages = [800, 2000, 3200, 6400], ActiveStage = 2, PollRate = 500 }, cs);
+    Check(clog.SequenceEqual(["set 1=19", "set 4=2", "save"]) && craw[1] == 19, "ASUS: only the changed preset and the rate are sent, then saved (2000 DPI doubled -> raw 19)");
+    chakram.Apply(new PeripheralSettings { Stages = [800, 2000, 3200, 6400], PollRate = 500 }, chakram.Read());
+    Check(clog.Count == 3, "ASUS: nothing sent (and no save) when the mouse already matches");
+
+    // ROG Gladius II: 2 presets, plain DPI. Raw 15 -> 800 DPI.
+    var (gladius, glog, _) = Sim(0x1845, 2, [15, 31], 3, 1);
+    var gs = gladius.Read();
+    Check(gs.Stages!.SequenceEqual([800, 1600]) && gs.Dpi == 800, "ASUS: two-preset model read");
+    gladius.Apply(new PeripheralSettings { Dpi = 1200 }, gs);
+    Check(glog.SequenceEqual(["set 0=23", "save"]), "ASUS: a DPI change goes to the active preset");
+    Check(AsusMouse.Lookup(0x0B05, 0x1ad7) is null, "ASUS: mice behind the Omni receiver are left out");
+}
+
 // --- supported-devices list and its fuzzy search
 Check(SupportedDevices.List.Count > 2000 && SupportedDevices.List.Any(d => d.Kind == "Mouse") && SupportedDevices.List.Any(d => d.Kind == "Headset"), "supported list: loaded, every kind present");
 Check(SupportedDevices.Search("deathadder v2").FirstOrDefault()?.Name == "Razer DeathAdder V2", "search: exact words find the device first");

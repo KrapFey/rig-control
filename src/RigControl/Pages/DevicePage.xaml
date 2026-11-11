@@ -152,7 +152,7 @@
 
                                 <!-- DPI stages -->
                                 <StackPanel Spacing="6" Visibility="{x:Bind StagesVisibility}">
-                                    <TextBlock Text="DPI STAGES · the DPI button cycles through these" Style="{StaticResource Caption}" />
+                                    <TextBlock Text="{x:Bind StagesTitle}" Style="{StaticResource Caption}" />
                                     <ItemsControl ItemsSource="{x:Bind Stages}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="14" /></ItemsPanelTemplate>
@@ -160,7 +160,7 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="p:StageVm">
                                                 <StackPanel Spacing="4">
-                                                    <RadioButton GroupName="{x:Bind Group}" IsChecked="{x:Bind Active, Mode=OneWay}" Content="{x:Bind Label}" MinWidth="0" Checked="Stage_Checked" />
+                                                    <RadioButton GroupName="{x:Bind Group}" IsChecked="{x:Bind Active, Mode=OneWay}" Content="{x:Bind Label}" MinWidth="0" Checked="Stage_Checked" IsEnabled="{x:Bind Selectable}" />
                                                     <NumberBox Minimum="100" Maximum="{x:Bind Max}" Value="{x:Bind Value, Mode=OneWay}" ValueChanged="Stage_ValueChanged" GotFocus="Number_GotFocus" SmallChange="50" LargeChange="400" Width="120" SpinButtonPlacementMode="Hidden" />
                                                 </StackPanel>
                                             </DataTemplate>

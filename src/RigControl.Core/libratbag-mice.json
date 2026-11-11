@@ -1,0 +1,440 @@
+{
+ "generated_by": "tools/gen-libratbag-devices.py",
+ "source": "libratbag 8235b5bb6032dea15901ab58a8218956f4494d08 data/devices",
+ "mice": [
+  {
+   "name": "ASUS ROG GX860 Buzzard",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6166
+    ]
+   ],
+   "presets": 2,
+   "dpi": [
+    100,
+    8200,
+    100
+   ],
+   "quirks": [],
+   "file": "asus-rog-buzzard.device"
+  },
+  {
+   "name": "ASUS ROG Chakram Core",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6488
+    ]
+   ],
+   "presets": 4,
+   "dpi": [
+    100,
+    16000,
+    100
+   ],
+   "quirks": [
+    "DOUBLE_DPI",
+    "STRIX_PROFILE"
+   ],
+   "file": "asus-rog-chakram-core.device"
+  },
+  {
+   "name": "ASUS ROG Chakram X",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6680
+    ],
+    [
+     2821,
+     6682
+    ]
+   ],
+   "presets": 4,
+   "dpi": [
+    100,
+    36000,
+    100
+   ],
+   "quirks": [
+    "DOUBLE_DPI",
+    "RAW_BRIGHTNESS",
+    "SEPARATE_XY_DPI",
+    "SEPARATE_LEDS",
+    "BUTTONS_SECONDARY"
+   ],
+   "file": "asus-rog-chakram-x.device"
+  },
+  {
+   "name": "ASUS ROG Chakram",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6371
+    ],
+    [
+     2821,
+     6373
+    ]
+   ],
+   "presets": 4,
+   "dpi": [
+    100,
+    16000,
+    100
+   ],
+   "quirks": [
+    "DOUBLE_DPI",
+    "STRIX_PROFILE"
+   ],
+   "file": "asus-rog-chakram.device"
+  },
+  {
+   "name": "ASUS ROG Gladius II Origin PNK LTD",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6349
+    ]
+   ],
+   "presets": 2,
+   "dpi": [
+    100,
+    12000,
+    100
+   ],
+   "quirks": [
+    "DOUBLE_DPI"
+   ],
+   "file": "asus-rog-gladius2-origin-pink.device"
+  },
+  {
+   "name": "ASUS ROG Gladius II Origin",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6263
+    ]
+   ],
+   "presets": 2,
+   "dpi": [
+    100,
+    12000,
+    100
+   ],
+   "quirks": [
+    "DOUBLE_DPI"
+   ],
+   "file": "asus-rog-gladius2-origin.device"
+  },
+  {
+   "name": "ASUS ROG Gladius II",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6213
+    ]
+   ],
+   "presets": 2,
+   "dpi": [
+    100,
+    12000,
+    100
+   ],
+   "quirks": [],
+   "file": "asus-rog-gladius2.device"
+  },
+  {
+   "name": "ASUS ROG Harpe Wireless",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6802
+    ]
+   ],
+   "presets": 4,
+   "dpi": [
+    100,
+    36000,
+    50
+   ],
+   "quirks": [],
+   "file": "asus-rog-harpe-wireless.device"
+  },
+  {
+   "name": "ASUS ROG Keris Wireless AimPoint",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6758
+    ],
+    [
+     2821,
+     6760
+    ]
+   ],
+   "presets": 4,
+   "dpi": [
+    100,
+    36000,
+    50
+   ],
+   "quirks": [],
+   "file": "asus-rog-keris-wireless-aimpoint.device"
+  },
+  {
+   "name": "ASUS ROG Keris Wireless",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6494
+    ],
+    [
+     2821,
+     6496
+    ]
+   ],
+   "presets": 4,
+   "dpi": [
+    100,
+    16000,
+    100
+   ],
+   "quirks": [
+    "DOUBLE_DPI"
+   ],
+   "file": "asus-rog-keris-wireless.device"
+  },
+  {
+   "name": "ASUS ROG Keris",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6492
+    ]
+   ],
+   "presets": 4,
+   "dpi": [
+    100,
+    16000,
+    100
+   ],
+   "quirks": [
+    "DOUBLE_DPI"
+   ],
+   "file": "asus-rog-keris.device"
+  },
+  {
+   "name": "ASUS ROG Pugio",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6214
+    ]
+   ],
+   "presets": 2,
+   "dpi": [
+    100,
+    7200,
+    100
+   ],
+   "quirks": [],
+   "file": "asus-rog-pugio.device"
+  },
+  {
+   "name": "ASUS ROG Spatha X",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6521
+    ],
+    [
+     2821,
+     6519
+    ]
+   ],
+   "presets": 4,
+   "dpi": [
+    100,
+    19000,
+    50
+   ],
+   "quirks": [],
+   "file": "asus-rog-spatha-x.device"
+  },
+  {
+   "name": "ASUS ROG Strix Carry",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6324
+    ]
+   ],
+   "presets": 2,
+   "dpi": [
+    100,
+    7200,
+    100
+   ],
+   "quirks": [
+    "STRIX_PROFILE"
+   ],
+   "file": "asus-rog-strix-carry.device"
+  },
+  {
+   "name": "ASUS ROG Strix Impact",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6215
+    ]
+   ],
+   "presets": 2,
+   "dpi": [
+    100,
+    5000,
+    100
+   ],
+   "quirks": [],
+   "file": "asus-rog-strix-impact.device"
+  },
+  {
+   "name": "ASUS ROG Strix Impact II Wireless",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6471
+    ],
+    [
+     2821,
+     6473
+    ]
+   ],
+   "presets": 4,
+   "dpi": [
+    100,
+    16000,
+    100
+   ],
+   "quirks": [],
+   "file": "asus-rog-strix-impact2-wireless.device"
+  },
+  {
+   "name": "ASUS ROG Strix Impact II",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6369
+    ]
+   ],
+   "presets": 4,
+   "dpi": [
+    200,
+    6200,
+    100
+   ],
+   "quirks": [],
+   "file": "asus-rog-strix-impact2.device"
+  },
+  {
+   "name": "ASUS ROG Strix Impact III",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6792
+    ]
+   ],
+   "presets": 4,
+   "dpi": [
+    100,
+    12000,
+    50
+   ],
+   "quirks": [
+    "LED_V2",
+    "SETTINGS_V2"
+   ],
+   "file": "asus-rog-strix-impact3.device"
+  },
+  {
+   "name": "ASUSTeK TUF GAMING M3 GEN II",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6811
+    ]
+   ],
+   "presets": 4,
+   "dpi": [
+    100,
+    8000,
+    100
+   ],
+   "quirks": [],
+   "file": "asus-tuf-gaming-m3-gen-ii.device"
+  },
+  {
+   "name": "ASUS TUF GAMING M4 AIR",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     6659
+    ]
+   ],
+   "presets": 4,
+   "dpi": [
+    100,
+    16000,
+    100
+   ],
+   "quirks": [],
+   "file": "asus-tuf-gaming-m4-air.device"
+  },
+  {
+   "name": "ASUS TUF GAMING MINI WL MOUSE MIKU",
+   "driver": "asus",
+   "ids": [
+    [
+     2821,
+     7254
+    ],
+    [
+     2821,
+     7255
+    ]
+   ],
+   "presets": 4,
+   "dpi": [
+    100,
+    12000,
+    100
+   ],
+   "quirks": [
+    "SEPARATE_XY_DPI",
+    "RAW_BRIGHTNESS"
+   ],
+   "file": "asus-tuf-gaming-mini-wl-miku.device"
+  }
+ ]
+}

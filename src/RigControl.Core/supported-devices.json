@@ -1166,12 +1166,6 @@
 "source": "OpenRGB 1.1"
 },
 {
-"name": "Asus ROG Chakram Core",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
 "name": "Asus ROG Chakram X 2.4GHz",
 "kind": "Lighting",
 "features": "RGB lighting",
@@ -1214,31 +1208,13 @@
 "source": "OpenRGB 1.1"
 },
 {
-"name": "ASUS ROG Gladius II",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
 "name": "ASUS ROG Gladius II Core",
 "kind": "Lighting",
 "features": "RGB lighting",
 "source": "OpenRGB 1.1"
 },
 {
-"name": "ASUS ROG Gladius II Origin",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
 "name": "ASUS ROG Gladius II Origin COD",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "ASUS ROG Gladius II Origin PNK LTD",
 "kind": "Lighting",
 "features": "RGB lighting",
 "source": "OpenRGB 1.1"
@@ -1287,12 +1263,6 @@
 },
 {
 "name": "ASUS ROG Gladius III Wireless USB",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "ASUS ROG Keris",
 "kind": "Lighting",
 "features": "RGB lighting",
 "source": "OpenRGB 1.1"
@@ -1347,12 +1317,6 @@
 },
 {
 "name": "ASUS ROG Poseidon GeForce GTX 1080 Ti",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "ASUS ROG Pugio",
 "kind": "Lighting",
 "features": "RGB lighting",
 "source": "OpenRGB 1.1"
@@ -2006,18 +1970,6 @@
 "source": "OpenRGB 1.1"
 },
 {
-"name": "ASUS ROG Strix Impact",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "ASUS ROG Strix Impact II",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
 "name": "ASUS ROG Strix Impact II Electro Punk",
 "kind": "Lighting",
 "features": "RGB lighting",
@@ -2043,12 +1995,6 @@
 },
 {
 "name": "ASUS ROG Strix Impact II Wireless USB",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "ASUS ROG Strix Impact III",
 "kind": "Lighting",
 "features": "RGB lighting",
 "source": "OpenRGB 1.1"
@@ -12068,6 +12014,78 @@
 "source": "OpenRGB 1.1"
 },
 {
+"name": "ASUS ROG Chakram",
+"kind": "Mouse",
+"features": "DPI presets (4), polling rate",
+"source": "ASUS protocol (libratbag data)"
+},
+{
+"name": "ASUS ROG Chakram X",
+"kind": "Mouse",
+"features": "DPI presets (4), polling rate",
+"source": "ASUS protocol (libratbag data)"
+},
+{
+"name": "ASUS ROG GX860 Buzzard",
+"kind": "Mouse",
+"features": "DPI presets (2), polling rate",
+"source": "ASUS protocol (libratbag data)"
+},
+{
+"name": "ASUS ROG Harpe Wireless",
+"kind": "Mouse",
+"features": "DPI presets (4), polling rate",
+"source": "ASUS protocol (libratbag data)"
+},
+{
+"name": "ASUS ROG Keris Wireless",
+"kind": "Mouse",
+"features": "DPI presets (4), polling rate",
+"source": "ASUS protocol (libratbag data)"
+},
+{
+"name": "ASUS ROG Keris Wireless AimPoint",
+"kind": "Mouse",
+"features": "DPI presets (4), polling rate",
+"source": "ASUS protocol (libratbag data)"
+},
+{
+"name": "ASUS ROG Spatha X",
+"kind": "Mouse",
+"features": "DPI presets (4), polling rate",
+"source": "ASUS protocol (libratbag data)"
+},
+{
+"name": "ASUS ROG Strix Carry",
+"kind": "Mouse",
+"features": "DPI presets (2), polling rate",
+"source": "ASUS protocol (libratbag data)"
+},
+{
+"name": "ASUS ROG Strix Impact II Wireless",
+"kind": "Mouse",
+"features": "DPI presets (4), polling rate",
+"source": "ASUS protocol (libratbag data)"
+},
+{
+"name": "ASUS TUF GAMING M4 AIR",
+"kind": "Mouse",
+"features": "DPI presets (4), polling rate",
+"source": "ASUS protocol (libratbag data)"
+},
+{
+"name": "ASUS TUF GAMING MINI WL MOUSE MIKU",
+"kind": "Mouse",
+"features": "DPI presets (4), polling rate",
+"source": "ASUS protocol (libratbag data)"
+},
+{
+"name": "ASUSTeK TUF GAMING M3 GEN II",
+"kind": "Mouse",
+"features": "DPI presets (4), polling rate",
+"source": "ASUS protocol (libratbag data)"
+},
+{
 "name": "Basilisk Mobile Receiver",
 "kind": "Mouse",
 "features": "DPI, DPI stages, polling rate, battery",
@@ -12894,6 +12912,60 @@
 "kind": "Mouse",
 "features": "DPI, DPI stages, battery",
 "source": "Razer protocol (openrazer data)"
+},
+{
+"name": "ASUS ROG Chakram Core",
+"kind": "Mouse · Lighting",
+"features": "DPI presets (4), polling rate, RGB lighting",
+"source": "ASUS protocol (libratbag data) · OpenRGB 1.1"
+},
+{
+"name": "ASUS ROG Gladius II",
+"kind": "Mouse · Lighting",
+"features": "DPI presets (2), polling rate, RGB lighting",
+"source": "ASUS protocol (libratbag data) · OpenRGB 1.1"
+},
+{
+"name": "ASUS ROG Gladius II Origin",
+"kind": "Mouse · Lighting",
+"features": "DPI presets (2), polling rate, RGB lighting",
+"source": "ASUS protocol (libratbag data) · OpenRGB 1.1"
+},
+{
+"name": "ASUS ROG Gladius II Origin PNK LTD",
+"kind": "Mouse · Lighting",
+"features": "DPI presets (2), polling rate, RGB lighting",
+"source": "ASUS protocol (libratbag data) · OpenRGB 1.1"
+},
+{
+"name": "ASUS ROG Keris",
+"kind": "Mouse · Lighting",
+"features": "DPI presets (4), polling rate, RGB lighting",
+"source": "ASUS protocol (libratbag data) · OpenRGB 1.1"
+},
+{
+"name": "ASUS ROG Pugio",
+"kind": "Mouse · Lighting",
+"features": "DPI presets (2), polling rate, RGB lighting",
+"source": "ASUS protocol (libratbag data) · OpenRGB 1.1"
+},
+{
+"name": "ASUS ROG Strix Impact",
+"kind": "Mouse · Lighting",
+"features": "DPI presets (2), polling rate, RGB lighting",
+"source": "ASUS protocol (libratbag data) · OpenRGB 1.1"
+},
+{
+"name": "ASUS ROG Strix Impact II",
+"kind": "Mouse · Lighting",
+"features": "DPI presets (4), polling rate, RGB lighting",
+"source": "ASUS protocol (libratbag data) · OpenRGB 1.1"
+},
+{
+"name": "ASUS ROG Strix Impact III",
+"kind": "Mouse · Lighting",
+"features": "DPI presets (4), polling rate, RGB lighting",
+"source": "ASUS protocol (libratbag data) · OpenRGB 1.1"
 },
 {
 "name": "Razer Abyssus Essential",

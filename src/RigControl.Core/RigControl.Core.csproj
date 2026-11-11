@@ -12,6 +12,7 @@
     <PackageReference Include="HidSharp" Version="2.6.4" />
     <InternalsVisibleTo Include="RigControl.Checks" />
     <EmbeddedResource Include="Razer\razer-mice.json" LogicalName="RigControl.Core.Razer.razer-mice.json" />
+    <EmbeddedResource Include="libratbag-mice.json" LogicalName="RigControl.Core.libratbag-mice.json" />
     <EmbeddedResource Include="supported-devices.json" LogicalName="RigControl.Core.supported-devices.json" />
   </ItemGroup>
 

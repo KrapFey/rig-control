@@ -11,6 +11,8 @@ public sealed class PeripheralCaps
     public int DpiStep { get; init; } = 50;
     public bool Dpi => DpiMax > 0;
     public int MaxStages { get; init; }
+    /// <summary>False when only the mouse's own DPI button can switch the active stage.</summary>
+    public bool StageSelectable { get; init; } = true;
     public int[] PollRates { get; init; } = [];
     public bool SleepTimeout { get; init; }
     public int SleepMinSeconds { get; init; } = 60;
@@ -203,6 +205,7 @@ public sealed class PeripheralHub : IDisposable
         found.AddRange(SteelSeriesKeyboard.FindAll());
         found.AddRange(ViaKeyboard.FindAll());
         found.AddRange(SteelSeriesMouse.FindAll());
+        found.AddRange(AsusMouse.FindAll());
         }
 
         List<IPeripheral> old;
