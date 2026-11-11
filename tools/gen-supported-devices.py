@@ -6,6 +6,7 @@ Sources (read as text, nothing from them is run):
   - liquidctl drivers from the bundled runtime (build\\liquidctl): fan/pump devices the bridge uses
   - HeadsetControl 4.2.0 source: headset names
   - razer-mice.json (generated from openrazer by gen-razer-devices.py)
+  - rivalcfg device profiles from the bundled runtime: SteelSeries mice
   - RigControl's own drivers (NZXT HUE 2, SteelSeries, Seiren) and families matched by protocol, listed by hand
 
 Run: python -I tools/gen-supported-devices.py   (needs build\\liquidctl from tools\\fetch-liquidctl.ps1)
@@ -86,6 +87,17 @@ for d in razer["devices"].values():
     feats += ["polling rate"] if "poll_write" in d else []
     feats += ["battery"] if "battery" in d else []
     add(d["name"], "Mouse", ", ".join(feats) or "detected", "Razer protocol (openrazer data)")
+
+# --- SteelSeries mice: rivalcfg profiles in the bundled runtime
+model = re.compile(r'"name":\s*"([^"]+)",\s*"vendor_id"')
+for py in sorted(next((ROOT / "build" / "liquidctl").rglob("rivalcfg/devices")).glob("*.py")):
+    src = py.read_text(encoding="utf-8")
+    feats = ["DPI presets"] if "sensitivity" in src else []
+    feats += ["polling rate"] if "polling_rate" in src else []
+    feats += ["sleep timer"] if "sleep_timer" in src else []
+    feats += ["battery"] if "battery_level" in src else []
+    for name in model.findall(src):
+        add(re.sub(r"\s*\((wired|wireless) mode\)", "", name), "Mouse", ", ".join(feats), "rivalcfg")
 
 # --- RigControl's own drivers and protocol families
 for name in ["NZXT Smart Device V2", "NZXT RGB & Fan Controller", "NZXT RGB & Fan Controller (3+6 channels)"]:

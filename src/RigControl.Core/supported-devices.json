@@ -11078,12 +11078,6 @@
 "source": "OpenRGB 1.1"
 },
 {
-"name": "SteelSeries Aerox 3 Wireless",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
 "name": "SteelSeries Aerox 3 Wireless Gen 2",
 "kind": "Lighting",
 "features": "RGB lighting",
@@ -11126,19 +11120,7 @@
 "source": "OpenRGB 1.1"
 },
 {
-"name": "SteelSeries Aerox 5 Wireless",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
 "name": "SteelSeries Aerox 5 Wireless Wired",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Aerox 9 Wireless",
 "kind": "Lighting",
 "features": "RGB lighting",
 "source": "OpenRGB 1.1"
@@ -11312,37 +11294,7 @@
 "source": "OpenRGB 1.1"
 },
 {
-"name": "SteelSeries Rival 100",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
 "name": "SteelSeries Rival 100 DotA 2 Edition",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Rival 105",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Rival 106",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Rival 110",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Rival 3",
 "kind": "Lighting",
 "features": "RGB lighting",
 "source": "OpenRGB 1.1"
@@ -11360,25 +11312,7 @@
 "source": "OpenRGB 1.1"
 },
 {
-"name": "SteelSeries Rival 300",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
 "name": "SteelSeries Rival 300 Black Ops Edition",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Rival 300 CS:GO Fade Edition",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Rival 300 CS:GO Fade Edition (stm32)",
 "kind": "Lighting",
 "features": "RGB lighting",
 "source": "OpenRGB 1.1"
@@ -11396,85 +11330,7 @@
 "source": "OpenRGB 1.1"
 },
 {
-"name": "SteelSeries Rival 300 HP Omen Edition",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Rival 310",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Rival 310 CS:GO Howl Edition",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Rival 310 PUBG Edition",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Rival 5",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Rival 600",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Rival 600 Dota 2 Edition",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
 "name": "SteelSeries Rival 650",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Rival 650 Wireless",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Rival 700",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Rival 710",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Sensei 310",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Sensei TEN",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "SteelSeries Sensei TEN CS:GO Neon Rider Edition",
 "kind": "Lighting",
 "features": "RGB lighting",
 "source": "OpenRGB 1.1"
@@ -12704,6 +12560,312 @@
 "source": "Razer protocol (openrazer data)"
 },
 {
+"name": "SteelSeries Aerox 3",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Aerox 3 Wireless (2.4 GHz wireless mode)",
+"kind": "Mouse",
+"features": "battery",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Aerox 3 Wireless CS2 Dragon Lore Edition",
+"kind": "Mouse",
+"features": "DPI presets, polling rate, sleep timer, battery",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Aerox 3 Wireless CS2 Dragon Lore Edition (2.4 GHz wireless mode)",
+"kind": "Mouse",
+"features": "battery",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Aerox 5",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Aerox 5 Wireless (2.4 GHz wireless mode)",
+"kind": "Mouse",
+"features": "battery",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Aerox 5 Wireless Destiny 2 Edition",
+"kind": "Mouse",
+"features": "DPI presets, polling rate, sleep timer, battery",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Aerox 5 Wireless Destiny 2 Edition (2.4 GHz wireless mode)",
+"kind": "Mouse",
+"features": "battery",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Aerox 5 Wireless Diablo IV Edition",
+"kind": "Mouse",
+"features": "DPI presets, polling rate, sleep timer, battery",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Aerox 5 Wireless Diablo IV Edition (2.4 GHz wireless mode)",
+"kind": "Mouse",
+"features": "battery",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Aerox 9 Wireless (2.4 GHz wireless mode)",
+"kind": "Mouse",
+"features": "battery",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Aerox 9 Wireless WOW Edition",
+"kind": "Mouse",
+"features": "DPI presets, polling rate, sleep timer, battery",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Aerox 9 Wireless WOW Edition (2.4 GHz wireless mode)",
+"kind": "Mouse",
+"features": "battery",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Kana v2",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Kinzu v2",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Prime",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Prime CS:GO Neo Noir Edition",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Prime Mini",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Prime Mini Wireless",
+"kind": "Mouse",
+"features": "DPI presets, polling rate, sleep timer, battery",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Prime Mini Wireless (2.4 GHz wireless mode)",
+"kind": "Mouse",
+"features": "battery",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Prime Rainbow 6 Siege Black Ice Edition",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Prime Wireless",
+"kind": "Mouse",
+"features": "DPI presets, polling rate, sleep timer, battery",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Prime Wireless (2.4 GHz wireless mode)",
+"kind": "Mouse",
+"features": "battery",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Prime+",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 100 (Dell China)",
+"kind": "Mouse",
+"features": "polling rate, DPI presets",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 100 Dota 2 Edition (Lenovo)",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 100 Dota 2 Edition (retail)",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 100 PC Bang",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 3 (firmware v0.37.0.0)",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 3 Gen 2",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 3 Wireless (2.4 GHz mode)",
+"kind": "Mouse",
+"features": "DPI presets, polling rate, battery",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 3 Wireless Gen 2 (2.4 GHz mode)",
+"kind": "Mouse",
+"features": "DPI presets, polling rate, battery",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 300 Acer Predator Edition",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 300 CS:GO Hyper Beast Edition",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 300 Evil Geniuses Edition",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 300 Fallout 4 Edition",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 300S",
+"kind": "Mouse",
+"features": "",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 5 Destiny Edition",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 500",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 650 Wireless (2.4 GHz wireless mode)",
+"kind": "Mouse",
+"features": "DPI presets, polling rate, sleep timer, battery",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 95",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 95 MSI Edition",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival 95 PC Bang",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Rival Dota 2 Edition",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Sensei [RAW]",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Sensei [RAW] CoD Black Ops II Edition",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Sensei [RAW] Diablo III Edition",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Sensei [RAW] Guild Wars 2 Edition",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Sensei [RAW] Heroes of the Storm Edition",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
+"name": "SteelSeries Sensei [RAW] World of Tanks Edition",
+"kind": "Mouse",
+"features": "DPI presets, polling rate",
+"source": "rivalcfg"
+},
+{
 "name": "Viper Mini Se Wireless",
 "kind": "Mouse",
 "features": "DPI, DPI stages, battery",
@@ -12906,6 +13068,150 @@
 "kind": "Mouse · Lighting",
 "features": "DPI, DPI stages, polling rate, battery, RGB lighting",
 "source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Aerox 3 Wireless",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, sleep timer, battery, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Aerox 5 Wireless",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, sleep timer, battery, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Aerox 9 Wireless",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, sleep timer, battery, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Rival 100",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Rival 105",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Rival 106",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Rival 110",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Rival 3",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Rival 300",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Rival 300 CS:GO Fade Edition",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Rival 300 CS:GO Fade Edition (stm32)",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Rival 300 HP OMEN Edition",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Rival 310",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Rival 310 CS:GO Howl Edition",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Rival 310 PUBG Edition",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Rival 5",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Rival 600",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Rival 600 Dota 2 Edition",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Rival 650 Wireless",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, sleep timer, battery, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Rival 700",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Rival 710",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Sensei 310",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Sensei TEN",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
+},
+{
+"name": "SteelSeries Sensei TEN CS:GO Neon Rider Edition",
+"kind": "Mouse · Lighting",
+"features": "DPI presets, polling rate, RGB lighting",
+"source": "rivalcfg · OpenRGB 1.1"
 }
 ]
 }

@@ -21,7 +21,7 @@
             <StackPanel x:Name="Empty" Spacing="8" Visibility="Collapsed" HorizontalAlignment="Center" Margin="0,40,0,0">
                 <FontIcon Glyph="&#xE772;" FontSize="40" Opacity="0.5" />
                 <TextBlock Text="No configurable devices found yet." Opacity="0.7" HorizontalAlignment="Center" />
-                <TextBlock Text="Supported so far: Razer and Logitech mice, SteelSeries Apex Pro TKL (2023) and Gen 3 keyboards, and ~50 headsets (via HeadsetControl)." Style="{StaticResource Caption}" HorizontalAlignment="Center" />
+                <TextBlock Text="Supported so far: Razer, Logitech and SteelSeries mice, SteelSeries Apex Pro TKL (2023) and Gen 3 keyboards, and ~50 headsets (via HeadsetControl)." Style="{StaticResource Caption}" HorizontalAlignment="Center" />
             </StackPanel>
 
             <ItemsRepeater x:Name="Tiles">

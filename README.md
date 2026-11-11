@@ -33,6 +33,9 @@ modern WinUI 3 interface.
 - **Devices:** a page per mouse, keyboard and headset, with live battery in the tray tooltip.
   - **Mice:** 115 Razer mice: DPI (type it, step it, presets or slider), on-device DPI stages that follow the
     mouse's DPI button live, polling rate, sleep and low-battery thresholds.
+  - **SteelSeries mice** (Rival, Sensei, Aerox, Prime, Kana, Kinzu: about 75 models, through
+    [rivalcfg](https://github.com/flozz/rivalcfg) in the bundled Python): DPI presets, polling rate, sleep timer and
+    battery. Settings are sent live, never saved to the mouse's flash, and sent again when the mouse appears.
   - **Logitech mice** (wired, Lightspeed, Unifying, Bolt) over HID++ 2.0: DPI, report rate, battery. The mouse stays
     in its onboard-profile mode, so its own DPI button keeps working.
   - **Headsets:** about 50 headsets through a bundled [HeadsetControl](https://github.com/Sapd/HeadsetControl):
@@ -116,6 +119,7 @@ GPL-3.0-or-later, see [LICENSE](LICENSE).
   copied) and confirmed by [steelseriesgg-rs](https://github.com/Ven0m0/steelseriesgg-rs); Gen 3 commands and
   actuation tables from [apex-analog](https://github.com/milescoviello/apex-analog) (MIT).
 - VIA protocol: [QMK firmware](https://github.com/qmk/qmk_firmware) `quantum/via.h` (GPL-2.0-or-later).
+- [rivalcfg](https://github.com/flozz/rivalcfg) (WTFPL): bundled in the Python runtime for SteelSeries mice.
 - Razer mouse protocol and device table: from [openrazer](https://github.com/openrazer/openrazer) (GPL-2.0-or-later).
 - Razer Seiren V3 Chroma lighting protocol: from [openrazer PR #2896](https://github.com/openrazer/openrazer/pull/2896).
 - [liquidctl](https://github.com/liquidctl/liquidctl) (GPL-3.0-or-later): bundled, and the source of the

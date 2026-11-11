@@ -373,6 +373,49 @@ Check(LogitechDevice.ParseDpiList([0x01, 0x90, 0x03, 0x20, 0x06, 0x40, 0x00, 0x0
     Check(ViaKeyboard.Open(via, "k", "n") is null, "VIA: protocol before 12 (different lighting commands) left alone");
 }
 
+// --- SteelSeries mice through rivalcfg: C# mapping against a stand-in helper
+{
+    var calls = new List<string[]>();
+    SteelSeriesMouse.RunOverride = args =>
+    {
+        calls.Add(args);
+        return args[0] switch
+        {
+            "list" => """[{"vid": 4152, "pid": 6180, "name": "SteelSeries Rival 3", "stages": 5, "presets": "list", "dpi": [200, 8500, 100], "poll": [125, 250, 500, 1000], "sleep": null, "battery": false}, {"vid": 4152, "pid": 6266, "name": "SteelSeries Aerox 3 Wireless (wired mode)", "stages": 5, "presets": "list", "dpi": [100, 18000, 100], "poll": [125, 1000], "sleep": [0, 20], "battery": true}]""",
+            "battery" => """{"level": 77, "charging": true}""",
+            _ => """{"ok": true, "errors": {}}""",
+        };
+    };
+    var ss = SteelSeriesMouse.FindAll();
+    var rival = ss.FirstOrDefault(); var aerox = ss.LastOrDefault();
+    Check(ss.Count == 2 && rival is { Key: "steelseries/1824", Kind: "Mouse" } && rival.Caps is { DpiMin: 200, DpiMax: 8500, MaxStages: 5, Battery: false }, "SteelSeries mouse: caps from rivalcfg's profile");
+    Check(aerox?.Caps is { SleepTimeout: true, SleepMaxSeconds: 1200, Battery: true } && aerox.Read() is { BatteryPercent: 77, Charging: true }, "SteelSeries mouse: sleep timer and battery on the wireless model");
+    rival?.Apply(new PeripheralSettings { Stages = [400, 9999], ActiveStage = 2, PollRate = 500 }, rival.Read());
+    var applied = calls.Last();
+    Check(applied[0] == "apply" && applied[2] == "6180" && applied[3] == """{"stages":[400,8500],"active":2,"poll":500}""", "SteelSeries mouse: presets clamped to the sensor, active preset and polling sent");
+    SteelSeriesMouse.RunOverride = null;
+}
+// ... and the real rivalcfg in the bundled Python, in its dry-run mode (fake device, nothing sent)
+var rivalPy = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "build", "liquidctl"));
+if (File.Exists(Path.Combine(rivalPy, "rival.py")))
+{
+    string RivalDry(string profile, params string[] a)
+    {
+        var psi = new System.Diagnostics.ProcessStartInfo(Path.Combine(rivalPy, "python", "python.exe")) { RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true };
+        psi.Environment["RIVALCFG_DRY"] = "1";
+        psi.Environment["RIVALCFG_PROFILE"] = profile;
+        foreach (var x in new[] { "-I", Path.Combine(rivalPy, "rival.py") }.Concat(a)) psi.ArgumentList.Add(x);
+        using var p = System.Diagnostics.Process.Start(psi)!;
+        var o = p.StandardOutput.ReadToEnd(); p.WaitForExit();
+        return o.Trim();
+    }
+    const string want = """{"stages":[400,800,1600],"active":2,"poll":500,"sleep":10}""";
+    Check(RivalDry("1038:1824", "list").Contains("\"presets\": \"list\"") && RivalDry("1038:1824", "apply", "4152", "6180", want) == """{"ok": true, "errors": {}}""", "rivalcfg (dry run): Rival 3 takes five presets and polling");
+    Check(RivalDry("1038:1729", "list").Contains("\"presets\": \"pair\"") && RivalDry("1038:1729", "apply", "4152", "5929", want) == """{"ok": true, "errors": {}}""", "rivalcfg (dry run): Rival 110 takes its two presets one by one");
+    Check(RivalDry("1038:187a", "list").Contains("\"sleep\": [0, 20]") && RivalDry("1038:187a", "apply", "4152", "6266", want) == """{"ok": true, "errors": {}}""", "rivalcfg (dry run): Aerox 3 Wireless takes the sleep timer");
+}
+else Console.WriteLine("skip rivalcfg checks (liquidctl runtime not fetched)");
+
 // --- supported-devices list and its fuzzy search
 Check(SupportedDevices.List.Count > 2000 && SupportedDevices.List.Any(d => d.Kind == "Mouse") && SupportedDevices.List.Any(d => d.Kind == "Headset"), "supported list: loaded, every kind present");
 Check(SupportedDevices.Search("deathadder v2").FirstOrDefault()?.Name == "Razer DeathAdder V2", "search: exact words find the device first");

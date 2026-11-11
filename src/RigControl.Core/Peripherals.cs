@@ -201,6 +201,7 @@ public sealed class PeripheralHub : IDisposable
         found.AddRange(LogitechDevice.FindAll());
         found.AddRange(SteelSeriesKeyboard.FindAll());
         found.AddRange(ViaKeyboard.FindAll());
+        found.AddRange(SteelSeriesMouse.FindAll());
 
         List<IPeripheral> old;
         lock (_lock)

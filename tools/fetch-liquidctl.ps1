@@ -2,6 +2,7 @@
 #   build\liquidctl\python\            embeddable Python 3.13 (python.org, SHA-256 pinned)
 #   build\liquidctl\python\site-packages\  liquidctl + deps (PyPI, --require-hashes)
 #   build\liquidctl\bridge.py          RigControl's helper (copied from src)
+#   build\liquidctl\rival.py           SteelSeries mouse helper, through rivalcfg (copied from src)
 # Needs Python 3.13 x64 on the build machine (to run pip; crcmod/docopt are source-only).
 # Run once before publishing; the app project picks the folder up when it exists.
 $ErrorActionPreference = 'Stop'
@@ -41,4 +42,5 @@ $pth = Get-ChildItem $py -Filter 'python*._pth' | Select-Object -First 1
 Add-Content $pth.FullName 'site-packages'
 
 Copy-Item (Join-Path $root 'src\RigControl.Core\liquidctl\bridge.py') $out
+Copy-Item (Join-Path $root 'src\RigControl.Core\liquidctl\rival.py') $out
 "liquidctl runtime ready: {0:N1} MB in {1}" -f ((Get-ChildItem $out -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), $out
