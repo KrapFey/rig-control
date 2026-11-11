@@ -15,6 +15,20 @@ if (args.Contains("--razer"))
     }
     return 0;
 }
+if (args.Contains("--logitech"))
+{
+    // Read-only: every HID++ 2.0 mouse or keyboard found and what it reports. Never writes a setting.
+    var all = LogitechDevice.FindAll();
+    if (all.Count == 0) Console.WriteLine("no Logitech HID++ 2.0 mouse or keyboard found");
+    foreach (var p in all)
+    {
+        var st = p.Read();
+        Console.WriteLine($"{p.Key} {p.Name} ({p.Kind}) | dpi {p.Caps.DpiMin}-{p.Caps.DpiMax} step {p.Caps.DpiStep} rates [{string.Join(",", p.Caps.PollRates)}] battery {p.Caps.Battery}");
+        Console.WriteLine($"   now: dpi {st.Dpi} rate {st.PollRate} battery {st.BatteryPercent} charging {st.Charging}");
+        p.Dispose();
+    }
+    return 0;
+}
 if (args.Contains("--rgb"))
 {
     // Read-only: list what an OpenRGB server reports (default port 6742).
@@ -217,6 +231,53 @@ if (File.Exists(hsExe))
     HeadsetControlDevice.UseTestDevice = false;
 }
 else Console.WriteLine("skip headset checks (HeadsetControl not fetched)");
+
+// --- Logitech HID++ 2.0, against a simulated mouse
+Check(LogitechDevice.ParseDpiList([0x00, 0x64, 0xE0, 0x32, 0x01, 0x2C, 0x00, 0x00]).SequenceEqual([100, 150, 200, 250, 300]), "HID++ DPI list: step ranges expand");
+Check(LogitechDevice.ParseDpiList([0x01, 0x90, 0x03, 0x20, 0x06, 0x40, 0x00, 0x00, 0x12, 0x34]).SequenceEqual([400, 800, 1600]), "HID++ DPI list: plain values, stops at 0");
+{
+    const string simName = "Simulated Wireless Gaming Mouse"; // longer than one 16-byte name chunk
+    int simDpi = 800, simMs = 1, deviceType = 3;
+    var writes = new List<string>();
+    ushort[] simFeatures = [0x0000, 0x0005, 0x1004, 0x2201, 0x8060];
+    LogitechDevice.Transport sim = req =>
+    {
+        if (req[1] != 0xFF) return null; // nothing paired elsewhere
+        var rep = new byte[20];
+        Array.Copy(req, rep, 4);
+        var p = rep.AsSpan(4);
+        int fn = req[3] >> 4;
+        switch (simFeatures.ElementAtOrDefault(req[2]))
+        {
+            case 0x0000 when fn == 1: p[0] = 4; p[1] = 2; p[2] = req[6]; break; // protocol 4.2, ping echoed
+            case 0x0000: p[0] = (byte)Math.Max(0, Array.IndexOf(simFeatures, (ushort)(req[4] << 8 | req[5]))); break;
+            case 0x0005 when fn == 0: p[0] = (byte)simName.Length; break;
+            case 0x0005 when fn == 1: System.Text.Encoding.ASCII.GetBytes(simName[req[4]..][..Math.Min(16, simName.Length - req[4])]).CopyTo(p); break;
+            case 0x0005: p[0] = (byte)deviceType; break;
+            case 0x1004 when fn == 1: p[0] = 63; p[2] = 1; break; // 63 %, charging
+            case 0x2201 when fn == 1: new byte[] { 0, 0x00, 0x64, 0xE0, 0x32, 0x64, 0x00, 0, 0 }.CopyTo(p); break; // 100..25600 step 50
+            case 0x2201 when fn == 2: p[1] = (byte)(simDpi >> 8); p[2] = (byte)simDpi; break;
+            case 0x2201 when fn == 3: simDpi = req[5] << 8 | req[6]; writes.Add($"dpi {simDpi}"); break;
+            case 0x8060 when fn == 0: p[0] = 0b1011; break; // 1, 2 and 4 ms
+            case 0x8060 when fn == 1: p[0] = (byte)simMs; break;
+            case 0x8060 when fn == 2: simMs = req[4]; writes.Add($"rate {simMs}ms"); break;
+            default: rep[2] = 0xFF; rep[3] = req[2]; rep[4] = req[3]; rep[5] = 0x02; break; // ERR_INVALID_ARGUMENT
+        }
+        return rep;
+    };
+    var lg = LogitechDevice.Open(sim, 0xFF);
+    Check(lg is { Name: simName, Kind: "Mouse", Key: "logitech/simulated-wireless-gaming-mouse" }, "Logitech: name over several chunks, kind, stable key");
+    Check(lg?.Caps is { DpiMin: 100, DpiMax: 25600, DpiStep: 50, Battery: true } && lg.Caps.PollRates.SequenceEqual([250, 500, 1000]), "Logitech: DPI range, step and report rates from the device");
+    var ls = lg?.Read();
+    Check(ls is { Dpi: 800, PollRate: 1000, BatteryPercent: 63, Charging: true }, "Logitech: DPI, report rate and battery read");
+    lg?.Apply(new PeripheralSettings { Dpi = 1234, PollRate = 500 }, ls!);
+    Check(writes.SequenceEqual(["dpi 1250", "rate 2ms"]), "Logitech: DPI snapped to the sensor's list, rate written as ms");
+    lg?.Apply(new PeripheralSettings { Dpi = 1250, PollRate = 500 }, lg.Read());
+    Check(writes.Count == 2, "Logitech: nothing re-sent when the device already matches");
+    Check(LogitechDevice.Open(sim, 1) is null, "Logitech: empty receiver slot -> no device");
+    deviceType = 8;
+    Check(LogitechDevice.Open(sim, 0xFF) is null, "Logitech: headsets are left to HeadsetControl");
+}
 
 // --- config round trip
 var path = Path.Combine(Path.GetTempPath(), $"rigcontrol-{Guid.NewGuid():N}.json");

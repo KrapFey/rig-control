@@ -169,6 +169,7 @@ public sealed class PeripheralHub : IDisposable
         var found = new List<IPeripheral>();
         found.AddRange(RazerMouse.FindAll());
         found.AddRange(HeadsetControlDevice.FindAll());
+        found.AddRange(LogitechDevice.FindAll());
 
         List<IPeripheral> old;
         lock (_lock)
