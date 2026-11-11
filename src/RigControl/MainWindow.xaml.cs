@@ -12,7 +12,6 @@ public sealed partial class MainWindow : Window
     static readonly Dictionary<string, Type> Pages = new()
     {
         ["Dashboard"] = typeof(DashboardPage),
-        ["Fans"] = typeof(FansPage),
         ["Curves"] = typeof(CurvesPage),
         ["Lighting"] = typeof(LightingPage),
         ["Devices"] = typeof(DevicesPage),

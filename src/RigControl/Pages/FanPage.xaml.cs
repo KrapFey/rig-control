@@ -11,9 +11,6 @@ public sealed class FanEdit(FanVm live, List<string> curveNames) : Observable
     public FanVm Live { get; } = live;
     public List<string> CurveNames { get; } = curveNames;
 
-    bool _expanded;
-    public bool Expanded { get => _expanded; set => Set(ref _expanded, value); }
-
     static readonly FanSettings Defaults = new();
 
     /// <summary>Read side: the saved settings or defaults; nothing is written until a value actually changes.</summary>
@@ -72,49 +69,39 @@ public sealed class FanEdit(FanVm live, List<string> curveNames) : Observable
     }
 }
 
-public sealed partial class FansPage : Page
+/// <summary>One fan's settings, opened from its dashboard tile.</summary>
+public sealed partial class FanPage : Page
 {
-    List<FanEdit> _all = [];
-    string? _focus;
+    FanEdit? _fan;
 
-    public FansPage()
+    public FanPage()
     {
         InitializeComponent();
-        Loaded += (_, _) =>
-        {
-            Live.Instance.Attach();
-            var curves = App.Instance!.Config.Curves.Select(c => c.Name).ToList();
-            _all = [.. Live.Instance.Fans.OrderByDescending(f => f.Present).ThenBy(f => f.Device).ThenBy(f => f.Name).Select(f => new FanEdit(f, curves))];
-            Fill();
-        };
+        Loaded += (_, _) => Live.Instance.Attach();
         Unloaded += (_, _) => Live.Instance.Detach();
     }
 
-    protected override void OnNavigatedTo(NavigationEventArgs e) => _focus = e.Parameter as string;
-
-    void Fill()
+    protected override void OnNavigatedTo(NavigationEventArgs e)
     {
-        var items = _all.Where(f => ShowEmpty.IsOn || f.Live.Present || f.Enabled || f.Live.Id == _focus).ToList();
-        List.ItemsSource = items;
-        if (_focus is not null && items.FirstOrDefault(f => f.Live.Id == _focus) is { } hit)
-        {
-            hit.Expanded = true;
-            List.ScrollIntoView(hit);
-        }
+        var vm = Live.Instance.Fans.FirstOrDefault(f => f.Id == e.Parameter as string);
+        if (vm is null) return;
+        _fan = new FanEdit(vm, [.. App.Instance!.Config.Curves.Select(c => c.Name)]);
+        Host.Content = _fan;
     }
 
-    void ShowEmpty_Toggled(object sender, RoutedEventArgs e) { if (IsLoaded) Fill(); }
+    void Back_Click(object sender, RoutedEventArgs e) { if (Frame.CanGoBack) Frame.GoBack(); }
 
     // Built when opened, so it lists the current names.
     void SwapMenu_Opening(object sender, object e)
     {
         var menu = (MenuFlyout)sender;
-        var me = (FanEdit)((FrameworkElement)menu.Target).Tag;
         menu.Items.Clear();
-        foreach (var other in _all.Where(f => f != me && (f.Live.Present || f.Enabled)))
+        if (_fan is null) return;
+        var curves = _fan.CurveNames;
+        foreach (var other in Live.Instance.Fans.Where(f => f != _fan.Live && (f.Present || App.Instance!.Config.Fans.TryGetValue(f.Id, out var s) && s.Enabled)))
         {
-            var item = new MenuFlyoutItem { Text = $"{other.Live.Name}  ·  {other.Live.Short}" };
-            item.Click += (_, _) => Swap(me, other);
+            var item = new MenuFlyoutItem { Text = $"{other.Name}  ·  {other.Short}" };
+            item.Click += (_, _) => Swap(_fan, new FanEdit(other, curves));
             menu.Items.Add(item);
         }
     }

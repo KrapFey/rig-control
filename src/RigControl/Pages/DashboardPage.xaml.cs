@@ -98,7 +98,7 @@ public sealed partial class DashboardPage : Page
     void Tile_Tapped(object sender, TappedRoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is FanVm vm)
-            Frame.Navigate(typeof(FansPage), vm.Id, new Microsoft.UI.Xaml.Media.Animation.DrillInNavigationTransitionInfo());
+            Frame.Navigate(typeof(FanPage), vm.Id, new Microsoft.UI.Xaml.Media.Animation.DrillInNavigationTransitionInfo());
     }
 
     // Staggered entrance: each tile rises and fades in a beat after the previous one (GPU composition).
