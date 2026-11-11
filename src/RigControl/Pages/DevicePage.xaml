@@ -63,6 +63,46 @@
                                         <ToggleSwitch Header="Rotate to mute" IsOn="{x:Bind RotateOn, Mode=OneWay}" Tag="rotate" Toggled="HeadsetToggle_Toggled" Visibility="{x:Bind RotateVisibility}" />
                                     </StackPanel>
                                 </StackPanel>
+                                <!-- On-board lighting (VIA keyboards) -->
+                                <StackPanel Spacing="10" Visibility="{x:Bind LightingVisibility}">
+                                    <TextBlock Text="{x:Bind LightingTitle}" Style="{StaticResource Caption}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8" Visibility="{x:Bind LightEffectVisibility}">
+                                        <Button Width="40" Height="34" Padding="0" Click="{x:Bind EffectPrev}" ToolTipService.ToolTip="Previous effect"><FontIcon Glyph="&#xE76B;" FontSize="12" /></Button>
+                                        <TextBlock Text="{x:Bind LightEffectText, Mode=OneWay}" MinWidth="90" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                        <Button Width="40" Height="34" Padding="0" Click="{x:Bind EffectNext}" ToolTipService.ToolTip="Next effect"><FontIcon Glyph="&#xE76C;" FontSize="12" /></Button>
+                                        <TextBlock Text="Effects are numbered by the keyboard's firmware" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                    </StackPanel>
+                                    <Grid ColumnSpacing="20">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition />
+                                            <ColumnDefinition />
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Header="{x:Bind LightBrightnessText, Mode=OneWay}" Minimum="0" Maximum="100" StepFrequency="1" Value="{x:Bind LightBrightnessValue, Mode=OneWay}" Tag="lbright" ValueChanged="Slider_ValueChanged" />
+                                        <Slider Grid.Column="1" Header="{x:Bind LightSpeedText, Mode=OneWay}" Minimum="0" Maximum="100" StepFrequency="1" Value="{x:Bind LightSpeedValue, Mode=OneWay}" Tag="lspeed" ValueChanged="Slider_ValueChanged" Visibility="{x:Bind LightSpeedVisibility}" />
+                                    </Grid>
+                                    <Grid ColumnSpacing="20" Visibility="{x:Bind LightColorVisibility}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition />
+                                            <ColumnDefinition />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="44" Height="44" CornerRadius="22" Background="{x:Bind LightSwatch, Mode=OneWay}" VerticalAlignment="Bottom" BorderBrush="#33FFFFFF" BorderThickness="1" />
+                                        <StackPanel Grid.Column="1">
+                                            <Slider Header="Colour" Minimum="0" Maximum="255" StepFrequency="1" Value="{x:Bind LightHueValue, Mode=OneWay}" IsThumbToolTipEnabled="False" Tag="lhue" ValueChanged="Slider_ValueChanged" />
+                                            <Border Height="4" CornerRadius="2" Margin="0,-6,0,0">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                        <GradientStop Offset="0" Color="#FF0000" /><GradientStop Offset="0.17" Color="#FFFF00" /><GradientStop Offset="0.33" Color="#00FF00" />
+                                                        <GradientStop Offset="0.5" Color="#00FFFF" /><GradientStop Offset="0.67" Color="#0000FF" /><GradientStop Offset="0.83" Color="#FF00FF" /><GradientStop Offset="1" Color="#FF0000" />
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                            </Border>
+                                        </StackPanel>
+                                        <Slider Grid.Column="2" Header="{x:Bind LightSatText, Mode=OneWay}" Minimum="0" Maximum="100" StepFrequency="1" Value="{x:Bind LightSatValue, Mode=OneWay}" Tag="lsat" ValueChanged="Slider_ValueChanged" />
+                                    </Grid>
+                                    <TextBlock Text="Set live: the keyboard's saved lighting stays as it is, and RigControl applies this again whenever the keyboard connects." Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                                </StackPanel>
+
                                 <!-- Keyboard switches -->
                                 <StackPanel Spacing="8" Visibility="{x:Bind ActuationVisibility}">
                                     <Slider Header="{x:Bind ActuationText, Mode=OneWay}" Minimum="0" Maximum="{x:Bind ActuationMax}" StepFrequency="1" TickFrequency="1" TickPlacement="BottomRight"

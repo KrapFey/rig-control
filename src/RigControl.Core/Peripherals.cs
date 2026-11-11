@@ -35,6 +35,12 @@ public sealed class PeripheralCaps
     /// <summary>The actuation depths (mm) the keyboard offers, shallow to deep (empty = not adjustable).</summary>
     public double[] ActuationMm { get; init; } = [];
     public bool RapidTrigger { get; init; }
+
+    // On-board lighting a device sets itself (VIA keyboards); null = none
+    public string? Lighting { get; init; }
+    public bool LightingEffects { get; init; }
+    public bool LightingSpeed { get; init; }
+    public bool LightingColor { get; init; }
 }
 
 /// <summary>What the device reports right now (null = unknown or not supported).</summary>
@@ -55,6 +61,11 @@ public sealed record PeripheralState
     public bool? MicMuted { get; init; }
     public double? ActuationMm { get; init; }
     public bool? RapidTrigger { get; init; }
+    public int? LightBrightness { get; init; }
+    public int? LightEffect { get; init; }
+    public int? LightSpeed { get; init; }
+    public int? LightHue { get; init; }
+    public int? LightSaturation { get; init; }
 }
 
 /// <summary>Settings saved per device; only the ones set are applied.</summary>
@@ -81,6 +92,13 @@ public sealed class PeripheralSettings
     // Keyboards: one actuation depth for every analog key
     public double? ActuationMm { get; set; }
     public bool? RapidTrigger { get; set; }
+
+    // On-board lighting (0–255 each; effect 0 = off)
+    public int? LightBrightness { get; set; }
+    public int? LightEffect { get; set; }
+    public int? LightSpeed { get; set; }
+    public int? LightHue { get; set; }
+    public int? LightSaturation { get; set; }
 }
 
 /// <summary>A mouse, headset or other device whose settings RigControl can change.</summary>
@@ -182,6 +200,7 @@ public sealed class PeripheralHub : IDisposable
         found.AddRange(HeadsetControlDevice.FindAll());
         found.AddRange(LogitechDevice.FindAll());
         found.AddRange(SteelSeriesKeyboard.FindAll());
+        found.AddRange(ViaKeyboard.FindAll());
 
         List<IPeripheral> old;
         lock (_lock)

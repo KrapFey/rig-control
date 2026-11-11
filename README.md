@@ -37,9 +37,13 @@ modern WinUI 3 interface.
     in its onboard-profile mode, so its own DPI button keeps working.
   - **Headsets:** about 50 headsets through a bundled [HeadsetControl](https://github.com/Sapd/HeadsetControl):
     battery, sidetone, mic volume, auto-off, EQ preset, noise cancelling, lights, voice prompts, rotate to mute.
+  - **VIA keyboards** (QMK firmware with VIA, protocol 12+: Keychron and many others): lighting brightness,
+    effect, speed and colour, asked from the keyboard itself, set live.
   - **Keyboards with adjustable switches:** actuation depth for every analog key on the SteelSeries Apex Pro
     TKL (2023, wired) and Apex Pro Gen 3 (firmware 4.16.8), plus rapid trigger on the TKL (2023). Only live settings
     are written, never the keyboard's saved profiles.
+- **Supported devices:** a searchable list (fuzzy: "dthaddr v2" finds the DeathAdder V2) of every device and
+  device family RigControl handles, built by `tools/gen-supported-devices.py` from each source's own data.
 - **Import from FanControl:** curves, fan names and fan settings, including NZXT controllers driven through
   the FanControl.Liquidctl plugin (matched by the plugin's own device ids).
 - **Identify** stops one fan for 8 seconds so you can see which it is; **Swap with…** exchanges two fans'
@@ -85,6 +89,7 @@ tests\RigControl.Checks\bin\Debug\net10.0-windows10.0.26100.0\RigControl.Checks.
 tests\RigControl.Checks\bin\Debug\net10.0-windows10.0.26100.0\RigControl.Checks.exe --watch   # NZXT duty/RPM for 8 s
 tests\RigControl.Checks\bin\Debug\net10.0-windows10.0.26100.0\RigControl.Checks.exe --lqprobe # would the liquidctl helper start here?
 tests\RigControl.Checks\bin\Debug\net10.0-windows10.0.26100.0\RigControl.Checks.exe --logitech # Logitech mice found and their state
+tests\RigControl.Checks\bin\Debug\net10.0-windows10.0.26100.0\RigControl.Checks.exe --via      # VIA keyboards found and their lighting
 ```
 
 `-p:UiTest=true` builds a copy that runs without admin and never touches fans, for UI automation
@@ -106,6 +111,7 @@ GPL-3.0-or-later, see [LICENSE](LICENSE).
   [OpenMouse keyboard-protocol](https://github.com/OpenMouse-Project/keyboard-protocol) (reimplemented, no code
   copied) and confirmed by [steelseriesgg-rs](https://github.com/Ven0m0/steelseriesgg-rs); Gen 3 commands and
   actuation tables from [apex-analog](https://github.com/milescoviello/apex-analog) (MIT).
+- VIA protocol: [QMK firmware](https://github.com/qmk/qmk_firmware) `quantum/via.h` (GPL-2.0-or-later).
 - Razer mouse protocol and device table: from [openrazer](https://github.com/openrazer/openrazer) (GPL-2.0-or-later).
 - Razer Seiren V3 Chroma lighting protocol: from [openrazer PR #2896](https://github.com/openrazer/openrazer/pull/2896).
 - [liquidctl](https://github.com/liquidctl/liquidctl) (GPL-3.0-or-later): bundled, and the source of the

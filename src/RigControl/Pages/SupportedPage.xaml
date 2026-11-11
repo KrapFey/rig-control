@@ -1,0 +1,65 @@
+<Page
+    x:Class="RigControl.Pages.SupportedPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:core="using:RigControl.Core"
+    Background="Transparent">
+
+    <Grid RowSpacing="14" Padding="0,0,24,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Text="Supported devices" Style="{StaticResource PageTitle}" Margin="0" />
+            <TextBlock x:Name="Summary" Style="{StaticResource Caption}" Margin="0,4,0,0" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="Query" PlaceholderText="Search: a model, a brand, or a few letters of it (dav2, kraken x, arctis)" TextChanged="Query_TextChanged" />
+            <ComboBox x:Name="KindFilter" Grid.Column="1" MinWidth="170" SelectedIndex="0" SelectionChanged="KindFilter_SelectionChanged">
+                <x:String>All kinds</x:String>
+                <x:String>Fans &amp; cooling</x:String>
+                <x:String>Lighting</x:String>
+                <x:String>Mouse</x:String>
+                <x:String>Keyboard</x:String>
+                <x:String>Headset</x:String>
+            </ComboBox>
+        </Grid>
+
+        <ListView x:Name="Results" Grid.Row="2" SelectionMode="None" Padding="0,0,0,24">
+            <ListView.Header>
+                <TextBlock x:Name="Count" Style="{StaticResource Caption}" Margin="0,0,0,8" />
+            </ListView.Header>
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="Padding" Value="12,8" />
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="core:SupportedDevice">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{x:Bind Features}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBlock Text="{x:Bind Kind}" HorizontalAlignment="Right" />
+                            <TextBlock Text="{x:Bind Source}" Style="{StaticResource Caption}" HorizontalAlignment="Right" />
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </Grid>
+</Page>

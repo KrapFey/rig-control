@@ -62,7 +62,7 @@ public sealed partial class DevicePage : Page
             case "dpi": card.Dpi = e.NewValue; break;
             case "sleep": card.SleepMinutes = e.NewValue; break;
             case "lowbat": card.LowBattery = e.NewValue; break;
-            case "sidetone" or "micvolume" or "inactive" or "actuation": card.Set((string)s.Tag, e.NewValue); break;
+            case "sidetone" or "micvolume" or "inactive" or "actuation" or "lbright" or "lspeed" or "lhue" or "lsat": card.Set((string)s.Tag, e.NewValue); break;
         }
     }
 

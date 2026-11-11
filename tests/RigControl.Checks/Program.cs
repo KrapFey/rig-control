@@ -29,6 +29,19 @@ if (args.Contains("--logitech"))
     }
     return 0;
 }
+if (args.Contains("--via"))
+{
+    // Read-only: VIA keyboards found and their lighting. Never writes a setting.
+    var all = ViaKeyboard.FindAll();
+    if (all.Count == 0) Console.WriteLine("no VIA keyboard (protocol 12+) with lighting found");
+    foreach (var p in all)
+    {
+        var st = p.Read();
+        Console.WriteLine($"{p.Key} {p.Name} | {p.Source} | brightness {st.LightBrightness} effect {st.LightEffect} speed {st.LightSpeed} hue {st.LightHue} sat {st.LightSaturation}");
+        p.Dispose();
+    }
+    return 0;
+}
 if (args.Contains("--rgb"))
 {
     // Read-only: list what an OpenRGB server reports (default port 6742).
@@ -327,6 +340,46 @@ Check(LogitechDevice.ParseDpiList([0x01, 0x90, 0x03, 0x20, 0x06, 0x40, 0x00, 0x0
         "Apex Pro TKL 2023: 00 38 61 44 00 {hid, 10, 8}×68 for 0.5 mm");
     Check(frames[1][1] == 0x38 && frames[1][2] == 0x62 && frames[1][3] == 68 && frames[1][5] == 2 && frames[1].Length == 4 + 68 * 2, "Apex Pro TKL 2023: rapid trigger as release mode 2 on all 68 keys");
 }
+
+// --- VIA keyboards, against a simulated QMK board
+{
+    int protocol = 12;
+    byte[] channels = [3]; // the board has RGB matrix only
+    var values = new Dictionary<int, byte[]> { [1] = [200], [2] = [5], [3] = [128], [4] = [10, 255] };
+    var sets = new List<string>();
+    ViaKeyboard.Transport via = msg =>
+    {
+        var r = (byte[])msg.Clone();
+        switch (msg[0])
+        {
+            case 0x01: r[1] = (byte)(protocol >> 8); r[2] = (byte)protocol; break;
+            case 0x08 when channels.Contains(msg[1]): values[msg[2]].CopyTo(r, 3); break;
+            case 0x07 when channels.Contains(msg[1]): values[msg[2]] = msg[3..5]; sets.Add($"{msg[2]}:{msg[3]}"); break;
+            default: r[0] = 0xFF; break; // unhandled
+        }
+        return r;
+    };
+    var vk = ViaKeyboard.Open(via, "via/AAAA0001", "Test Board");
+    Check(vk?.Caps is { Lighting: "RGB matrix", LightingEffects: true, LightingColor: true } && vk.Kind == "Keyboard", "VIA: lighting channel found by asking the board");
+    var vs = vk?.Read();
+    Check(vs is { LightBrightness: 200, LightEffect: 5, LightSpeed: 128, LightHue: 10, LightSaturation: 255 }, "VIA: brightness, effect, speed and colour read");
+    vk?.Apply(new PeripheralSettings { LightBrightness = 100, LightHue = 170 }, vs!);
+    Check(sets.SequenceEqual(["1:100", "4:170"]) && values[4][1] == 255, "VIA: only changed values sent; saturation kept when only the hue changes");
+    channels = [1];
+    Check(ViaKeyboard.Open(via, "k", "n")?.Caps is { Lighting: "Backlight", LightingEffects: false, LightingColor: false }, "VIA: backlight-only board gets brightness only");
+    channels = [];
+    Check(ViaKeyboard.Open(via, "k", "n") is null, "VIA: board without lighting isn't listed");
+    channels = [3]; protocol = 11;
+    Check(ViaKeyboard.Open(via, "k", "n") is null, "VIA: protocol before 12 (different lighting commands) left alone");
+}
+
+// --- supported-devices list and its fuzzy search
+Check(SupportedDevices.List.Count > 2000 && SupportedDevices.List.Any(d => d.Kind == "Mouse") && SupportedDevices.List.Any(d => d.Kind == "Headset"), "supported list: loaded, every kind present");
+Check(SupportedDevices.Search("deathadder v2").FirstOrDefault()?.Name == "Razer DeathAdder V2", "search: exact words find the device first");
+Check(SupportedDevices.Search("dthaddr v2").Any(d => d.Name == "Razer DeathAdder V2"), "search: letters in order still match (typos with dropped letters)");
+Check(SupportedDevices.Search("kraken", "Fans & cooling").All(d => d.Kind.Contains("Fans & cooling")) && SupportedDevices.Search("kraken", "Fans & cooling").Count > 0, "search: kind filter");
+Check(SupportedDevices.Search("zzqqxx").Count == 0, "search: nonsense finds nothing");
+Check(SupportedDevices.List.Single(d => d.Name == "Razer DeathAdder V2").Kind == "Mouse · Lighting", "supported list: one row per device, settings and lighting merged");
 
 // --- config round trip
 var path = Path.Combine(Path.GetTempPath(), $"rigcontrol-{Guid.NewGuid():N}.json");

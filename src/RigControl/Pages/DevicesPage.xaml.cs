@@ -67,6 +67,7 @@ public sealed class PeripheralCard : Observable
                 return string.Join(" · ", parts);
             }
             var bits = new List<string>();
+            if (Caps.Lighting is not null) bits.Add(LightEffectValue == 0 && Caps.LightingEffects ? "lighting off" : $"lighting {LightBrightnessValue:0}%");
             if (Caps.ActuationMm.Length > 0 && ActuationKnown) bits.Add($"actuation {ActuationMm:0.0} mm");
             if (Caps.RapidTrigger && (Saved.RapidTrigger ?? _state.RapidTrigger) is bool rt) bits.Add(rt ? "rapid trigger" : "rapid trigger off");
             if (Caps.Dpi) bits.Add($"{Dpi:0} DPI");
@@ -147,6 +148,10 @@ public sealed class PeripheralCard : Observable
             case "rotate": s.RotateToMute = value != 0; break;
             case "actuation": s.ActuationMm = Caps.ActuationMm[Math.Clamp((int)Math.Round(value), 0, Caps.ActuationMm.Length - 1)]; break;
             case "rapid": s.RapidTrigger = value != 0; break;
+            case "lbright": s.LightBrightness = (int)Math.Round(value * 255 / 100); break;
+            case "lspeed": s.LightSpeed = (int)Math.Round(value * 255 / 100); break;
+            case "lhue": s.LightHue = (int)Math.Round(value); break;
+            case "lsat": s.LightSaturation = (int)Math.Round(value * 255 / 100); break;
             default: return;
         }
         Raise(string.Empty);
@@ -166,6 +171,39 @@ public sealed class PeripheralCard : Observable
     public string ActuationNote => "Applies to every analog key. Lives in the keyboard's memory: a replug brings back its own profile, and RigControl sets it again.";
     public Visibility RapidVisibility => Show(Caps.RapidTrigger);
     public bool RapidOn => Saved.RapidTrigger ?? _state.RapidTrigger ?? false;
+
+    // ---------------- On-board lighting (VIA keyboards)
+    public Visibility LightingVisibility => Show(Caps.Lighting is not null);
+    public string LightingTitle => $"LIGHTING · {Caps.Lighting?.ToUpperInvariant()}";
+    public double LightBrightnessValue => Math.Round((Saved.LightBrightness ?? _state.LightBrightness ?? 255) * 100 / 255.0);
+    public string LightBrightnessText => $"Brightness · {LightBrightnessValue:0}%";
+    public Visibility LightEffectVisibility => Show(Caps.LightingEffects);
+    // What the keyboard reports wins: it clamps an effect number past its last one, and this shows that.
+    int LightEffectValue => _state.LightEffect ?? Saved.LightEffect ?? 1;
+    public string LightEffectText => LightEffectValue == 0 ? "Off" : $"Effect {LightEffectValue}";
+    public void EffectPrev() => SetEffect(Math.Max(0, LightEffectValue - 1));
+    public void EffectNext() => SetEffect(Math.Min(255, LightEffectValue + 1));
+    void SetEffect(int v)
+    {
+        Edit().LightEffect = v;
+        _state = _state with { LightEffect = v }; // show it at once; the next read confirms or corrects it
+        Raise(nameof(LightEffectText));
+        Changed();
+    }
+    public Visibility LightSpeedVisibility => Show(Caps.LightingSpeed);
+    public double LightSpeedValue => Math.Round((Saved.LightSpeed ?? _state.LightSpeed ?? 128) * 100 / 255.0);
+    public string LightSpeedText => $"Effect speed · {LightSpeedValue:0}%";
+    public Visibility LightColorVisibility => Show(Caps.LightingColor);
+    public double LightHueValue => Saved.LightHue ?? _state.LightHue ?? 0;
+    public double LightSatValue => Math.Round((Saved.LightSaturation ?? _state.LightSaturation ?? 255) * 100 / 255.0);
+    public string LightSatText => $"Saturation · {LightSatValue:0}%";
+    public Microsoft.UI.Xaml.Media.SolidColorBrush LightSwatch => new(Hsv(LightHueValue / 255.0 * 360, LightSatValue / 100, 1));
+    static Windows.UI.Color Hsv(double h, double s, double v)
+    {
+        double c = v * s, x = c * (1 - Math.Abs(h / 60 % 2 - 1)), m = v - c;
+        var (r, g, b) = (h % 360) switch { < 60 => (c, x, 0d), < 120 => (x, c, 0d), < 180 => (0d, c, x), < 240 => (0d, x, c), < 300 => (x, 0d, c), _ => (c, 0d, x) };
+        return Windows.UI.Color.FromArgb(255, (byte)((r + m) * 255), (byte)((g + m) * 255), (byte)((b + m) * 255));
+    }
 
     public List<DpiPreset> Presets { get; }
     public void StepUp() => Dpi = Dpi + 50;
