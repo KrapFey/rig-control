@@ -509,6 +509,38 @@ else Console.WriteLine("skip rivalcfg checks (liquidctl runtime not fetched)");
         "zones: each LED gets its own colour, unpainted ones the zone colour, LEDs outside the zone untouched");
 }
 
+// --- Razer keyboards (openrazer data), against simulated keyboards
+{
+    (RazerKeyboard kb, List<string> sent) Sim(int pid, bool game, byte pollCode, byte keyswitch)
+    {
+        var sent = new List<string>();
+        RazerKeyboard.Transport io = (tid, cls, id, size, args) =>
+        {
+            var r = new byte[80];
+            switch ((cls, id))
+            {
+                case (0x03, 0x80): r[2] = (byte)(game ? 1 : 0); break;
+                case (0x00, 0xC0): r[1] = pollCode; break;
+                case (0x02, 0x82): r[1] = keyswitch; break;
+                default: sent.Add($"{tid:x2} {cls:x2}{id:x2} " + string.Join(" ", args.Select(a => a.ToString("x2")))); break;
+            }
+            return r;
+        };
+        return (new RazerKeyboard(pid, RazerKeyboard.Lookup(pid)!, io), sent);
+    }
+    var (hv2, hsent) = Sim(0x026C, false, 0x08, 0x14);
+    var hs = hv2.Read();
+    Check(hv2 is { Name: "Razer Huntsman V2", Kind: "Keyboard" } && hv2.Caps is { GameMode: true, KeyswitchOptimization: true } && hv2.Caps.PollRates.Contains(8000),
+        "Razer keyboard: Huntsman V2 offers game mode, switch optimisation, 8000 Hz");
+    Check(hs is { GameMode: false, PollRate: 1000, KeyswitchGaming: false }, "Razer keyboard: game mode, polling rate and typing optimisation read");
+    hv2.Apply(new PeripheralSettings { GameMode = true, PollRate = 8000, KeyswitchGaming = true }, hs);
+    Check(hsent.SequenceEqual(["1f 0300 00 08 01", "1f 0040 00 01", "1f 0202 ", "1f 0215 01"]),
+        "Razer keyboard: game mode (no store, tid 0x1f), 8000 Hz (code 0x01), gaming optimisation in two commands");
+    var (bw4, bsent) = Sim(0x0287, true, 0x08, 0);
+    bw4.Apply(new PeripheralSettings { GameMode = false }, bw4.Read());
+    Check(bsent.SequenceEqual(["ff 0300 01 08 00"]) && !bw4.Caps.KeyswitchOptimization, "Razer keyboard: BlackWidow V4 game mode off with variable storage, tid 0xff");
+    Check(RazerKeyboard.Lookup(0x0084) is null, "Razer keyboard: mice aren't in the keyboard table");
+}
 // --- supported-devices list and its fuzzy search
 Check(SupportedDevices.List.Count > 2000 && SupportedDevices.List.Any(d => d.Kind == "Mouse") && SupportedDevices.List.Any(d => d.Kind == "Headset"), "supported list: loaded, every kind present");
 Check(SupportedDevices.Search("deathadder v2").FirstOrDefault()?.Name == "Razer DeathAdder V2", "search: exact words find the device first");

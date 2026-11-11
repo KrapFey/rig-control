@@ -87,10 +87,11 @@ public partial class App : Application
         {
             // Pressed the DPI button: remember where the mouse is now (saved only if this device has saved settings).
             if (!Config.Peripherals.TryGetValue(key, out var s)) return;
-            s.Dpi = state.Dpi;
+            if (state.Dpi is int dpi) s.Dpi = dpi;
             if (state.ActiveStage is int a) s.ActiveStage = a;
             if (state.Stages is { Count: > 0 } st) s.Stages = [.. st];
-            Log($"peripheral {key}: changed on the device (dpi {state.Dpi}, stage {state.ActiveStage}), saved");
+            if (state.GameMode is bool g && s.GameMode is not null) s.GameMode = g; // Fn+F10 on the keyboard
+            Log($"peripheral {key}: changed on the device (dpi {state.Dpi}, stage {state.ActiveStage}, game mode {state.GameMode}), saved");
             ConfigChanged();
         });
 

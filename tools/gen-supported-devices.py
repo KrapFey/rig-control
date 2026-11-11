@@ -89,6 +89,15 @@ for d in razer["devices"].values():
     feats += ["battery"] if "battery" in d else []
     add(d["name"], "Mouse", ", ".join(feats) or "detected", "Razer protocol (openrazer data)")
 
+# --- keyboards: Razer table (generated from openrazer by gen-razer-keyboards.py)
+kbds = json.loads((ROOT / "src" / "RigControl.Core" / "Razer" / "razer-keyboards.json").read_text(encoding="utf-8"))
+for d in kbds["devices"].values():
+    feats = ["game mode"] if "game_write" in d else []
+    feats += ["polling rate"] if "poll_write" in d else []
+    feats += ["switch optimisation"] if "keyswitch_write" in d else []
+    feats += ["battery"] if "battery" in d else []
+    add(d["name"], "Keyboard", ", ".join(feats), "Razer protocol (openrazer data)")
+
 # --- SteelSeries mice: rivalcfg profiles in the bundled runtime
 model = re.compile(r'"name":\s*"([^"]+)",\s*"vendor_id"')
 for py in sorted(next((ROOT / "build" / "liquidctl").rglob("rivalcfg/devices")).glob("*.py")):

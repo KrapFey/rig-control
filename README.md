@@ -60,6 +60,9 @@ headset and keyboard, and watch it all live in a modern WinUI 3 interface.
     battery, sidetone, mic volume, auto-off, EQ preset, noise cancelling, lights, voice prompts, rotate to mute.
   - **VIA keyboards** (QMK firmware with VIA, protocol 12+: Keychron and many others): lighting brightness,
     effect, speed and colour, asked from the keyboard itself, set live.
+  - **Razer keyboards** (59 models, data from openrazer): game mode (the keyboard's own Windows-key lock, also
+    followed when you press Fn+F10), polling rate up to 8000 Hz on newer models, switch optimisation on the Huntsman
+    V2, battery on wireless ones.
   - **Keyboards with adjustable switches:** actuation depth for every analog key on the SteelSeries Apex Pro
     TKL (2023, wired) and Apex Pro Gen 3 (firmware 4.16.8), plus rapid trigger on the TKL (2023). Only live settings
     are written, never the keyboard's saved profiles.

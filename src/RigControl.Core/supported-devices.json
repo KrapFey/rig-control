@@ -764,10 +764,214 @@
 "source": "HeadsetControl 4.2.0 · OpenRGB 1.1"
 },
 {
+"name": "BlackWidow Chroma V2",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
 "name": "QMK keyboards with VIA (protocol 12+): Keychron and many others",
 "kind": "Keyboard",
 "features": "lighting brightness, effect, speed, colour",
 "source": "VIA"
+},
+{
+"name": "Razer Anansi",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer BlackWidow (Classic)",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer BlackWidow Chroma (Overwatch)",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer BlackWidow Essential",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer BlackWidow Lite",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer BlackWidow Stealth Edition",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer BlackWidow Tournament Edition 2014",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer BlackWidow Tournament Edition Chroma",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer BlackWidow Ultimate 2012",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer BlackWidow Ultimate 2013",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer BlackWidow Ultimate 2016",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer BlackWidow V3 Mini HyperSpeed (Wired)",
+"kind": "Keyboard",
+"features": "game mode, battery",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer BlackWidow V3 Pro Wired",
+"kind": "Keyboard",
+"features": "game mode, battery",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer BlackWidow V3 TK",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer BlackWidow V4 75%",
+"kind": "Keyboard",
+"features": "game mode, polling rate",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer BlackWidow V4 Mini HyperSpeed (Wired)",
+"kind": "Keyboard",
+"features": "game mode, battery",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer BlackWidow V4 Tenkeyless HyperSpeed (Wired)",
+"kind": "Keyboard",
+"features": "game mode, polling rate, battery",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer BlackWidow X Tournament Edition Chroma",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer BlackWidow X Ultimate",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer Cynosa Chroma Pro",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer Cynosa V2",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer DeathStalker Expert",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer DeathStalker/DeathStalker Essential",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer Huntsman Mini JP",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer Huntsman V2 Tenkeyless",
+"kind": "Keyboard",
+"features": "game mode, polling rate, switch optimisation",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer Huntsman V3 Pro 8KHz",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer Huntsman V3 Pro Mini",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer Huntsman V3 Pro TKL",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer Joro",
+"kind": "Keyboard",
+"features": "game mode, battery",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer Ornata",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer Ornata V2",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "Razer Ornata V3 Tenkeyless",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
+},
+{
+"name": "RazerTartarusV2",
+"kind": "Keyboard",
+"features": "game mode",
+"source": "Razer protocol (openrazer data)"
 },
 {
 "name": "SteelSeries Apex Pro Gen 3 (firmware 4.16.8)",
@@ -780,6 +984,156 @@
 "kind": "Keyboard",
 "features": "actuation depth, rapid trigger",
 "source": "SteelSeries protocol"
+},
+{
+"name": "Razer BlackWidow 2019",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer BlackWidow Chroma",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer BlackWidow Elite",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer BlackWidow V3",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer BlackWidow V4",
+"kind": "Keyboard · Lighting",
+"features": "game mode, polling rate, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer BlackWidow V4 Pro",
+"kind": "Keyboard · Lighting",
+"features": "game mode, polling rate, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer BlackWidow V4 X",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer BlackWidow X Chroma",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer Cynosa Chroma",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer Cynosa Lite",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer DeathStalker Chroma",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer DeathStalker V2",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer DeathStalker V2 Pro (Wired)",
+"kind": "Keyboard · Lighting",
+"features": "game mode, battery, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer DeathStalker V2 Pro TKL (Wired)",
+"kind": "Keyboard · Lighting",
+"features": "game mode, battery, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer Huntsman",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer Huntsman Elite",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer Huntsman Mini",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer Huntsman Mini Analog",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer Huntsman Tournament Edition",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer Huntsman V2",
+"kind": "Keyboard · Lighting",
+"features": "game mode, polling rate, switch optimisation, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer Huntsman V2 Analog",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer Huntsman V3 Pro",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer Ornata Chroma",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer Ornata V3",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
+},
+{
+"name": "Razer Ornata V3 X",
+"kind": "Keyboard · Lighting",
+"features": "game mode, RGB lighting",
+"source": "Razer protocol (openrazer data) · OpenRGB 1.1"
 },
 {
 "name": "Acer Predator Gaming Mouse (Rival 300)",
@@ -9536,18 +9890,6 @@
 "source": "OpenRGB 1.1"
 },
 {
-"name": "Razer Blackwidow 2019",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "Razer Blackwidow Chroma",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
 "name": "Razer Blackwidow Chroma Tournament Edition",
 "kind": "Lighting",
 "features": "RGB lighting",
@@ -9560,19 +9902,7 @@
 "source": "OpenRGB 1.1"
 },
 {
-"name": "Razer Blackwidow Elite",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
 "name": "Razer Blackwidow Overwatch",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "Razer Blackwidow V3",
 "kind": "Lighting",
 "features": "RGB lighting",
 "source": "OpenRGB 1.1"
@@ -9614,12 +9944,6 @@
 "source": "OpenRGB 1.1"
 },
 {
-"name": "Razer Blackwidow V4",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
 "name": "Razer Blackwidow V4 75% (Wired)",
 "kind": "Lighting",
 "features": "RGB lighting",
@@ -9633,12 +9957,6 @@
 },
 {
 "name": "Razer Blackwidow V4 Low Profile TKL (Wireless)",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "Razer Blackwidow V4 Pro",
 "kind": "Lighting",
 "features": "RGB lighting",
 "source": "OpenRGB 1.1"
@@ -9663,18 +9981,6 @@
 },
 {
 "name": "Razer Blackwidow V4 TKL (Wireless)",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "Razer Blackwidow V4 X",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "Razer Blackwidow X Chroma",
 "kind": "Lighting",
 "features": "RGB lighting",
 "source": "OpenRGB 1.1"
@@ -9944,19 +10250,7 @@
 "source": "OpenRGB 1.1"
 },
 {
-"name": "Razer Cynosa Chroma",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
 "name": "Razer Cynosa Chroma V2",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "Razer Cynosa Lite",
 "kind": "Lighting",
 "features": "RGB lighting",
 "source": "OpenRGB 1.1"
@@ -9980,31 +10274,7 @@
 "source": "OpenRGB 1.1"
 },
 {
-"name": "Razer Deathstalker Chroma",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "Razer Deathstalker V2",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "Razer Deathstalker V2 Pro (Wired)",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
 "name": "Razer Deathstalker V2 Pro (Wireless)",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "Razer Deathstalker V2 Pro TKL (Wired)",
 "kind": "Lighting",
 "features": "RGB lighting",
 "source": "OpenRGB 1.1"
@@ -10070,48 +10340,6 @@
 "source": "OpenRGB 1.1"
 },
 {
-"name": "Razer Huntsman",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "Razer Huntsman Elite",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "Razer Huntsman Mini",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "Razer Huntsman Mini Analog",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "Razer Huntsman Tournament Edition",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "Razer Huntsman V2",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "Razer Huntsman V2 Analog",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
 "name": "Razer Huntsman V2 TKL",
 "kind": "Lighting",
 "features": "RGB lighting",
@@ -10119,12 +10347,6 @@
 },
 {
 "name": "Razer Huntsman V3 HE Magnetic Mini",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "Razer Huntsman V3 Pro",
 "kind": "Lighting",
 "features": "RGB lighting",
 "source": "OpenRGB 1.1"
@@ -10394,19 +10616,7 @@
 "source": "OpenRGB 1.1"
 },
 {
-"name": "Razer Ornata Chroma",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
 "name": "Razer Ornata Chroma V2",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "Razer Ornata V3",
 "kind": "Lighting",
 "features": "RGB lighting",
 "source": "OpenRGB 1.1"
@@ -10419,12 +10629,6 @@
 },
 {
 "name": "Razer Ornata V3 TKL",
-"kind": "Lighting",
-"features": "RGB lighting",
-"source": "OpenRGB 1.1"
-},
-{
-"name": "Razer Ornata V3 X",
 "kind": "Lighting",
 "features": "RGB lighting",
 "source": "OpenRGB 1.1"

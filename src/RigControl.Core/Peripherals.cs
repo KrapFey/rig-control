@@ -37,6 +37,10 @@ public sealed class PeripheralCaps
     /// <summary>The actuation depths (mm) the keyboard offers, shallow to deep (empty = not adjustable).</summary>
     public double[] ActuationMm { get; init; } = [];
     public bool RapidTrigger { get; init; }
+    /// <summary>The keyboard's own Windows-key lock (game mode).</summary>
+    public bool GameMode { get; init; }
+    /// <summary>Switches tuned for gaming or for typing (Razer Huntsman V2).</summary>
+    public bool KeyswitchOptimization { get; init; }
 
     // On-board lighting a device sets itself (VIA keyboards); null = none
     public string? Lighting { get; init; }
@@ -63,6 +67,8 @@ public sealed record PeripheralState
     public bool? MicMuted { get; init; }
     public double? ActuationMm { get; init; }
     public bool? RapidTrigger { get; init; }
+    public bool? GameMode { get; init; }
+    public bool? KeyswitchGaming { get; init; }
     public int? LightBrightness { get; init; }
     public int? LightEffect { get; init; }
     public int? LightSpeed { get; init; }
@@ -94,6 +100,9 @@ public sealed class PeripheralSettings
     // Keyboards: one actuation depth for every analog key
     public double? ActuationMm { get; set; }
     public bool? RapidTrigger { get; set; }
+    public bool? GameMode { get; set; }
+    /// <summary>True: switches tuned for gaming; false: for typing.</summary>
+    public bool? KeyswitchGaming { get; set; }
 
     // On-board lighting (0–255 each; effect 0 = off)
     public int? LightBrightness { get; set; }
@@ -138,7 +147,7 @@ public sealed class PeripheralHub : IDisposable
     public IReadOnlyDictionary<string, PeripheralState> States { get { lock (_lock) return new Dictionary<string, PeripheralState>(_states); } }
     public event Action? Changed;
     /// <summary>
-    /// The DPI or active stage changed on the device itself (its DPI button), not from RigControl: the owner should
+    /// The DPI, active stage or game mode changed on the device itself (its DPI button, Fn+F10), not from RigControl: the owner should
     /// take it into the saved settings, or the next re-apply would undo the button press. Raised on the hub thread.
     /// </summary>
     public event Action<string, PeripheralState>? ChangedOnDevice;
@@ -200,6 +209,7 @@ public sealed class PeripheralHub : IDisposable
         var found = new List<IPeripheral>();
         if (Demo.On) found.AddRange(Demo.Peripherals()); else {
         found.AddRange(RazerMouse.FindAll());
+        found.AddRange(RazerKeyboard.FindAll());
         found.AddRange(HeadsetControlDevice.FindAll());
         found.AddRange(LogitechDevice.FindAll());
         found.AddRange(SteelSeriesKeyboard.FindAll());
@@ -242,8 +252,9 @@ public sealed class PeripheralHub : IDisposable
                     state = d.Read();
                 }
                 // Between two plain reads only the user, on the device, can have changed the DPI or stage.
-                else if (_lastRead.TryGetValue(d.Key, out var last) && (state.Dpi != last.Dpi || state.ActiveStage != last.ActiveStage)
-                         && state.Dpi is not null)
+                else if (_lastRead.TryGetValue(d.Key, out var last)
+                         && ((state.Dpi is not null && (state.Dpi != last.Dpi || state.ActiveStage != last.ActiveStage))
+                             || (state.GameMode is not null && last.GameMode is not null && state.GameMode != last.GameMode)))
                 {
                     ChangedOnDevice?.Invoke(d.Key, state);
                 }

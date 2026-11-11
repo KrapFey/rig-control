@@ -116,6 +116,14 @@
                                                   Tag="rapid" Toggled="HeadsetToggle_Toggled" Visibility="{x:Bind RapidVisibility}" />
                                 </StackPanel>
 
+                                <!-- Keyboard modes (Razer) -->
+                                <StackPanel Orientation="Horizontal" Spacing="40" Visibility="{x:Bind KeyboardSwitchesVisibility}">
+                                    <ToggleSwitch Header="Game mode (locks the Windows key, like Fn+F10)" IsOn="{x:Bind GameModeOn, Mode=OneWay}"
+                                                  Tag="gamemode" Toggled="HeadsetToggle_Toggled" Visibility="{x:Bind GameModeVisibility}" />
+                                    <ToggleSwitch Header="Switch optimisation" IsOn="{x:Bind KeyswitchGaming, Mode=OneWay}" OnContent="Gaming" OffContent="Typing"
+                                                  Tag="keyswitch" Toggled="HeadsetToggle_Toggled" Visibility="{x:Bind KeyswitchVisibility}" />
+                                </StackPanel>
+
                                 <!-- DPI: type it, step it, pick a preset, or drag for big jumps -->
                                 <StackPanel Spacing="10" Visibility="{x:Bind DpiVisibility}">
                                     <Grid ColumnSpacing="8">
