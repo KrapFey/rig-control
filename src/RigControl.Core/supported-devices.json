@@ -12176,6 +12176,54 @@
 "source": "Razer protocol (openrazer data)"
 },
 {
+"name": "Logitech G5",
+"kind": "Mouse",
+"features": "current DPI",
+"source": "Logitech HID++ 1.0 (libratbag data)"
+},
+{
+"name": "Logitech G500",
+"kind": "Mouse",
+"features": "current DPI",
+"source": "Logitech HID++ 1.0 (libratbag data)"
+},
+{
+"name": "Logitech G500s",
+"kind": "Mouse",
+"features": "current DPI",
+"source": "Logitech HID++ 1.0 (libratbag data)"
+},
+{
+"name": "Logitech G700",
+"kind": "Mouse",
+"features": "current DPI",
+"source": "Logitech HID++ 1.0 (libratbag data)"
+},
+{
+"name": "Logitech G700s",
+"kind": "Mouse",
+"features": "current DPI",
+"source": "Logitech HID++ 1.0 (libratbag data)"
+},
+{
+"name": "Logitech G9",
+"kind": "Mouse",
+"features": "current DPI",
+"source": "Logitech HID++ 1.0 (libratbag data)"
+},
+{
+"name": "Logitech G9x [Call of Duty MW3 Edition]",
+"kind": "Mouse",
+"features": "current DPI",
+"source": "Logitech HID++ 1.0 (libratbag data)"
+},
+{
+"name": "Logitech G9x [Original]",
+"kind": "Mouse",
+"features": "current DPI",
+"source": "Logitech HID++ 1.0 (libratbag data)"
+},
+{
 "name": "Logitech mice and keyboards (HID++ 2.0: wired, Lightspeed, Unifying, Bolt)",
 "kind": "Mouse",
 "features": "DPI, report rate, battery",

@@ -11,14 +11,14 @@
      6166
     ]
    ],
+   "quirks": [],
+   "file": "asus-rog-buzzard.device",
    "presets": 2,
    "dpi": [
     100,
     8200,
     100
-   ],
-   "quirks": [],
-   "file": "asus-rog-buzzard.device"
+   ]
   },
   {
    "name": "ASUS ROG Chakram Core",
@@ -29,17 +29,17 @@
      6488
     ]
    ],
+   "quirks": [
+    "DOUBLE_DPI",
+    "STRIX_PROFILE"
+   ],
+   "file": "asus-rog-chakram-core.device",
    "presets": 4,
    "dpi": [
     100,
     16000,
     100
-   ],
-   "quirks": [
-    "DOUBLE_DPI",
-    "STRIX_PROFILE"
-   ],
-   "file": "asus-rog-chakram-core.device"
+   ]
   },
   {
    "name": "ASUS ROG Chakram X",
@@ -54,12 +54,6 @@
      6682
     ]
    ],
-   "presets": 4,
-   "dpi": [
-    100,
-    36000,
-    100
-   ],
    "quirks": [
     "DOUBLE_DPI",
     "RAW_BRIGHTNESS",
@@ -67,7 +61,13 @@
     "SEPARATE_LEDS",
     "BUTTONS_SECONDARY"
    ],
-   "file": "asus-rog-chakram-x.device"
+   "file": "asus-rog-chakram-x.device",
+   "presets": 4,
+   "dpi": [
+    100,
+    36000,
+    100
+   ]
   },
   {
    "name": "ASUS ROG Chakram",
@@ -82,17 +82,17 @@
      6373
     ]
    ],
+   "quirks": [
+    "DOUBLE_DPI",
+    "STRIX_PROFILE"
+   ],
+   "file": "asus-rog-chakram.device",
    "presets": 4,
    "dpi": [
     100,
     16000,
     100
-   ],
-   "quirks": [
-    "DOUBLE_DPI",
-    "STRIX_PROFILE"
-   ],
-   "file": "asus-rog-chakram.device"
+   ]
   },
   {
    "name": "ASUS ROG Gladius II Origin PNK LTD",
@@ -103,16 +103,16 @@
      6349
     ]
    ],
+   "quirks": [
+    "DOUBLE_DPI"
+   ],
+   "file": "asus-rog-gladius2-origin-pink.device",
    "presets": 2,
    "dpi": [
     100,
     12000,
     100
-   ],
-   "quirks": [
-    "DOUBLE_DPI"
-   ],
-   "file": "asus-rog-gladius2-origin-pink.device"
+   ]
   },
   {
    "name": "ASUS ROG Gladius II Origin",
@@ -123,16 +123,16 @@
      6263
     ]
    ],
+   "quirks": [
+    "DOUBLE_DPI"
+   ],
+   "file": "asus-rog-gladius2-origin.device",
    "presets": 2,
    "dpi": [
     100,
     12000,
     100
-   ],
-   "quirks": [
-    "DOUBLE_DPI"
-   ],
-   "file": "asus-rog-gladius2-origin.device"
+   ]
   },
   {
    "name": "ASUS ROG Gladius II",
@@ -143,14 +143,14 @@
      6213
     ]
    ],
+   "quirks": [],
+   "file": "asus-rog-gladius2.device",
    "presets": 2,
    "dpi": [
     100,
     12000,
     100
-   ],
-   "quirks": [],
-   "file": "asus-rog-gladius2.device"
+   ]
   },
   {
    "name": "ASUS ROG Harpe Wireless",
@@ -161,14 +161,14 @@
      6802
     ]
    ],
+   "quirks": [],
+   "file": "asus-rog-harpe-wireless.device",
    "presets": 4,
    "dpi": [
     100,
     36000,
     50
-   ],
-   "quirks": [],
-   "file": "asus-rog-harpe-wireless.device"
+   ]
   },
   {
    "name": "ASUS ROG Keris Wireless AimPoint",
@@ -183,14 +183,14 @@
      6760
     ]
    ],
+   "quirks": [],
+   "file": "asus-rog-keris-wireless-aimpoint.device",
    "presets": 4,
    "dpi": [
     100,
     36000,
     50
-   ],
-   "quirks": [],
-   "file": "asus-rog-keris-wireless-aimpoint.device"
+   ]
   },
   {
    "name": "ASUS ROG Keris Wireless",
@@ -205,16 +205,16 @@
      6496
     ]
    ],
+   "quirks": [
+    "DOUBLE_DPI"
+   ],
+   "file": "asus-rog-keris-wireless.device",
    "presets": 4,
    "dpi": [
     100,
     16000,
     100
-   ],
-   "quirks": [
-    "DOUBLE_DPI"
-   ],
-   "file": "asus-rog-keris-wireless.device"
+   ]
   },
   {
    "name": "ASUS ROG Keris",
@@ -225,16 +225,16 @@
      6492
     ]
    ],
+   "quirks": [
+    "DOUBLE_DPI"
+   ],
+   "file": "asus-rog-keris.device",
    "presets": 4,
    "dpi": [
     100,
     16000,
     100
-   ],
-   "quirks": [
-    "DOUBLE_DPI"
-   ],
-   "file": "asus-rog-keris.device"
+   ]
   },
   {
    "name": "ASUS ROG Pugio",
@@ -245,14 +245,14 @@
      6214
     ]
    ],
+   "quirks": [],
+   "file": "asus-rog-pugio.device",
    "presets": 2,
    "dpi": [
     100,
     7200,
     100
-   ],
-   "quirks": [],
-   "file": "asus-rog-pugio.device"
+   ]
   },
   {
    "name": "ASUS ROG Spatha X",
@@ -267,14 +267,14 @@
      6519
     ]
    ],
+   "quirks": [],
+   "file": "asus-rog-spatha-x.device",
    "presets": 4,
    "dpi": [
     100,
     19000,
     50
-   ],
-   "quirks": [],
-   "file": "asus-rog-spatha-x.device"
+   ]
   },
   {
    "name": "ASUS ROG Strix Carry",
@@ -285,16 +285,16 @@
      6324
     ]
    ],
+   "quirks": [
+    "STRIX_PROFILE"
+   ],
+   "file": "asus-rog-strix-carry.device",
    "presets": 2,
    "dpi": [
     100,
     7200,
     100
-   ],
-   "quirks": [
-    "STRIX_PROFILE"
-   ],
-   "file": "asus-rog-strix-carry.device"
+   ]
   },
   {
    "name": "ASUS ROG Strix Impact",
@@ -305,14 +305,14 @@
      6215
     ]
    ],
+   "quirks": [],
+   "file": "asus-rog-strix-impact.device",
    "presets": 2,
    "dpi": [
     100,
     5000,
     100
-   ],
-   "quirks": [],
-   "file": "asus-rog-strix-impact.device"
+   ]
   },
   {
    "name": "ASUS ROG Strix Impact II Wireless",
@@ -327,14 +327,14 @@
      6473
     ]
    ],
+   "quirks": [],
+   "file": "asus-rog-strix-impact2-wireless.device",
    "presets": 4,
    "dpi": [
     100,
     16000,
     100
-   ],
-   "quirks": [],
-   "file": "asus-rog-strix-impact2-wireless.device"
+   ]
   },
   {
    "name": "ASUS ROG Strix Impact II",
@@ -345,14 +345,14 @@
      6369
     ]
    ],
+   "quirks": [],
+   "file": "asus-rog-strix-impact2.device",
    "presets": 4,
    "dpi": [
     200,
     6200,
     100
-   ],
-   "quirks": [],
-   "file": "asus-rog-strix-impact2.device"
+   ]
   },
   {
    "name": "ASUS ROG Strix Impact III",
@@ -363,17 +363,17 @@
      6792
     ]
    ],
+   "quirks": [
+    "LED_V2",
+    "SETTINGS_V2"
+   ],
+   "file": "asus-rog-strix-impact3.device",
    "presets": 4,
    "dpi": [
     100,
     12000,
     50
-   ],
-   "quirks": [
-    "LED_V2",
-    "SETTINGS_V2"
-   ],
-   "file": "asus-rog-strix-impact3.device"
+   ]
   },
   {
    "name": "ASUSTeK TUF GAMING M3 GEN II",
@@ -384,14 +384,14 @@
      6811
     ]
    ],
+   "quirks": [],
+   "file": "asus-tuf-gaming-m3-gen-ii.device",
    "presets": 4,
    "dpi": [
     100,
     8000,
     100
-   ],
-   "quirks": [],
-   "file": "asus-tuf-gaming-m3-gen-ii.device"
+   ]
   },
   {
    "name": "ASUS TUF GAMING M4 AIR",
@@ -402,14 +402,14 @@
      6659
     ]
    ],
+   "quirks": [],
+   "file": "asus-tuf-gaming-m4-air.device",
    "presets": 4,
    "dpi": [
     100,
     16000,
     100
-   ],
-   "quirks": [],
-   "file": "asus-tuf-gaming-m4-air.device"
+   ]
   },
   {
    "name": "ASUS TUF GAMING MINI WL MOUSE MIKU",
@@ -424,17 +424,222 @@
      7255
     ]
    ],
+   "quirks": [
+    "SEPARATE_XY_DPI",
+    "RAW_BRIGHTNESS"
+   ],
+   "file": "asus-tuf-gaming-mini-wl-miku.device",
    "presets": 4,
    "dpi": [
     100,
     12000,
     100
+   ]
+  },
+  {
+   "name": "Logitech G5",
+   "driver": "hidpp10",
+   "ids": [
+    [
+     1133,
+     49225
+    ]
    ],
-   "quirks": [
-    "SEPARATE_XY_DPI",
-    "RAW_BRIGHTNESS"
+   "quirks": [],
+   "file": "logitech-g5-2007.device",
+   "dpiList": [
+    400,
+    800,
+    1600,
+    2000
    ],
-   "file": "asus-tuf-gaming-mini-wl-miku.device"
+   "profileType": "G500",
+   "deviceIndex": 255
+  },
+  {
+   "name": "G5",
+   "driver": "hidpp10",
+   "ids": [
+    [
+     1133,
+     49217
+    ]
+   ],
+   "quirks": [],
+   "file": "logitech-g5.device",
+   "dpiList": [
+    400,
+    800,
+    1600,
+    2000
+   ],
+   "profileType": "",
+   "deviceIndex": 255
+  },
+  {
+   "name": "Logitech G500",
+   "driver": "hidpp10",
+   "ids": [
+    [
+     1133,
+     49256
+    ]
+   ],
+   "quirks": [],
+   "file": "logitech-g500.device",
+   "dpiRange": [
+    0,
+    5700,
+    23.53
+   ],
+   "profileType": "G500",
+   "deviceIndex": 255
+  },
+  {
+   "name": "Logitech G500s",
+   "driver": "hidpp10",
+   "ids": [
+    [
+     1133,
+     49742
+    ]
+   ],
+   "quirks": [],
+   "file": "logitech-g500s.device",
+   "dpiRange": [
+    0,
+    8200,
+    50.0
+   ],
+   "profileType": "G500",
+   "deviceIndex": 255
+  },
+  {
+   "name": "Logitech G700",
+   "driver": "hidpp10",
+   "ids": [
+    [
+     1133,
+     50481
+    ]
+   ],
+   "quirks": [],
+   "file": "logitech-g700-wireless.device",
+   "dpiRange": [
+    0,
+    5700,
+    23.53
+   ],
+   "profileType": "G700",
+   "deviceIndex": 1
+  },
+  {
+   "name": "Logitech G700",
+   "driver": "hidpp10",
+   "ids": [
+    [
+     1133,
+     49259
+    ]
+   ],
+   "quirks": [],
+   "file": "logitech-g700.device",
+   "dpiRange": [
+    0,
+    5700,
+    23.53
+   ],
+   "profileType": "G700",
+   "deviceIndex": 255
+  },
+  {
+   "name": "Logitech G700s",
+   "driver": "hidpp10",
+   "ids": [
+    [
+     1133,
+     49276
+    ]
+   ],
+   "quirks": [],
+   "file": "logitech-g700s.device",
+   "dpiRange": [
+    0,
+    8200,
+    50.0
+   ],
+   "profileType": "G700",
+   "deviceIndex": 255
+  },
+  {
+   "name": "Logitech G9",
+   "driver": "hidpp10",
+   "ids": [
+    [
+     1133,
+     49224
+    ]
+   ],
+   "quirks": [],
+   "file": "logitech-g9.device",
+   "dpiList": [
+    200,
+    400,
+    600,
+    800,
+    1000,
+    1200,
+    1400,
+    1600,
+    1800,
+    2000,
+    2200,
+    2400,
+    2600,
+    2800,
+    3000,
+    3200
+   ],
+   "profileType": "G9",
+   "deviceIndex": 255
+  },
+  {
+   "name": "Logitech G9x [Call of Duty MW3 Edition]",
+   "driver": "hidpp10",
+   "ids": [
+    [
+     1133,
+     49737
+    ]
+   ],
+   "quirks": [],
+   "file": "logitech-g9x-Call-of-Duty-MW3-Edition.device",
+   "dpiRange": [
+    0,
+    5700,
+    23.53
+   ],
+   "profileType": "G500",
+   "deviceIndex": 255
+  },
+  {
+   "name": "G9x [Original]",
+   "driver": "hidpp10",
+   "ids": [
+    [
+     1133,
+     49254
+    ]
+   ],
+   "quirks": [],
+   "file": "logitech-g9x-Original.device",
+   "dpiRange": [
+    200,
+    5700,
+    50.0
+   ],
+   "profileType": "G500",
+   "deviceIndex": 255
   }
  ]
 }

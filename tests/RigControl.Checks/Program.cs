@@ -464,6 +464,37 @@ else Console.WriteLine("skip rivalcfg checks (liquidctl runtime not fetched)");
     Check(AsusMouse.Lookup(0x0B05, 0x1ad7) is null, "ASUS: mice behind the Omni receiver are left out");
 }
 
+// --- older Logitech mice (HID++ 1.0, libratbag's protocol), against simulated mice
+{
+    (LogitechHidpp10Mouse mouse, List<string> sent) Sim(int pid, byte startRaw)
+    {
+        byte raw = startRaw;
+        var sent = new List<string>();
+        LogitechHidpp10Mouse.Transport io = (req, replyReport) =>
+        {
+            var r = new byte[replyReport == 0x11 ? 20 : 7];
+            r[0] = replyReport; r[1] = req[1]; r[2] = req[2]; r[3] = req[3];
+            if (req[3] != 0x63) { r[2] = 0x8F; return r; }
+            if (req[2] is 0x81 or 0x83) r[4] = raw;
+            else { raw = req[4]; sent.Add($"{req[0]:X2} {req[2]:X2} {req[4]} {req[6]}"); }
+            return r;
+        };
+        return (new LogitechHidpp10Mouse(LogitechHidpp10Mouse.Lookup(pid)!, io), sent);
+    }
+    // G500: DPI range 0..5700 in 23.53 steps, rounded to 25 (raw 34 = 800 DPI). Long register, X and Y.
+    var (g500, g500sent) = Sim(0xc068, 34);
+    var g5s = g500.Read();
+    Check(g500 is { Name: "Logitech G500", Key: "logitech/C068" } && g5s is { Dpi: 800, Connected: true } && g500.Caps.DpiMax == 5700, "HID++ 1.0: G500 current DPI read through the long register");
+    g500.Apply(new PeripheralSettings { Dpi = 1600 }, g5s);
+    Check(g500sent.SequenceEqual(["11 82 68 68"]) && g500.Read().Dpi == 1600, "HID++ 1.0: G500 DPI set as X and Y raw values (1600 -> 68)");
+    // G9: a DPI list, raws from 0x80, one-byte short register.
+    var (g9, g9sent) = Sim(0xc048, 0x83);
+    Check(g9.Read().Dpi == 800, "HID++ 1.0: G9 current DPI read from its list (raw 0x83 = 800)");
+    g9.Apply(new PeripheralSettings { Dpi = 3150 }, g9.Read());
+    Check(g9sent.SequenceEqual(["10 80 143 0"]), "HID++ 1.0: G9 snaps to the nearest DPI it has (3150 -> 3200, raw 0x8F) on the short register");
+    Check(LogitechHidpp10Mouse.Lookup(0x1028) is null, "HID++ 1.0: mice without DPI data (M570) aren't listed");
+}
+
 // --- supported-devices list and its fuzzy search
 Check(SupportedDevices.List.Count > 2000 && SupportedDevices.List.Any(d => d.Kind == "Mouse") && SupportedDevices.List.Any(d => d.Kind == "Headset"), "supported list: loaded, every kind present");
 Check(SupportedDevices.Search("deathadder v2").FirstOrDefault()?.Name == "Razer DeathAdder V2", "search: exact words find the device first");

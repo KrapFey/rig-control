@@ -50,7 +50,8 @@ headset and keyboard, and watch it all live in a modern WinUI 3 interface.
   - **ASUS ROG and TUF mice** (21 models: Chakram, Gladius, Keris, Harpe, Spatha, Strix Impact, Pugio, TUF M3/M4…):
     DPI presets and polling rate, read back from the mouse; protocol and model data from libratbag.
   - **Logitech mice** (wired, Lightspeed, Unifying, Bolt) over HID++ 2.0: DPI, report rate, battery. The mouse stays
-    in its onboard-profile mode, so its own DPI button keeps working.
+    in its onboard-profile mode, so its own DPI button keeps working. Older G mice on HID++ 1.0 (G5, G500/G500s,
+    G700/G700s, G9/G9x): current DPI, from libratbag's protocol; their onboard profiles are left alone.
   - **Headsets:** about 50 headsets through a bundled [HeadsetControl](https://github.com/Sapd/HeadsetControl):
     battery, sidetone, mic volume, auto-off, EQ preset, noise cancelling, lights, voice prompts, rotate to mute.
   - **VIA keyboards** (QMK firmware with VIA, protocol 12+: Keychron and many others): lighting brightness,
@@ -134,7 +135,7 @@ GPL-3.0-or-later, see [LICENSE](LICENSE).
   actuation tables from [apex-analog](https://github.com/milescoviello/apex-analog) (MIT).
 - VIA protocol: [QMK firmware](https://github.com/qmk/qmk_firmware) `quantum/via.h` (GPL-2.0-or-later).
 - [rivalcfg](https://github.com/flozz/rivalcfg) (WTFPL): bundled in the Python runtime for SteelSeries mice.
-- ASUS mouse protocol and model data: from [libratbag](https://github.com/libratbag/libratbag) (MIT).
+- ASUS and Logitech HID++ 1.0 mouse protocols and model data: from [libratbag](https://github.com/libratbag/libratbag) (MIT).
 - Razer mouse protocol and device table: from [openrazer](https://github.com/openrazer/openrazer) (GPL-2.0-or-later).
 - Razer Seiren V3 Chroma lighting protocol: from [openrazer PR #2896](https://github.com/openrazer/openrazer/pull/2896).
 - [liquidctl](https://github.com/liquidctl/liquidctl) (GPL-3.0-or-later): bundled, and the source of the

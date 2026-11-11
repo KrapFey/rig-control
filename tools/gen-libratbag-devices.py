@@ -16,7 +16,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "src" / "RigControl.Core" / "libratbag-mice.json"
 COMMIT = "8235b5bb6032dea15901ab58a8218956f4494d08"  # libratbag master when this table was made
 URL = f"https://codeload.github.com/libratbag/libratbag/tar.gz/{COMMIT}"
-DRIVERS = {"asus"}
+DRIVERS = {"asus", "hidpp10"}
 
 
 def device_files():
@@ -49,17 +49,31 @@ for name, text in device_files():
         bus, vid, pid = match.split(":")
         if bus == "usb":
             ids.append([int(vid, 16), int(pid, 16)])
-    lo, rest = d.get("DpiRange", "100:16000@100").split(":")
-    hi, step = rest.split("@")
-    mice.append({
+    entry = {
         "name": dev["Name"].replace(" Mouse", "").strip(),
         "driver": driver,
         "ids": ids,
-        "presets": int(d.get("Dpis", 2)),
-        "dpi": [int(lo), int(hi), int(float(step))],
         "quirks": quirks,
         "file": name,
-    })
+    }
+    if driver == "hidpp10":
+        # Only mice with DPI data: the current-resolution register is all RigControl uses.
+        if "DpiList" in d:
+            entry["dpiList"] = [int(x) for x in d["DpiList"].split(";") if x]
+        elif "DpiRange" in d:
+            lo, rest = d["DpiRange"].split(":")
+            hi, step = rest.split("@")
+            entry["dpiRange"] = [int(lo), int(hi), float(step)]
+        else:
+            continue
+        entry["profileType"] = d.get("ProfileType", "")
+        entry["deviceIndex"] = int(d.get("DeviceIndex", 255))
+    else:
+        lo, rest = d.get("DpiRange", "100:16000@100").split(":")
+        hi, step = rest.split("@")
+        entry["presets"] = int(d.get("Dpis", 2))
+        entry["dpi"] = [int(lo), int(hi), int(float(step))]
+    mice.append(entry)
 
 OUT.write_text(json.dumps({"generated_by": "tools/gen-libratbag-devices.py", "source": f"libratbag {COMMIT} data/devices",
                            "mice": mice}, indent=1) + "\n", encoding="utf-8")
