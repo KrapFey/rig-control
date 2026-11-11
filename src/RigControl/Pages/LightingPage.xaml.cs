@@ -140,7 +140,9 @@ public sealed class DeviceCard : Observable
     public void Identify() => App.Instance!.Lighting.Identify(Key);
 
     // ---------------- Zones and single LEDs (devices following the synced effect)
-    public Visibility ZonesVisibility => _target.LedCount > 1 && Settings.Source == LightingSource.Sync ? Visibility.Visible : Visibility.Collapsed;
+    /// <summary>With the Zones button in the header too, Identify shows just its icon so the name keeps room.</summary>
+    public Visibility IdentifyTextVisibility => ZonesVisibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility ZonesVisibility => (_target.LedCount > 1 || _target.Zones.Any(z => z.Resizable)) && Settings.Source == LightingSource.Sync ? Visibility.Visible : Visibility.Collapsed;
     int CustomZones => _target.Zones.Count(z => Settings.Zones.TryGetValue(z.Name, out var zl) && zl.Source != ZoneSource.Sync);
     string ZonesWord => _target.Zones.Count > 1 ? "Zones" : "LEDs";
     public string ZonesLabel => CustomZones == 0 ? ZonesWord : $"{ZonesWord} · {CustomZones}";
@@ -171,15 +173,34 @@ public sealed class DeviceCard : Observable
 
     FrameworkElement ZoneList(Flyout flyout)
     {
-        var panel = new StackPanel { Spacing = 10, MinWidth = 360 };
-        panel.Children.Add(new TextBlock { Text = "Each zone can follow the synced effect, show one colour, get a colour per LED, or stay off.", TextWrapping = TextWrapping.Wrap, Opacity = 0.7, FontSize = 12, MaxWidth = 420 });
+        var panel = new StackPanel { Spacing = 10, Width = 420 };
+        panel.Children.Add(new TextBlock { Text = "Each zone can follow the synced effect, show one colour, get a colour per LED, or stay off."
+            + (_target.Zones.Any(z => z.Resizable) ? " For addressable (ARGB) headers, set how many LEDs are connected." : ""), TextWrapping = TextWrapping.Wrap, Opacity = 0.7, FontSize = 12 });
         foreach (var zone in _target.Zones)
         {
             var row = new Grid { ColumnSpacing = 10 };
             row.ColumnDefinitions.Add(new ColumnDefinition());
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
-            row.Children.Add(new TextBlock { Text = $"{ZoneName(zone)} · {zone.LedsCount} LED{(zone.LedsCount == 1 ? "" : "s")}", VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+            if (zone.Resizable)
+            {
+                // An addressable header: the board can't tell how long the strip or fan chain is, so you say.
+                var cell = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
+                cell.Children.Add(new TextBlock { Text = ZoneName(zone), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 150 });
+                var leds = new NumberBox { Value = zone.LedsCount, Minimum = zone.LedsMin, Maximum = zone.LedsMax, SmallChange = 1, LargeChange = 10, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact, Width = 110 };
+                ToolTipService.SetToolTip(leds, $"How many LEDs are connected to this header ({zone.LedsMin}–{zone.LedsMax})");
+                leds.ValueChanged += (_, ev) =>
+                {
+                    if (double.IsNaN(ev.NewValue) || (int)ev.NewValue == zone.LedsCount) return;
+                    flyout.Hide(); // the device is rebuilt with its new LED count
+                    App.Instance!.SetZoneSize(Key, zone.Name, (int)Math.Clamp(ev.NewValue, zone.LedsMin, zone.LedsMax));
+                };
+                cell.Children.Add(leds);
+                cell.Children.Add(new TextBlock { Text = "LEDs", Opacity = 0.7, VerticalAlignment = VerticalAlignment.Center });
+                row.Children.Add(cell);
+            }
+            else
+                row.Children.Add(new TextBlock { Text = $"{ZoneName(zone)} · {zone.LedsCount} LED{(zone.LedsCount == 1 ? "" : "s")}", VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
             var current = Settings.Zones.GetValueOrDefault(zone.Name)?.Source ?? ZoneSource.Sync;
             var box = new ComboBox { ItemsSource = ZoneOptions.Select(o => o.label).ToList(), SelectedIndex = Array.FindIndex(ZoneOptions, o => o.source == current), MinWidth = 150 };
             Grid.SetColumn(box, 1);
@@ -233,7 +254,7 @@ public sealed class DeviceCard : Observable
         while (zl.Leds.Count < count) zl.Leds.Add(zl.Color);
         var brush = Rgb.Parse(zl.Color);
 
-        var panel = new StackPanel { Spacing = 12, MinWidth = 360 };
+        var panel = new StackPanel { Spacing = 12, Width = 420 };
         var header = new Grid { ColumnSpacing = 8 };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         header.ColumnDefinitions.Add(new ColumnDefinition());
@@ -261,7 +282,7 @@ public sealed class DeviceCard : Observable
         brushButton.Click += (_, _) => LightingPage.ShowColorPicker(brushButton, brush, c => { brush = c; zl.Color = c.ToString(); ShowBrush(); Changed(); });
 
         int columns = Math.Min(16, count);
-        var grid = new Grid { RowSpacing = 6, ColumnSpacing = 6 };
+        var grid = new Grid { RowSpacing = 4, ColumnSpacing = 4 };
         for (int c = 0; c < columns; c++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(22) });
         for (int r = 0; r < (count + columns - 1) / columns; r++) grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(22) });
         var dots = new Border[count];

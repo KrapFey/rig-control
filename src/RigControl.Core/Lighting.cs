@@ -62,6 +62,8 @@ public sealed class LightingConfig
     public bool Enabled { get; set; } = true;
     public string Active { get; set; } = "Default";
     public List<LightingProfile> Profiles { get; set; } = [new()];
+    /// <summary>LED counts of addressable headers, by device key and zone name (hardware, so shared by all profiles).</summary>
+    public Dictionary<string, Dictionary<string, int>> ZoneSizes { get; set; } = [];
 
     public LightingProfile Current => Profiles.FirstOrDefault(p => p.Name == Active) ?? Profiles.FirstOrDefault() ?? new();
 }

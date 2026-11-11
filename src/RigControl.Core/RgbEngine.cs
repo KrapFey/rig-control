@@ -74,10 +74,37 @@ public sealed class RgbEngine : IDisposable
         try
         {
             Devices = await _client.GetDevicesAsync();
+            if (ApplyZoneSizes(Devices))
+            {
+                await Task.Delay(300); // let OpenRGB rebuild the resized controllers
+                Devices = await _client.GetDevicesAsync();
+            }
             AppConfig.Log?.Invoke($"rgb: {Devices.Count} device(s): {string.Join(", ", Devices.Select(d => d.Name))}");
+            var headers = Devices.SelectMany(d => d.Zones.Where(z => z.Resizable).Select(z => $"{d.Name} / {z.Name} = {z.LedsCount} ({z.LedsMin}-{z.LedsMax})")).ToList();
+            if (headers.Count > 0) AppConfig.Log?.Invoke($"rgb: resizable headers: {string.Join("; ", headers)}");
             DevicesChanged?.Invoke();
         }
         catch (Exception e) { Problem = e.Message; }
+    }
+
+    /// <summary>The LED count the user set for a resizable zone (device key, zone name), if any.</summary>
+    public Func<string, string, int?>? WantedZoneSize { get; set; }
+
+    /// <summary>Resizes headers whose saved LED count differs from OpenRGB's. True when anything was resized.</summary>
+    bool ApplyZoneSizes(List<RgbDevice> devices)
+    {
+        if (_client is null || WantedZoneSize is null) return false;
+        bool any = false;
+        foreach (var d in devices)
+            for (int i = 0; i < d.Zones.Count; i++)
+            {
+                var z = d.Zones[i];
+                if (!z.Resizable || WantedZoneSize(d.Key, z.Name) is not int n || n == z.LedsCount || n < z.LedsMin || n > z.LedsMax) continue;
+                _client.ResizeZone(d.Index, i, n);
+                AppConfig.Log?.Invoke($"rgb: {d.Name} zone \"{z.Name}\" set to {n} LEDs");
+                any = true;
+            }
+        return any;
     }
 
     static int FreePort()

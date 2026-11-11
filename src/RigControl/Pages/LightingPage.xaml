@@ -141,10 +141,10 @@
                                             <TextBlock Text="{x:Bind ZonesLabel, Mode=OneWay}" />
                                         </StackPanel>
                                     </Button>
-                                    <Button Grid.Column="3" Click="{x:Bind Identify}" ToolTipService.ToolTip="Identify: pulses this device white for 4 seconds" VerticalAlignment="Center">
+                                    <Button Grid.Column="3" Click="{x:Bind Identify}" AutomationProperties.Name="Identify" ToolTipService.ToolTip="Identify: pulses this device white for 4 seconds" VerticalAlignment="Center">
                                         <StackPanel Orientation="Horizontal" Spacing="6">
                                             <FontIcon Glyph="&#xE7B3;" FontSize="14" />
-                                            <TextBlock Text="Identify" />
+                                            <TextBlock Text="Identify" Visibility="{x:Bind IdentifyTextVisibility, Mode=OneWay}" />
                                         </StackPanel>
                                     </Button>
                                     <Border Width="38" Height="38" CornerRadius="10" Background="#1AFFFFFF">

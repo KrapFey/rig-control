@@ -41,6 +41,8 @@ headset and keyboard, and watch it all live in a modern WinUI 3 interface.
   - **Per device:** keep the synced effect, use one of the device's own effects, or turn it off.
   - **Per zone and per LED:** any zone (fans, motherboard headers…) can show its own colour, a colour for each LED
     (paint them with a brush), or stay off while the rest follow the synced effect.
+  - **ARGB headers:** set how many LEDs hang off each addressable header (the board can't detect it); RigControl keeps
+    the count and applies it whenever the lighting engine starts.
   - **Profiles,** live LED previews, and **Identify**, which pulses one device.
   - RigControl steps aside while another OpenRGB is running.
 - **Devices:** a page per mouse, keyboard and headset, with live battery in the tray tooltip.

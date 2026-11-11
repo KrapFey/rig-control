@@ -145,7 +145,7 @@ public partial class App : Application
     async Task StartLightingAsync()
     {
 #if UITEST
-        if (Demo.On) { Lighting.SetTargets(Demo.RgbDevices()); Ui.TryEnqueue(() => LightingStateChanged?.Invoke()); return; }
+        if (Demo.On) { Lighting.SetTargets(Demo.RgbDevices(ZoneSize)); Ui.TryEnqueue(() => LightingStateChanged?.Invoke()); return; }
         LightingNotice = "The UI-test build doesn't start the lighting engine.";
         return;
 #endif
@@ -161,6 +161,7 @@ public partial class App : Application
             _seiren = SeirenV3.Open();
             Rgb = new RgbEngine(Path.Combine(AppConfig.Folder, "openrgb"));
             Rgb.DevicesChanged += RebuildTargets;
+            Rgb.WantedZoneSize = (device, zone) => Config.Lighting.ZoneSizes.TryGetValue(device, out var z) && z.TryGetValue(zone, out var n) ? n : null;
             await Task.Run(() => Rgb.StartAsync());
             if (Rgb.Problem is string p) LightingNotice = p;
             RebuildTargets();
@@ -171,6 +172,20 @@ public partial class App : Application
             Log($"rgb: start failed: {e}");
         }
         Ui.TryEnqueue(() => LightingStateChanged?.Invoke());
+    }
+
+    int? ZoneSize(string device, string zone) => Config.Lighting.ZoneSizes.TryGetValue(device, out var z) && z.TryGetValue(zone, out var n) ? n : null;
+
+    /// <summary>Saves how many LEDs an addressable header has and resizes it now.</summary>
+    public void SetZoneSize(string device, string zone, int leds)
+    {
+        if (!Config.Lighting.ZoneSizes.TryGetValue(device, out var sizes)) Config.Lighting.ZoneSizes[device] = sizes = [];
+        if (sizes.GetValueOrDefault(zone, -1) == leds) return;
+        sizes[zone] = leds;
+        Log($"lighting: {device} zone \"{zone}\" -> {leds} LEDs");
+        ConfigChanged();
+        if (Demo.On) { Lighting.SetTargets(Demo.RgbDevices(ZoneSize)); Ui.TryEnqueue(() => LightingStateChanged?.Invoke()); return; }
+        if (Rgb is { } rgb) _ = Task.Run(rgb.ReloadAsync); // resizes, reloads, and rebuilds the targets
     }
 
     void RebuildTargets()

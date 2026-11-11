@@ -92,6 +92,8 @@ public sealed class RgbZone
     public uint[]? Matrix { get; set; }
     /// <summary>Index of this zone's first LED in the device's LED array.</summary>
     public int StartLed { get; set; }
+    /// <summary>An addressable header whose LED count the user sets (the board can't detect the strip).</summary>
+    public bool Resizable => LedsMax > LedsMin;
 }
 
 /// <summary>One OpenRGB controller as described by the SDK (protocol 6, OpenRGB 1.1).</summary>
@@ -251,6 +253,7 @@ public sealed class OpenRgbClient : IDisposable
 {
     const uint Protocol = 6;
     const uint IdControllerCount = 0, IdControllerData = 1, IdProtocolVersion = 40, IdClientName = 50, IdDeviceListUpdated = 100;
+    const uint IdResizeZone = 1000;
     const uint IdUpdateLeds = 1050, IdUpdateZoneLeds = 1051, IdSetCustomMode = 1100, IdUpdateMode = 1101, IdSaveMode = 1102, IdUpdateZoneMode = 1103;
 
     readonly TcpClient _tcp = new() { NoDelay = true };
@@ -298,6 +301,15 @@ public sealed class OpenRgbClient : IDisposable
     }
 
     public void SetCustomMode(int device) => Send(IdSetCustomMode, (uint)device, []);
+
+    /// <summary>Sets how many LEDs a resizable zone (an ARGB header) has. OpenRGB saves it in its own config too.</summary>
+    public void ResizeZone(int device, int zone, int size)
+    {
+        var b = new List<byte>();
+        Writer.I32(b, zone);
+        Writer.I32(b, size);
+        Send(IdResizeZone, (uint)device, [.. b]);
+    }
 
     public void UpdateMode(int device, int modeIndex, RgbMode mode, bool save = false)
     {
