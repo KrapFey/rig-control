@@ -42,7 +42,7 @@ public sealed class Smooth : Observable
         {
             if (double.IsNaN(value)) value = 0;
             _target = value;
-            if (Math.Abs(_value - value) < 0.01) return;
+            if (Math.Abs(_value - value) < Near(value)) { Value = value; Moving.Remove(this); return; }
             Moving.Add(this);
             if (!_hooked)
             {
@@ -52,6 +52,12 @@ public sealed class Smooth : Observable
             }
         }
     }
+
+    /// <summary>
+    /// Close enough to finish: a hair for small numbers, a couple of units for an rpm in the thousands. A fixed
+    /// 0.05 kept jittery fan speeds gliding forever, which redrew the window on every frame.
+    /// </summary>
+    static double Near(double target) => 0.05 + Math.Abs(target) * 0.002;
 
     /// <summary>Jump without animating (first value).</summary>
     public void Snap(double v) { _target = v; Value = v; Moving.Remove(this); }
@@ -65,7 +71,7 @@ public sealed class Smooth : Observable
         {
             var k = 1 - Math.Exp(-s._speed * dt);
             var v = s._value + (s._target - s._value) * k;
-            if (Math.Abs(s._target - v) < 0.05) { v = s._target; Moving.Remove(s); }
+            if (Math.Abs(s._target - v) < Near(s._target)) { v = s._target; Moving.Remove(s); }
             s.Value = v;
         }
         if (Moving.Count == 0)

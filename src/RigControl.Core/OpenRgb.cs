@@ -254,7 +254,7 @@ public sealed class OpenRgbClient : IDisposable
     const uint Protocol = 6;
     const uint IdControllerCount = 0, IdControllerData = 1, IdProtocolVersion = 40, IdClientName = 50, IdDeviceListUpdated = 100;
     const uint IdResizeZone = 1000;
-    const uint IdUpdateLeds = 1050, IdUpdateZoneLeds = 1051, IdSetCustomMode = 1100, IdUpdateMode = 1101, IdSaveMode = 1102, IdUpdateZoneMode = 1103;
+    const uint IdUpdateLeds = 1050, IdUpdateMode = 1101;
 
     readonly TcpClient _tcp = new() { NoDelay = true };
     NetworkStream _stream = null!;
@@ -293,14 +293,12 @@ public sealed class OpenRgbClient : IDisposable
     /// <summary>Sets every LED of a device (device must be in a per-LED mode for this to show).</summary>
     public void UpdateLeds(int device, ReadOnlySpan<Rgb> colors)
     {
-        var b = new List<byte>(6 + colors.Length * 4);
-        Writer.U32(b, (uint)(4 + 2 + colors.Length * 4));
-        Writer.U16(b, (ushort)colors.Length);
-        foreach (var c in colors) Writer.U32(b, c.Packed);
-        Send(IdUpdateLeds, (uint)device, [.. b]);
+        var b = new byte[6 + colors.Length * 4];
+        BinaryPrimitives.WriteUInt32LittleEndian(b, (uint)b.Length);
+        BinaryPrimitives.WriteUInt16LittleEndian(b.AsSpan(4), (ushort)colors.Length);
+        for (int i = 0; i < colors.Length; i++) BinaryPrimitives.WriteUInt32LittleEndian(b.AsSpan(6 + i * 4), colors[i].Packed);
+        Send(IdUpdateLeds, (uint)device, b);
     }
-
-    public void SetCustomMode(int device) => Send(IdSetCustomMode, (uint)device, []);
 
     /// <summary>Sets how many LEDs a resizable zone (an ARGB header) has. OpenRGB saves it in its own config too.</summary>
     public void ResizeZone(int device, int zone, int size)
@@ -311,28 +309,15 @@ public sealed class OpenRgbClient : IDisposable
         Send(IdResizeZone, (uint)device, [.. b]);
     }
 
-    public void UpdateMode(int device, int modeIndex, RgbMode mode, bool save = false)
+    public void UpdateMode(int device, int modeIndex, RgbMode mode)
     {
-        var body = new List<byte>();
-        Writer.I32(body, modeIndex);
-        RgbDevice.WriteMode(body, mode);
-        var b = new List<byte>(body.Count + 4);
-        Writer.U32(b, (uint)(body.Count + 4));
-        b.AddRange(body);
-        Send(save ? IdSaveMode : IdUpdateMode, (uint)device, [.. b]);
-    }
-
-    /// <summary>Sets a zone's own hardware mode; <paramref name="modeIndex"/> -1 hands the zone back to the device mode.</summary>
-    public void UpdateZoneMode(int device, int zone, int modeIndex, RgbMode? mode)
-    {
-        var body = new List<byte>();
-        Writer.I32(body, zone);
-        Writer.I32(body, modeIndex);
-        if (modeIndex >= 0 && mode is not null) RgbDevice.WriteMode(body, mode);
-        var b = new List<byte>(body.Count + 4);
-        Writer.U32(b, (uint)(body.Count + 4));
-        b.AddRange(body);
-        Send(IdUpdateZoneMode, (uint)device, [.. b]);
+        var b = new List<byte>();
+        Writer.U32(b, 0); // total size, filled in below
+        Writer.I32(b, modeIndex);
+        RgbDevice.WriteMode(b, mode);
+        var data = b.ToArray();
+        BinaryPrimitives.WriteUInt32LittleEndian(data, (uint)data.Length);
+        Send(IdUpdateMode, (uint)device, data);
     }
 
     async Task<byte[]> Request(uint id, uint device, byte[] data, CancellationToken ct)
@@ -358,16 +343,14 @@ public sealed class OpenRgbClient : IDisposable
 
     void Send(uint id, uint device, byte[] data)
     {
-        var header = new byte[16];
-        "ORGB"u8.CopyTo(header);
-        BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(4), device);
-        BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(8), id);
-        BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(12), (uint)data.Length);
-        lock (_send)
-        {
-            _stream.Write(header);
-            if (data.Length > 0) _stream.Write(data);
-        }
+        // Header and data in one write: with Nagle off, two writes would go out as two packets for every frame.
+        var packet = new byte[16 + data.Length];
+        "ORGB"u8.CopyTo(packet);
+        BinaryPrimitives.WriteUInt32LittleEndian(packet.AsSpan(4), device);
+        BinaryPrimitives.WriteUInt32LittleEndian(packet.AsSpan(8), id);
+        BinaryPrimitives.WriteUInt32LittleEndian(packet.AsSpan(12), (uint)data.Length);
+        data.CopyTo(packet.AsSpan(16));
+        lock (_send) _stream.Write(packet);
     }
 
     void ReadLoop()

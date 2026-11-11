@@ -339,9 +339,12 @@ public sealed class DeviceCard : Observable
     static void Changed() => App.Instance!.ConfigChanged();
 
     /// <summary>Refreshes the strip from the engine's latest frame.</summary>
+    Rgb[]? _shown;
+
     public void Render(Rgb[]? frame)
     {
-        if (frame is null || frame.Length == 0) return;
+        if (frame is null || frame.Length == 0 || ReferenceEquals(frame, _shown)) return; // the engine makes a new array per frame
+        _shown = frame;
         int stops = Math.Min(frame.Length, 24);
         var g = Preview.GradientStops;
         while (g.Count < stops) g.Add(new GradientStop());
@@ -374,7 +377,6 @@ public sealed partial class LightingPage : Page
 
     readonly List<DeviceCard> _cards = [];
     readonly LinearGradientBrush _preview = new() { StartPoint = new(0, 0.5), EndPoint = new(1, 0.5) };
-    DispatcherQueueTimer? _timer;
     bool _loading;
 
     static App AppI => App.Instance!;
@@ -397,17 +399,14 @@ public sealed partial class LightingPage : Page
             DeviceCard.SourceChanged += SourcesChanged;
             DeviceCard.EditRequested += EditDevice;
             Rebuild();
-            _timer = DispatcherQueue.CreateTimer();
-            _timer.Interval = TimeSpan.FromMilliseconds(50); // 20 fps is plenty for previews
-            _timer.Tick += (_, _) => RenderFrame();
-            _timer.Start();
+            CompositionTarget.Rendering += RenderFrame; // once per screen refresh, so the previews move smoothly
         };
         Unloaded += (_, _) =>
         {
             AppI.LightingStateChanged -= Rebuild;
             DeviceCard.SourceChanged -= SourcesChanged;
             DeviceCard.EditRequested -= EditDevice;
-            _timer?.Stop();
+            CompositionTarget.Rendering -= RenderFrame;
         };
     }
 
@@ -590,13 +589,15 @@ public sealed partial class LightingPage : Page
         AppI.ConfigChanged();
     }
 
-    void RenderFrame()
+    static readonly float[] PreviewX = [.. Enumerable.Range(0, 40).Select(i => i / 39f)];
+    readonly Rgb[] _previewFrame = new Rgb[PreviewX.Length];
+
+    void RenderFrame(object? sender, object e)
     {
         // Big preview bar: the synced effect itself, on the engine's clock so it moves with the lights.
         var s = Sync;
-        var x = new float[40];
-        for (int i = 0; i < x.Length; i++) x[i] = i / (float)(x.Length - 1);
-        var frame = new Rgb[x.Length];
+        var x = PreviewX;
+        var frame = _previewFrame;
         double? temp = (_editKey is null ? AppI.Lighting.CurrentTemperature : null)
             ?? (s.Sensor is string id ? AppI.Hub.Temps.FirstOrDefault(t => t.Id == id)?.Value : null);
         bool heat = s.Kind == EffectKind.Temperature;

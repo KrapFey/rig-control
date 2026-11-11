@@ -33,7 +33,6 @@ public sealed partial class MainWindow : Window
         var scale = (Content as FrameworkElement)?.XamlRoot?.RasterizationScale ?? GetDpiForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this)) / 96.0;
         AppWindow.Resize(new((int)(1280 * scale), (int)(820 * scale)));
 
-        Root.Loaded += (_, _) => AuroraDrift.Begin();
         _statusTimer.Tick += (_, _) => UpdateStatus();
         _statusTimer.Start();
         Closed += (_, _) => _statusTimer.Stop();

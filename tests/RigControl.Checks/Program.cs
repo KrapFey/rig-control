@@ -221,6 +221,25 @@ Check(EffectMath.Gradient([new(0, 0, 0), new(200, 100, 50)], 0.5) == new Rgb(100
     var gpu = Demo.RgbDevices().First(d => d.Key == "demo/rgb/gpu");
     Check(ReferenceEquals(EffectMath.LayoutX(gpu, EffectLayout.Auto), gpu.LedX), "layout: automatic = whole device otherwise");
 }
+// Frame pacing: an animated effect reaches each device at its own steady rate (30 and 10 fps here), without bunching.
+{
+    var fast = new PacedTarget("fast", 30); var slow = new PacedTarget("slow", 10);
+    using var lights = new LightingEngine(_ => null);
+    lights.SetTargets([fast, slow]);
+    lights.Apply(new LightingConfig());
+    Thread.Sleep(2300);
+    foreach (var (tg, want) in new[] { (fast, 30.0), (slow, 10.0) })
+    {
+        var gaps = tg.Gaps();
+        double avg = gaps.Average(), worst = gaps.Max();
+        Console.WriteLine($"     {tg.Key}: {1000 / avg:0.0} fps, gaps {gaps.Min():0}..{worst:0} ms");
+        Check(1000 / avg > want * 0.93 && worst < 1000 / want * 1.5, $"lighting: {want:0} fps device gets steady frames");
+    }
+    int modes = fast.Modes;
+    lights.Apply(new LightingConfig());
+    Thread.Sleep(300);
+    Check(fast.Modes == modes, "lighting: a settings change doesn't re-initialise devices");
+}
 Check(Math.Abs(EffectMath.Period(0) - 10) < 1e-9 && Math.Abs(EffectMath.Period(100) - 1) < 1e-9, "speed 0..100 -> 10 s..1 s per cycle");
 var px = new Rgb[3];
 EffectMath.Render(new EffectSettings { Kind = EffectKind.Static, Colors = ["#FF0000", "#0000FF"], Brightness = 50 }, 0, [0f, 0.5f, 1f], null, px);
@@ -674,4 +693,27 @@ static void Probe()
     foreach (var t in hub.Temps) Console.WriteLine($"  {t.Value,6:0.0} °C  {t.Name,-28} {t.Device,-32} {t.Id}");
     Console.WriteLine($"\n{hub.Fans.Count} fan channels");
     foreach (var f in hub.Fans) Console.WriteLine($"  {f.Rpm,6:0} rpm {f.Duty,5:0}%  {f.Name,-14} {f.Device,-48} {f.Id}");
+}
+
+/// <summary>A pretend RGB device that notes when each frame arrives.</summary>
+sealed class PacedTarget(string key, int fps) : IRgbTarget
+{
+    readonly List<double> _at = [];
+    readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
+    public int Modes;
+    public string Key => key;
+    public string Name => key;
+    public string Tag => "";
+    public RgbDeviceType Type => RgbDeviceType.LedStrip;
+    public IReadOnlyList<RgbMode> Modes_ => [];
+    IReadOnlyList<RgbMode> IRgbTarget.Modes => Modes_;
+    public IReadOnlyList<RgbZone> Zones => [];
+    public int LedCount => 8;
+    public float[] LedX { get; } = [0, 1 / 7f, 2 / 7f, 3 / 7f, 4 / 7f, 5 / 7f, 6 / 7f, 1];
+    public int MaxFps => fps;
+    public void EnterDirect() => Modes++;
+    public void SetLeds(Rgb[] colors) { lock (_at) _at.Add(_clock.Elapsed.TotalMilliseconds); }
+    public void ApplyMode(int index, RgbMode mode) { }
+    /// <summary>Milliseconds between frames, skipping the first few while the engine starts.</summary>
+    public double[] Gaps() { lock (_at) return [.. _at.Skip(4).Zip(_at.Skip(5), (a, b) => b - a)]; }
 }

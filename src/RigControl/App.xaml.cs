@@ -165,7 +165,7 @@ public partial class App : Application
             _seiren = SeirenV3.Open();
             Rgb = new RgbEngine(Path.Combine(AppConfig.Folder, "openrgb"));
             Rgb.DevicesChanged += RebuildTargets;
-            Rgb.WantedZoneSize = (device, zone) => Config.Lighting.ZoneSizes.TryGetValue(device, out var z) && z.TryGetValue(zone, out var n) ? n : null;
+            Rgb.WantedZoneSize = ZoneSize;
             await Task.Run(() => Rgb.StartAsync());
             if (Rgb.Problem is string p) LightingNotice = p;
             RebuildTargets();
@@ -232,7 +232,6 @@ public partial class App : Application
 #endif
     }
 
-    /// <summary>Tray tooltip lists battery levels of wireless devices.</summary>
     /// <summary>Left click: the mini dashboard, or the full window when that's what Settings says.</summary>
     void TrayClick()
     {

@@ -9,29 +9,12 @@
     </Window.SystemBackdrop>
 
     <Grid x:Name="Root">
-        <Grid.Resources>
-            <Storyboard x:Name="AuroraDrift" RepeatBehavior="Forever">
-                <DoubleAnimation Storyboard.TargetName="BlobAMove" Storyboard.TargetProperty="X" From="0" To="260" Duration="0:0:19" AutoReverse="True">
-                    <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
-                </DoubleAnimation>
-                <DoubleAnimation Storyboard.TargetName="BlobAMove" Storyboard.TargetProperty="Y" From="0" To="180" Duration="0:0:23" AutoReverse="True">
-                    <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
-                </DoubleAnimation>
-                <DoubleAnimation Storyboard.TargetName="BlobBMove" Storyboard.TargetProperty="X" From="0" To="-300" Duration="0:0:27" AutoReverse="True">
-                    <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
-                </DoubleAnimation>
-                <DoubleAnimation Storyboard.TargetName="BlobBMove" Storyboard.TargetProperty="Y" From="0" To="-200" Duration="0:0:21" AutoReverse="True">
-                    <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
-                </DoubleAnimation>
-            </Storyboard>
-        </Grid.Resources>
-
         <Grid.RowDefinitions>
             <RowDefinition Height="48" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Ambient aurora: two soft blobs drifting slowly behind everything -->
+        <!-- Ambient aurora: two soft glows behind everything. Still on purpose: drifting them redrew the whole window every frame (10-17% of a CPU core). -->
         <Canvas x:Name="Aurora" Grid.RowSpan="2" IsHitTestVisible="False" Opacity="0.55">
             <Ellipse x:Name="BlobA" Width="720" Height="720" Canvas.Left="-160" Canvas.Top="-260">
                 <Ellipse.Fill>
@@ -40,9 +23,6 @@
                         <GradientStop Offset="1" Color="#007C5CFF" />
                     </RadialGradientBrush>
                 </Ellipse.Fill>
-                <Ellipse.RenderTransform>
-                    <TranslateTransform x:Name="BlobAMove" />
-                </Ellipse.RenderTransform>
             </Ellipse>
             <Ellipse x:Name="BlobB" Width="820" Height="820" Canvas.Left="520" Canvas.Top="260">
                 <Ellipse.Fill>
@@ -51,9 +31,6 @@
                         <GradientStop Offset="1" Color="#0000D4FF" />
                     </RadialGradientBrush>
                 </Ellipse.Fill>
-                <Ellipse.RenderTransform>
-                    <TranslateTransform x:Name="BlobBMove" />
-                </Ellipse.RenderTransform>
             </Ellipse>
         </Canvas>
 

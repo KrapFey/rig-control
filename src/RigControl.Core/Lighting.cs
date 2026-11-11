@@ -427,14 +427,18 @@ public sealed class LightingEngine : IDisposable
         lock (_lock)
         {
             _profile = Clone(config.Current);
+            if (_enabled != config.Enabled)
+            {
+                // Back on: something else may have changed the devices meanwhile, so set them up again.
+                _applied.Clear();
+                _sent.Clear();
+            }
             _enabled = config.Enabled;
             // Listen only while an audio effect is lit (the microphone only when chosen; Windows shows it in use).
             // One source at a time: the synced effect's, else the first device's own audio effect.
             var s = _profile.Sync.IsAudio ? _profile.Sync
                 : _profile.Devices.Values.Where(d => d.Source == LightingSource.Effect).Select(d => d.Effect).FirstOrDefault(e => e?.IsAudio == true);
             _audio.Listen(_enabled && s is { IsAudio: true } ? (s.AudioInput, s.AudioDevice) : null);
-            _applied.Clear(); // re-apply modes; settings may have changed
-            _sent.Clear();
         }
         _wake.Set();
     }
@@ -444,14 +448,30 @@ public sealed class LightingEngine : IDisposable
 
     void Loop()
     {
+        double next = 0;
+        bool precise = false;
         while (!_stop)
         {
-            double animatedFps = 0;
-            try { animatedFps = Tick(); } catch (Exception e) { AppConfig.Log?.Invoke($"lighting: {e.Message}"); }
-            _wake.Wait(animatedFps > 0 ? TimeSpan.FromSeconds(1 / animatedFps) : TimeSpan.FromSeconds(1));
+            double fps = 0;
+            try { fps = Tick(); } catch (Exception e) { AppConfig.Log?.Invoke($"lighting: {e.Message}"); }
+            // Windows sleeps in ~16 ms steps by default, which turns 30 fps into 21: ask for 1 ms steps while animating.
+            if (fps > 0 != precise)
+            {
+                precise = fps > 0;
+                _ = precise ? timeBeginPeriod(1) : timeEndPeriod(1);
+            }
+            // A fixed beat rather than "tick, then sleep a frame": the time a tick takes doesn't slow the rate.
+            double now = _clock.Elapsed.TotalSeconds;
+            if (fps <= 0) next = now + 1;
+            else if (now >= next) next = Math.Max(next + 1 / fps, now);
+            _wake.Wait(TimeSpan.FromSeconds(Math.Max(0, next - now)));
             _wake.Reset();
         }
+        if (precise) _ = timeEndPeriod(1);
     }
+
+    [System.Runtime.InteropServices.DllImport("winmm.dll")] static extern uint timeBeginPeriod(uint ms);
+    [System.Runtime.InteropServices.DllImport("winmm.dll")] static extern uint timeEndPeriod(uint ms);
 
     /// <summary>One pass over all devices. Returns the frame rate the fastest animated device needs (0 = none).</summary>
     double Tick()
@@ -525,7 +545,8 @@ public sealed class LightingEngine : IDisposable
                 bool animated = identify || (effect is not null && EffectMath.Animated(effect));
                 if (animated) fps = Math.Max(fps, target.MaxFps);
                 var last = _sent.GetValueOrDefault(target.Key);
-                bool due = last.frame is null || t - last.at >= 1.0 / target.MaxFps;
+                // Slower devices take every 2nd or 3rd tick; the margin keeps a tick that lands a hair early from being skipped.
+                bool due = last.frame is null || t - last.at >= 1.0 / target.MaxFps - 0.008;
                 bool changed = last.frame is null || !last.frame.AsSpan().SequenceEqual(frame);
                 // Send changes (rate-limited per device), and resend unchanged frames every few seconds in case a device reset.
                 if ((changed && due) || t - last.at > 5)
@@ -533,6 +554,7 @@ public sealed class LightingEngine : IDisposable
                     target.SetLeds(frame);
                     _sent[target.Key] = (t, frame);
                 }
+                else if (changed) fps = Math.Max(fps, target.MaxFps); // too soon for this device: come back for it
             }
             catch (Exception e) { AppConfig.Log?.Invoke($"lighting {target.Name}: {e.Message}"); }
         }

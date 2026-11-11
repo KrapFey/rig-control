@@ -41,8 +41,6 @@ public sealed class Hysteresis
     double? _used;
     double? _pendingSince;
 
-    public double? Used => _used;
-
     /// <param name="hot">At or above this the new temperature is used at once (top of the curve).</param>
     public double Apply(double t, double now, double deadband, double response, double hot)
     {
