@@ -4,7 +4,7 @@ namespace RigControl.Core;
 
 // ---------------------------------------------------------------- settings (saved in config.json)
 
-public enum EffectKind { Static, Breathing, Rainbow, ColorCycle, Temperature, Off }
+public enum EffectKind { Static, Breathing, Rainbow, ColorCycle, Temperature, Off, AudioLevel, AudioSpectrum, AudioPulse }
 
 public sealed class EffectSettings
 {
@@ -19,6 +19,15 @@ public sealed class EffectSettings
     public string? Sensor { get; set; }
     public double ColdTemp { get; set; } = 35;
     public double HotTemp { get; set; } = 80;
+    /// <summary>Audio effects: listen to a microphone instead of what the speakers play.</summary>
+    public bool AudioInput { get; set; }
+    /// <summary>Audio effects: the device to listen to (null = the Windows default).</summary>
+    public string? AudioDevice { get; set; }
+    /// <summary>Audio effects: 0..100, 50 = as measured.</summary>
+    public double Sensitivity { get; set; } = 50;
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsAudio => Kind is EffectKind.AudioLevel or EffectKind.AudioSpectrum or EffectKind.AudioPulse;
 }
 
 public enum LightingSource { Sync, Hardware, Off }
@@ -192,10 +201,17 @@ public static class EffectMath
     public static double Period(double speed) => 10 - 9 * Math.Clamp(speed, 0, 100) / 100;
 
     /// <summary>Renders one frame of an effect into <paramref name="output"/>.</summary>
-    public static void Render(EffectSettings e, double t, ReadOnlySpan<float> ledX, double? temp, Span<Rgb> output)
+    static readonly Rgb[] MeterDefault = [new(0, 220, 120), new(255, 210, 0), new(255, 40, 60)];
+
+    public static void Render(EffectSettings e, double t, ReadOnlySpan<float> ledX, double? temp, Span<Rgb> output, AudioFrame? audio = null)
     {
         var colors = e.Colors.Count > 0 ? e.Colors.Select(Rgb.Parse).ToArray() : [new Rgb(255, 255, 255)];
         double p = Period(e.Speed), k = Math.Clamp(e.Brightness, 0, 100) / 100;
+        if (e.IsAudio)
+        {
+            RenderAudio(e, colors, ledX, audio ?? AudioFrame.Silent, output, k);
+            return;
+        }
         for (int i = 0; i < output.Length; i++)
         {
             double x = i < ledX.Length ? ledX[i] : 0;
@@ -240,8 +256,50 @@ public static class EffectMath
         }
     }
 
+    /// <summary>Sensitivity 0..100 as a gain: 50 = 1x, 0 = 0.25x, 100 = 4x.</summary>
+    public static double Gain(double sensitivity) => Math.Pow(2, (Math.Clamp(sensitivity, 0, 100) - 50) / 25);
+
+    static void RenderAudio(EffectSettings e, Rgb[] colors, ReadOnlySpan<float> ledX, AudioFrame a, Span<Rgb> output, double k)
+    {
+        double gain = Gain(e.Sensitivity);
+        bool custom = e.Colors.Count >= 2; // one colour: the level meter uses green→red, the spectrum a rainbow
+        for (int i = 0; i < output.Length; i++)
+        {
+            double x = i < ledX.Length ? ledX[i] : 0;
+            Rgb c;
+            switch (e.Kind)
+            {
+                case EffectKind.AudioLevel:
+                {
+                    // A VU meter along the device: lit up to the level, the edge LED partly.
+                    double level = Math.Clamp(a.Level * gain, 0, 1);
+                    double lit = Math.Clamp((level - x) * 12 + 1, 0, 1);
+                    c = Gradient(custom ? colors : MeterDefault, x).Scale(lit);
+                    break;
+                }
+                case EffectKind.AudioSpectrum:
+                {
+                    // Bass at one end, treble at the other; each LED as bright as its band.
+                    double pos = x * (a.Bands.Length - 1);
+                    int b = (int)pos;
+                    double f = pos - b, v = b + 1 < a.Bands.Length ? a.Bands[b] * (1 - f) + a.Bands[b + 1] * f : a.Bands[^1];
+                    c = (custom ? Gradient(colors, x) : Rgb.Hsv(300 * x)).Scale(Math.Clamp(v * gain, 0, 1));
+                    break;
+                }
+                default: // AudioPulse
+                {
+                    // The whole device flashes on each beat, stepping through the colours; a glow follows the level.
+                    var col = colors[a.Beats % colors.Length];
+                    c = col.Scale(Math.Clamp(Math.Max(a.Beat, a.Level * gain * 0.3), 0, 1));
+                    break;
+                }
+            }
+            output[i] = c.Scale(k);
+        }
+    }
+
     /// <summary>Static frames never change; everything else animates.</summary>
-    public static bool Animated(EffectSettings e) => e.Kind is EffectKind.Breathing or EffectKind.Rainbow or EffectKind.ColorCycle or EffectKind.Temperature;
+    public static bool Animated(EffectSettings e) => e.IsAudio || e.Kind is EffectKind.Breathing or EffectKind.Rainbow or EffectKind.ColorCycle or EffectKind.Temperature;
 }
 
 // ---------------------------------------------------------------- engine
@@ -273,6 +331,10 @@ public sealed class LightingEngine : IDisposable
     public event Action? TargetsChanged;
     /// <summary>The effect clock. Previews use it so the app and the lights stay in step.</summary>
     public double Now => _clock.Elapsed.TotalSeconds;
+    readonly AudioListener _audio = new();
+    /// <summary>What the audio effects see right now (silent when no audio effect is active).</summary>
+    public AudioFrame CurrentAudio => _audio.Current;
+
     /// <summary>The temperature the effect is using now (smoothed), when the effect is Temperature.</summary>
     public double? CurrentTemperature => double.IsNaN(_smoothTemp) ? null : _smoothTemp;
 
@@ -322,6 +384,9 @@ public sealed class LightingEngine : IDisposable
         {
             _profile = Clone(config.Current);
             _enabled = config.Enabled;
+            // Listen only while an audio effect is lit (the microphone only when chosen; Windows shows it in use).
+            var s = _profile.Sync;
+            _audio.Listen(_enabled && s.IsAudio ? (s.AudioInput, s.AudioDevice) : null);
             _applied.Clear(); // re-apply modes; settings may have changed
             _sent.Clear();
         }
@@ -367,6 +432,7 @@ public sealed class LightingEngine : IDisposable
             temp = _smoothTemp;
         }
 
+        var audio = sync.IsAudio ? _audio.Current : null;
         var frames = new Dictionary<string, Rgb[]>(Frames);
         foreach (var target in targets)
         {
@@ -394,7 +460,7 @@ public sealed class LightingEngine : IDisposable
                 if (identify) Array.Fill(frame, new Rgb(255, 255, 255).Scale(0.15 + 0.85 * Math.Abs(Math.Sin(t * Math.PI * 2))));
                 else if (source == LightingSource.Sync)
                 {
-                    EffectMath.Render(sync, t, target.LedX, temp, frame);
+                    EffectMath.Render(sync, t, target.LedX, temp, frame, audio);
                     EffectMath.ApplyZones(frame, target.Zones, dl?.Zones);
                 }
                 frames[target.Key] = frame;
@@ -452,5 +518,6 @@ public sealed class LightingEngine : IDisposable
         _stop = true;
         _wake.Set();
         _thread.Join(2000);
+        _audio.Dispose();
     }
 }

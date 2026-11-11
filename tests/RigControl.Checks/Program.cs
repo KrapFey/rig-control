@@ -582,6 +582,36 @@ else Console.WriteLine("skip rivalcfg checks (liquidctl runtime not fetched)");
     lk.Apply(new PeripheralSettings { Backlight = 80 }, lk.Read());
     Check(writes.Skip(3).SequenceEqual(["on 1", "bright 80"]), "Logitech keyboard: backlight back on at 80 %");
 }
+// --- audio-reactive lighting: analysis and effects
+{
+    const int rate = 48000;
+    float[] Tone(double hz, double seconds, double amp = 0.5) => [.. Enumerable.Range(0, (int)(rate * seconds)).Select(i => (float)(amp * Math.Sin(2 * Math.PI * hz * i / rate)))];
+    int Loudest(AudioFrame f) => Array.IndexOf(f.Bands, f.Bands.Max());
+
+    var a1 = new AudioAnalyzer(); a1.Feed(Tone(1000, 1), rate);
+    var a2 = new AudioAnalyzer(); a2.Feed(Tone(60, 1), rate);
+    Check(Loudest(a1.Current) == 8 && Loudest(a2.Current) == 1 && a1.Current.Level > 0.8, "audio: a 1 kHz tone lands in band 8, 60 Hz in band 1, loud tone reads near full level");
+    a1.Feed(new float[rate * 2], rate);
+    Check(a1.Current.Level < 0.05 && a1.Current.Bands.Max() < 0.1, "audio: silence fades the level and bands to zero");
+
+    // A kick drum: 120 ms of 60 Hz every half second, for 6 seconds.
+    var kicks = new AudioAnalyzer();
+    var song = new float[rate * 6];
+    for (int beat = 0; beat < 12; beat++)
+        for (int i = 0; i < rate * 0.12; i++) song[beat * rate / 2 + i] = (float)(0.8 * Math.Sin(2 * Math.PI * 60 * i / rate));
+    kicks.Feed(song, rate);
+    Check(kicks.Current.Beats is >= 9 and <= 12, $"audio: a kick every half second is counted as beats ({kicks.Current.Beats} of 12; the first second learns the average)");
+
+    var x = Enumerable.Range(0, 11).Select(i => i / 10f).ToArray();
+    var leds = new Rgb[11];
+    EffectMath.Render(new EffectSettings { Kind = EffectKind.AudioLevel }, 0, x, null, leds, new AudioFrame(0.5f, new float[16], 0, 0));
+    Check(leds[..5].All(c => c != default) && leds[7..].All(c => c == default), "audio: the level meter lights the LEDs up to the level and leaves the rest dark");
+    var bands = new float[16]; bands[15] = 1;
+    EffectMath.Render(new EffectSettings { Kind = EffectKind.AudioSpectrum }, 0, x, null, leds, new AudioFrame(0.3f, bands, 0, 0));
+    Check(leds[^1] != default && leds[0] == default, "audio: the spectrum puts treble at the far end and bass at the start");
+    EffectMath.Render(new EffectSettings { Kind = EffectKind.AudioPulse, Colors = ["#FF0000", "#0000FF"] }, 0, x, null, leds, new AudioFrame(0, new float[16], 1, 1));
+    Check(leds.All(c => c == new Rgb(0, 0, 255)), "audio: a beat flashes the whole device in the next colour");
+}
 // --- supported-devices list and its fuzzy search
 Check(SupportedDevices.List.Count > 2000 && SupportedDevices.List.Any(d => d.Kind == "Mouse") && SupportedDevices.List.Any(d => d.Kind == "Headset"), "supported list: loaded, every kind present");
 Check(SupportedDevices.Search("deathadder v2").FirstOrDefault()?.Name == "Razer DeathAdder V2", "search: exact words find the device first");

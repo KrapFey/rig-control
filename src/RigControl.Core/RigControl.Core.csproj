@@ -15,6 +15,7 @@
     <EmbeddedResource Include="Razer\razer-keyboards.json" LogicalName="RigControl.Core.Razer.razer-keyboards.json" />
     <EmbeddedResource Include="libratbag-mice.json" LogicalName="RigControl.Core.libratbag-mice.json" />
     <EmbeddedResource Include="supported-devices.json" LogicalName="RigControl.Core.supported-devices.json" />
+    <PackageReference Include="NAudio.Wasapi" Version="3.3.0" />
   </ItemGroup>
 
 </Project>

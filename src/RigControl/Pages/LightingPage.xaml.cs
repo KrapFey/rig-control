@@ -10,7 +10,10 @@ using Windows.UI;
 
 namespace RigControl.Pages;
 
-public sealed record EffectChoice(EffectKind Kind, string Label, string Glyph);
+public sealed record EffectChoice(EffectKind Kind, string Label, string Glyph)
+{
+    public override string ToString() => Label; // what screen readers announce
+}
 
 /// <summary>A device card: what the device does in the current profile, plus its live LED preview.</summary>
 public sealed class DeviceCard : Observable
@@ -340,6 +343,9 @@ public sealed partial class LightingPage : Page
         new(EffectKind.Breathing, "Breathing", ""),
         new(EffectKind.Static, "Static", ""),
         new(EffectKind.Temperature, "Temperature", ""),
+        new(EffectKind.AudioLevel, "Audio level", "\uE767"),
+        new(EffectKind.AudioSpectrum, "Spectrum", "\uE9D9"),
+        new(EffectKind.AudioPulse, "Beat pulse", "\uE8D6"),
         new(EffectKind.Off, "Off", ""),
     ];
 
@@ -409,8 +415,15 @@ public sealed partial class LightingPage : Page
         bool temp = s.Kind == EffectKind.Temperature;
         TempPanel.Visibility = temp ? Visibility.Visible : Visibility.Collapsed;
         SpeedSlider.IsEnabled = s.Kind is EffectKind.Rainbow or EffectKind.ColorCycle or EffectKind.Breathing;
-        ColorsPanel.Visibility = s.Kind is EffectKind.Static or EffectKind.Breathing or EffectKind.Temperature ? Visibility.Visible : Visibility.Collapsed;
-        ColorsLabel.Text = temp ? "Cold → hot colours" : s.Kind == EffectKind.Static ? "Colours (more than one makes a gradient)" : "Colours";
+        ColorsPanel.Visibility = s.IsAudio || s.Kind is EffectKind.Static or EffectKind.Breathing or EffectKind.Temperature ? Visibility.Visible : Visibility.Collapsed;
+        ColorsLabel.Text = temp ? "Cold → hot colours"
+            : s.Kind == EffectKind.Static ? "Colours (more than one makes a gradient)"
+            : s.Kind == EffectKind.AudioPulse ? "Colours (each beat moves to the next)"
+            : s.Kind == EffectKind.AudioLevel ? "Colours, quiet to loud (one colour: green to red)"
+            : s.Kind == EffectKind.AudioSpectrum ? "Colours, bass to treble (one colour: a rainbow)"
+            : "Colours";
+        AudioPanel.Visibility = s.IsAudio ? Visibility.Visible : Visibility.Collapsed;
+        if (s.IsAudio) LoadAudio(s);
         if (temp)
         {
             var options = (List<SensorOption>)SensorBox.ItemsSource;
@@ -421,6 +434,46 @@ public sealed partial class LightingPage : Page
         }
         BuildSwatches();
         UpdateSyncCount();
+    }
+
+    sealed record AudioDeviceOption(string? Id, string Label);
+
+    void LoadAudio(EffectSettings s)
+    {
+        AudioSourceBox.SelectedIndex = s.AudioInput ? 1 : 0;
+        var devices = new List<AudioDeviceOption> { new(null, s.AudioInput ? "Windows default microphone" : "Windows default output") };
+        devices.AddRange(AudioListener.Devices(s.AudioInput).Select(d => new AudioDeviceOption(d.id, d.name)));
+        AudioDeviceBox.ItemsSource = devices;
+        AudioDeviceBox.SelectedItem = devices.FirstOrDefault(d => d.Id == s.AudioDevice) ?? devices[0];
+        SensitivitySlider.Value = s.Sensitivity;
+        AudioNote.Text = s.AudioInput
+            ? "Only loudness and pitch are measured from the microphone; nothing is recorded, saved or sent. Windows shows its microphone-in-use icon while this effect is on."
+            : "Follows whatever your PC plays. Only loudness and pitch are measured; nothing is recorded, saved or sent.";
+    }
+
+    void AudioSource_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || AudioSourceBox.SelectedIndex < 0) return;
+        Sync.AudioInput = AudioSourceBox.SelectedIndex == 1;
+        Sync.AudioDevice = null; // the other kind's device doesn't apply
+        AppI.ConfigChanged();
+        _loading = true;
+        LoadAudio(Sync);
+        _loading = false;
+    }
+
+    void AudioDevice_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || AudioDeviceBox.SelectedItem is not AudioDeviceOption o) return;
+        Sync.AudioDevice = o.Id;
+        EffectChanged();
+    }
+
+    void Sensitivity_Changed(object sender, RangeBaseValueChangedEventArgs e)
+    {
+        if (_loading) return;
+        Sync.Sensitivity = e.NewValue;
+        EffectChanged();
     }
 
     void UpdateSyncCount() => SyncCount.Text = $"{_cards.Count(c => c.Selected == 0)} of {_cards.Count} devices follow it";
@@ -490,7 +543,7 @@ public sealed partial class LightingPage : Page
             for (int i = 0; i < frame.Length; i++) frame[i] = EffectMath.Gradient(stops, x[i]).Scale(Math.Clamp(s.Brightness, 0, 100) / 100);
             UpdateMarker(s, temp, stops);
         }
-        else EffectMath.Render(s, AppI.Lighting.Now, x, temp, frame);
+        else EffectMath.Render(s, AppI.Lighting.Now, x, temp, frame, AppI.Lighting.CurrentAudio);
         MarkerLayer.Visibility = TempLabel.Visibility = heat ? Visibility.Visible : Visibility.Collapsed;
         var g = _preview.GradientStops;
         while (g.Count < frame.Length) g.Add(new GradientStop());
@@ -547,6 +600,10 @@ public sealed partial class LightingPage : Page
         if (_loading || EffectList.SelectedItem is not EffectChoice c) return;
         Sync.Kind = c.Kind;
         if (c.Kind == EffectKind.Temperature && Sync.Colors.Count < 2) Sync.Colors = ["#00D4FF", "#7C5CFF", "#FF963C", "#FF2846"];
+        // Audio effects start from colours that suit them (the shared default is purple → cyan).
+        bool defaults = Sync.Colors.SequenceEqual(["#7C5CFF", "#00D4FF"], StringComparer.OrdinalIgnoreCase);
+        if (c.Kind == EffectKind.AudioLevel && defaults) Sync.Colors = ["#00DC78", "#FFD200", "#FF283C"];
+        if (c.Kind == EffectKind.AudioSpectrum && defaults) Sync.Colors = ["#7C5CFF"];
         AppI.ConfigChanged();
         _loading = true;
         LoadEffect();

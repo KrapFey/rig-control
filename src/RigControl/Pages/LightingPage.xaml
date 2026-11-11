@@ -77,7 +77,7 @@
                     <ListView x:Name="EffectList" SelectionMode="Single" SelectionChanged="EffectList_SelectionChanged"
                               ScrollViewer.HorizontalScrollMode="Enabled" ScrollViewer.HorizontalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollMode="Disabled">
                         <ListView.ItemsPanel>
-                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate>
+                            <ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="160" /></ItemsPanelTemplate>
                         </ListView.ItemsPanel>
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="p:EffectChoice">
@@ -103,6 +103,24 @@
                         <Slider x:Name="SpeedSlider" Header="Speed" Minimum="0" Maximum="100" ValueChanged="Tuning_Changed" />
                         <Slider x:Name="BrightnessSlider" Grid.Column="1" Header="Brightness" Minimum="0" Maximum="100" ValueChanged="Tuning_Changed" />
                     </Grid>
+
+                    <!-- Audio effects: what to listen to -->
+                    <StackPanel x:Name="AudioPanel" Spacing="8" Visibility="Collapsed">
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="AudioSourceBox" Header="Listen to" MinWidth="200" SelectionChanged="AudioSource_Changed">
+                                <x:String>What the speakers play</x:String>
+                                <x:String>A microphone</x:String>
+                            </ComboBox>
+                            <ComboBox x:Name="AudioDeviceBox" Grid.Column="1" Header="Device" HorizontalAlignment="Stretch" DisplayMemberPath="Label" SelectionChanged="AudioDevice_Changed" />
+                            <Slider x:Name="SensitivitySlider" Grid.Column="2" Header="Sensitivity" Minimum="0" Maximum="100" StepFrequency="1" ValueChanged="Sensitivity_Changed" />
+                        </Grid>
+                        <TextBlock x:Name="AudioNote" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                    </StackPanel>
 
                     <Grid x:Name="TempPanel" ColumnSpacing="16" Visibility="Collapsed">
                         <Grid.ColumnDefinitions>

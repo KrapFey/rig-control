@@ -38,6 +38,9 @@ headset and keyboard, and watch it all live in a modern WinUI 3 interface.
   bundled, headless [OpenRGB](https://codeberg.org/OpenRGB/OpenRGB) 1.1, plus a native Razer Seiren V3 Chroma driver.
   - **Synced effects across every device:** rainbow wave, colour cycle, breathing, static and gradients.
   - **Temperature lighting:** colour follows any sensor.
+  - **Audio lighting:** a level meter, a spectrum (bass to treble) or a beat pulse, following what your PC plays or
+    a microphone. Only loudness and pitch are measured; nothing is recorded, saved or sent, and it listens only while
+    an audio effect is on.
   - **Per device:** keep the synced effect, use one of the device's own effects, or turn it off.
   - **Per zone and per LED:** any zone (fans, motherboard headers…) can show its own colour, a colour for each LED
     (paint them with a brush), or stay off while the rest follow the synced effect.
@@ -154,6 +157,7 @@ GPL-3.0-or-later, see [LICENSE](LICENSE).
   (hidapi, pyusb, libusb, Pillow and others, under their own licences).
 - [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) (MPL-2.0),
   [HidSharp](https://www.zer7.com/software/hidsharp) (Apache-2.0),
+  [NAudio](https://github.com/naudio/NAudio) (MIT, audio capture),
   [H.NotifyIcon](https://github.com/HavenDV/H.NotifyIcon) (MIT).
 
 Not affiliated with NZXT, Razer, Logitech, SteelSeries, ASUS, OpenRGB, FanControl or any hardware vendor.
