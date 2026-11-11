@@ -213,16 +213,27 @@ public sealed class Live
     }
 
     /// <summary>Best guess at "the CPU temperature" and "the GPU temperature" for any machine.</summary>
-    public TempVm? Cpu => Pick(["CPU Package", "Core (Tctl/Tdie)", "Core Max", "CPU"], "cpu");
-    public TempVm? Gpu => Pick(["GPU Core", "GPU Hot Spot"], "gpu");
+    public TempVm? Cpu => Temps.FirstOrDefault(t => t.Sensor == CpuSensor(App.Instance!.Hub.Temps));
+    public TempVm? Gpu => Temps.FirstOrDefault(t => t.Sensor == GpuSensor(App.Instance!.Hub.Temps));
 
-    TempVm? Pick(string[] names, string idHint)
+    public static TempSensor? CpuSensor(IEnumerable<TempSensor> temps) => Pick(temps, ["CPU Package", "Core (Tctl/Tdie)", "Core Max", "CPU"], "cpu");
+    public static TempSensor? GpuSensor(IEnumerable<TempSensor> temps) => Pick(temps, ["GPU Core", "GPU Hot Spot"], "gpu");
+
+    static TempSensor? Pick(IEnumerable<TempSensor> temps, string[] names, string idHint)
     {
+        var list = temps.ToList();
         foreach (var n in names)
         {
-            var hit = Temps.FirstOrDefault(t => t.OriginalName == n && t.Id.Contains(idHint, StringComparison.OrdinalIgnoreCase));
+            var hit = list.FirstOrDefault(t => t.Name == n && t.Id.Contains(idHint, StringComparison.OrdinalIgnoreCase));
             if (hit is not null) return hit;
         }
-        return Temps.FirstOrDefault(t => t.Id.Contains(idHint, StringComparison.OrdinalIgnoreCase));
+        return list.FirstOrDefault(t => t.Id.Contains(idHint, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>Average duty of the fans that are spinning (the dashboard's "airflow"), or null with none.</summary>
+    public static double? Airflow(IEnumerable<FanChannel> fans)
+    {
+        var spinning = fans.Where(f => f.Connected ?? f.Rpm > 0).Select(f => (double?)f.Duty).Where(d => d is not null).ToList();
+        return spinning.Count == 0 ? null : spinning.Average();
     }
 }

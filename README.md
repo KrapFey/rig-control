@@ -79,7 +79,10 @@ headset and keyboard, and watch it all live in a modern WinUI 3 interface.
   the FanControl.Liquidctl plugin (matched by the plugin's own device ids).
 - **Identify** stops one fan for 8 seconds so you can see which it is; **Swap with…** exchanges two fans'
   settings.
-- Tray icon, start with Windows (scheduled task, admin without a UAC prompt), Mica, live animations.
+- **Tray widget:** the tray icon shows a live CPU or GPU temperature or the airflow, coloured by how hot it is;
+  clicking it opens a mini dashboard above the taskbar (temperatures, airflow, fans, a lighting switch).
+  Double-click opens the full app. Windows 11 hides new tray icons at first: drag it onto the taskbar to keep it in view.
+- Start with Windows (scheduled task, admin without a UAC prompt), Mica, live animations.
 
 ## Requirements
 

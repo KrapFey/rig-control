@@ -26,6 +26,9 @@ public partial class App : Application
 
     MainWindow? _window;
     TaskbarIcon? _tray;
+    TrayPanel? _trayPanel;
+    System.Drawing.Icon? _logo;
+    DispatcherQueueTimer? _trayTimer;
     DispatcherQueueTimer? _saveTimer;
 
     public App()
@@ -230,14 +233,42 @@ public partial class App : Application
     }
 
     /// <summary>Tray tooltip lists battery levels of wireless devices.</summary>
+    /// <summary>Left click: the mini dashboard, or the full window when that's what Settings says.</summary>
+    void TrayClick()
+    {
+        if (!Config.TrayPopup) { ShowWindow(); return; }
+        (_trayPanel ??= new TrayPanel()).Toggle();
+    }
+
+    /// <summary>Redraws the tray icon now (after its setting changed).</summary>
+    public void RefreshTray() => UpdateTrayTooltip();
+
+    /// <summary>The live tray icon (a number on a tile, or the logo) and its tooltip.</summary>
     void UpdateTrayTooltip()
     {
         if (_tray is null) return;
+        double? cpu = Live.CpuSensor(Hub.Temps)?.Value, gpu = Live.GpuSensor(Hub.Temps)?.Value, air = Live.Airflow(Hub.Fans);
+        var (value, isTemp) = Config.TrayShows switch
+        {
+            TrayShow.CpuTemp => (cpu, true),
+            TrayShow.GpuTemp => (gpu, true),
+            TrayShow.Airflow => (air, false),
+            _ => ((double?)null, false),
+        };
+        var icon = value is double v ? TrayArt.Render($"{Math.Round(v):0}", TrayArt.ColorFor(v, isTemp)) : _logo;
+        if (icon is not null && !ReferenceEquals(icon, _tray.Icon)) _tray.Icon = icon;
+
+        var summary = string.Join(" · ", new[]
+        {
+            cpu is double c ? $"CPU {c:0} °C" : null,
+            gpu is double g ? $"GPU {g:0} °C" : null,
+            air is double a ? $"airflow {a:0}%" : null,
+        }.Where(s => s is not null));
         var states = Peripherals.States;
         var batteries = Peripherals.Devices
             .Where(d => states.TryGetValue(d.Key, out var s) && s.BatteryPercent is not null)
             .Select(d => $"{d.Name}: {states[d.Key].BatteryPercent}%{(states[d.Key].Charging == true ? " (charging)" : "")}");
-        _tray.ToolTipText = string.Join("\n", new[] { "RigControl" }.Concat(batteries));
+        _tray.ToolTipText = string.Join("\n", new[] { "RigControl", summary }.Where(s => s.Length > 0).Concat(batteries));
     }
 
     public void ConfigChanged()
@@ -297,9 +328,16 @@ public partial class App : Application
             ContextMenuMode = ContextMenuMode.PopupMenu,
             ContextFlyout = menu,
             NoLeftClickDelay = true,
-            LeftClickCommand = new Command(() => { Log("tray left click"); ShowWindow(); }),
+            LeftClickCommand = new Command(() => Ui.TryEnqueue(TrayClick)),
+            DoubleClickCommand = new Command(() => Ui.TryEnqueue(ShowWindow)),
         };
+        _logo = _tray.Icon;
         _tray.ForceCreate(enablesEfficiencyMode: false);
+        _trayTimer = Ui.CreateTimer();
+        _trayTimer.Interval = TimeSpan.FromSeconds(2);
+        _trayTimer.Tick += (_, _) => UpdateTrayTooltip();
+        _trayTimer.Start();
+        UpdateTrayTooltip();
     }
 
     /// <summary>Starts a fresh instance (it waits for this one to exit), then quits. Keeps admin, no UAC prompt.</summary>
@@ -322,6 +360,7 @@ public partial class App : Application
         Rgb?.Dispose();
         _seiren?.Dispose();
         Hub.Dispose();
+        _trayTimer?.Stop();
         _tray?.Dispose();
         _window?.Close();
         Exit();

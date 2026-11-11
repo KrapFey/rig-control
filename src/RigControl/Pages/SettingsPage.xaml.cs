@@ -27,11 +27,28 @@ public sealed partial class SettingsPage : Page
             AboutTitle.Text = $"RigControl {typeof(App).Assembly.GetName().Version?.ToString(3)}";
             BuildDrivers();
             AutoUpdate.IsOn = App.Instance.Config.CheckForUpdates;
+            TrayShowsBox.SelectedIndex = (int)App.Instance.Config.TrayShows;
+            TrayPopupSwitch.IsOn = App.Instance.Config.TrayPopup;
             ShowUpdate();
             App.Instance.UpdateFound += ShowUpdate;
             _loading = false;
         };
         Unloaded += (_, _) => App.Instance!.UpdateFound -= ShowUpdate;
+    }
+
+    void TrayShows_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || TrayShowsBox.SelectedIndex < 0) return;
+        App.Instance!.Config.TrayShows = (TrayShow)TrayShowsBox.SelectedIndex;
+        App.Instance.ConfigChanged();
+        App.Instance.RefreshTray();
+    }
+
+    void TrayPopup_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        App.Instance!.Config.TrayPopup = TrayPopupSwitch.IsOn;
+        App.Instance.ConfigChanged();
     }
 
     void AutoUpdate_Toggled(object sender, RoutedEventArgs e)

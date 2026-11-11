@@ -6,6 +6,9 @@ namespace RigControl.Core;
 public enum CurveKind { Graph, Mix, Flat }
 public enum MixFunction { Max, Min, Average }
 
+/// <summary>What the tray icon shows.</summary>
+public enum TrayShow { Logo, CpuTemp, GpuTemp, Airflow }
+
 public sealed record CurvePoint(double Temp, double Percent);
 
 public sealed class CurveDef
@@ -56,6 +59,10 @@ public sealed class AppConfig
     public double IntervalSeconds { get; set; } = 1;
     /// <summary>Ask GitHub for a newer release at start and once a day.</summary>
     public bool CheckForUpdates { get; set; } = true;
+    /// <summary>The tray icon shows this value live (or the logo).</summary>
+    public TrayShow TrayShows { get; set; } = TrayShow.CpuTemp;
+    /// <summary>Left-clicking the tray icon opens the mini dashboard (false: the full window).</summary>
+    public bool TrayPopup { get; set; } = true;
     /// <summary>Per-device driver: device key (e.g. "nzxt-hue2/&lt;serial&gt;") -> "liquidctl". Missing = built-in.</summary>
     public Dictionary<string, string> Drivers { get; set; } = [];
     public LightingConfig Lighting { get; set; } = new();

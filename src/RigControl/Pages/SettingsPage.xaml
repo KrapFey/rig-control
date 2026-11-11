@@ -29,6 +29,28 @@
             </Border>
 
             <Border Style="{StaticResource Card}">
+                <StackPanel Spacing="12">
+                    <StackPanel>
+                        <TextBlock Text="Taskbar" FontWeight="SemiBold" />
+                        <TextBlock Text="The tray icon can show a live reading; clicking it opens a mini dashboard (double-click opens the full app)." Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="TrayShowsBox" Header="Tray icon shows" MinWidth="220" SelectionChanged="TrayShows_Changed">
+                            <x:String>RigControl logo</x:String>
+                            <x:String>CPU temperature</x:String>
+                            <x:String>GPU temperature</x:String>
+                            <x:String>Airflow (average fan speed)</x:String>
+                        </ComboBox>
+                        <ToggleSwitch x:Name="TrayPopupSwitch" Grid.Column="1" Header="Clicking the icon" OnContent="Opens the mini dashboard" OffContent="Opens the full app" Toggled="TrayPopup_Toggled" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
                 <StackPanel Spacing="10">
                     <Grid ColumnSpacing="16">
                         <Grid.ColumnDefinitions>
