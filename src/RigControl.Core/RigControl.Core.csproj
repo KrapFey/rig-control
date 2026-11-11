@@ -11,6 +11,7 @@
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
     <PackageReference Include="HidSharp" Version="2.6.4" />
     <InternalsVisibleTo Include="RigControl.Checks" />
+    <EmbeddedResource Include="Razer\razer-mice.json" LogicalName="RigControl.Core.Razer.razer-mice.json" />
   </ItemGroup>
 
 </Project>

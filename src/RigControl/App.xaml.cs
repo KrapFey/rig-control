@@ -17,6 +17,7 @@ public partial class App : Application
     public DispatcherQueue Ui { get; private set; } = null!;
     public List<string> StartupNotes { get; } = [];
     public LightingEngine Lighting { get; private set; } = null!;
+    public PeripheralHub Peripherals { get; private set; } = null!;
     public RgbEngine? Rgb { get; private set; }
     /// <summary>Why lighting isn't running, when it isn't.</summary>
     public string? LightingNotice { get; private set; }
@@ -71,6 +72,23 @@ public partial class App : Application
         {
             try { Config.Save(); } catch (Exception e) { Log($"config save failed: {e.Message}"); }
         };
+
+#if UITEST
+        Peripherals = new PeripheralHub(() => []); // the UI-test build reads devices but never writes settings
+#else
+        Peripherals = new PeripheralHub(() => Config.Clone().Peripherals);
+#endif
+        Peripherals.Changed += () => Ui.TryEnqueue(UpdateTrayTooltip);
+        Peripherals.ChangedOnDevice += (key, state) => Ui.TryEnqueue(() =>
+        {
+            // Pressed the DPI button: remember where the mouse is now (saved only if this device has saved settings).
+            if (!Config.Peripherals.TryGetValue(key, out var s)) return;
+            s.Dpi = state.Dpi;
+            if (state.ActiveStage is int a) s.ActiveStage = a;
+            if (state.Stages is { Count: > 0 } st) s.Stages = [.. st];
+            Log($"peripheral {key}: changed on the device (dpi {state.Dpi}, stage {state.ActiveStage}), saved");
+            ConfigChanged();
+        });
 
         Lighting = new LightingEngine(id => Hub.Temps.FirstOrDefault(t => t.Id == id)?.Value);
         Lighting.Apply(Config.Lighting);
@@ -139,6 +157,26 @@ public partial class App : Application
         var p = System.Diagnostics.Process.GetProcessesByName("FanControl");
         foreach (var x in p) x.Dispose();
         return p.Length > 0;
+    }
+
+    /// <summary>A device setting (DPI, polling…) changed: save it and send it to the device.</summary>
+    public void PeripheralSettingsChanged()
+    {
+        ConfigChanged();
+#if !UITEST
+        Peripherals.SettingsChanged();
+#endif
+    }
+
+    /// <summary>Tray tooltip lists battery levels of wireless devices.</summary>
+    void UpdateTrayTooltip()
+    {
+        if (_tray is null) return;
+        var states = Peripherals.States;
+        var batteries = Peripherals.Devices
+            .Where(d => states.TryGetValue(d.Key, out var s) && s.BatteryPercent is not null)
+            .Select(d => $"{d.Name}: {states[d.Key].BatteryPercent}%{(states[d.Key].Charging == true ? " (charging)" : "")}");
+        _tray.ToolTipText = string.Join("\n", new[] { "RigControl" }.Concat(batteries));
     }
 
     public void ConfigChanged()
@@ -219,6 +257,7 @@ public partial class App : Application
         Log("quit");
         Engine.Dispose(); // hands every fan back to the hardware
         Lighting?.Dispose();
+        Peripherals?.Dispose();
         Rgb?.Dispose();
         _seiren?.Dispose();
         Hub.Dispose();

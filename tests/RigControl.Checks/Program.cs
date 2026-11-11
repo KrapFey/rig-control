@@ -1,6 +1,20 @@
 using RigControl.Core;
 
 if (args.Contains("--probe")) { Probe(); return 0; }
+if (args.Contains("--razer"))
+{
+    // Read-only: what each Razer mouse reports. Never writes a setting.
+    foreach (var p in RazerMouse.FindAll())
+    {
+        var st = p.Read();
+        if (args.Contains("--stages") && p is RazerMouse rm)
+            Console.WriteLine(rm.ProbeStages() is { } probe ? $"   stage table (read-only probe, tid {probe.tid}): active {probe.active} of [{string.Join(", ", probe.stages)}]" : "   no stage table answered");
+        Console.WriteLine($"{p.Key} {p.Name} | caps dpi<= {p.Caps.DpiMax} stages {p.Caps.MaxStages} poll [{string.Join(",", p.Caps.PollRates)}] sleep {p.Caps.SleepTimeout} battery {p.Caps.Battery}");
+        Console.WriteLine($"   now: dpi {st.Dpi} stages [{string.Join(",", st.Stages ?? [])}] active {st.ActiveStage} poll {st.PollRate} sleep {st.SleepSeconds} lowbat {st.LowBatteryPercent} battery {st.BatteryPercent} charging {st.Charging}");
+        p.Dispose();
+    }
+    return 0;
+}
 if (args.Contains("--rgb"))
 {
     // Read-only: list what an OpenRGB server reports (default port 6742).
@@ -181,6 +195,11 @@ Check(cold == new Rgb(0, 0, 255) && hot == new Rgb(255, 0, 0) && px[0] == hot, "
 EffectMath.Render(new EffectSettings { Kind = EffectKind.Rainbow }, 0, [0f, 0.5f], null, px.AsSpan(0, 2));
 Check(px[0] != px[1], "rainbow wave varies along the LEDs");
 Check(EffectMath.Animated(new EffectSettings { Kind = EffectKind.Rainbow }) && !EffectMath.Animated(new EffectSettings { Kind = EffectKind.Static }), "only moving effects stream frames");
+
+// --- Razer device table (generated from openrazer)
+var da2 = RazerMouse.Describe(0x0084);
+Check(da2 is { name: "Razer DeathAdder V2", dpiMax: 20000 } && da2.Value.features.Contains("dpi_write") && da2.Value.features.Contains("poll_read"), "Razer table: DeathAdder V2 with DPI and polling");
+Check(RazerMouse.Describe(0x056F) is null, "Razer table: the Seiren (a mic) isn't treated as a mouse");
 
 // --- config round trip
 var path = Path.Combine(Path.GetTempPath(), $"rigcontrol-{Guid.NewGuid():N}.json");

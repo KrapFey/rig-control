@@ -58,6 +58,7 @@
                     <DataTemplate x:DataType="local:FanVm">
                         <Border
                             Height="132"
+                            DataContext="{x:Bind}"
                             Tapped="Tile_Tapped"
                             Style="{StaticResource Card}"
                             Padding="16"
