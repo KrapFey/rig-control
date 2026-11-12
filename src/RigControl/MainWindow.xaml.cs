@@ -52,8 +52,19 @@ public sealed partial class MainWindow : Window
         Navigate(tag, args.RecommendedNavigationTransitionInfo);
     }
 
+    /// <summary>
+    /// Clicking the item that's already selected (e.g. Lighting while a lighting device's page is open) still goes to
+    /// its page: selection doesn't change, so SelectionChanged doesn't fire.
+    /// </summary>
+    void Nav_ItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
+    {
+        var tag = args.IsSettingsInvoked ? "Settings" : (args.InvokedItemContainer?.Tag as string);
+        if (tag is not null && Pages.ContainsKey(tag)) Navigate(tag, null);
+    }
+
     void Navigate(string tag, NavigationTransitionInfo? _)
     {
+        if (ContentFrame.CurrentSourcePageType == Pages[tag]) return; // already there (both menu events can ask)
         var index = Pages.Keys.ToList().IndexOf(tag);
         // Going down the menu slides up from below; going back up drills in.
         NavigationTransitionInfo info = index >= _lastIndex
@@ -69,6 +80,7 @@ public sealed partial class MainWindow : Window
         var page = ContentFrame.CurrentSourcePageType;
         if (page is null) return;
         if (page == typeof(FanPage)) page = typeof(DashboardPage);
+        if (page == typeof(LightingDevicePage)) page = typeof(LightingPage);
         ContentFrame.Navigate(page, null, new SuppressNavigationTransitionInfo());
         if (ContentFrame.BackStackDepth > 0) ContentFrame.BackStack.RemoveAt(ContentFrame.BackStackDepth - 1); // not a step to go back to
     }
