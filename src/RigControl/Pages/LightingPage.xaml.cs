@@ -663,6 +663,16 @@ public sealed partial class LightingPage : Page
         TempText.Foreground = new SolidColorBrush(color);
     }
 
+    /// <summary>Looks for devices again; the button says so for a few seconds while detection runs.</summary>
+    async void Rescan_Click(object sender, RoutedEventArgs e)
+    {
+        RescanButton.IsEnabled = false;
+        RescanText.Text = "Scanning…";
+        await App.Instance!.RescanLightingAsync(); // the cards rebuild as devices are found
+        RescanButton.IsEnabled = true;
+        RescanText.Text = "Rescan";
+    }
+
     void ProfileBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_loading || ProfileBox.SelectedItem is not string name || name == Cfg.Active) return;

@@ -393,6 +393,17 @@ public sealed partial class DevicesPage : Page
         Summary.Text = _cards.Count == 0 ? "Mice, headsets and keyboards with settings show up here." : $"{_cards.Count} device{(_cards.Count == 1 ? "" : "s")} · click one for its settings";
     }
 
+    /// <summary>Looks for devices again; the button says so for a few seconds while detection runs.</summary>
+    async void Rescan_Click(object sender, RoutedEventArgs e)
+    {
+        RescanButton.IsEnabled = false;
+        RescanText.Text = "Scanning…";
+        App.Instance!.Peripherals.Rescan();
+        await Task.Delay(TimeSpan.FromSeconds(2)); // the list refreshes when the scan finishes; this is just feedback
+        RescanButton.IsEnabled = true;
+        RescanText.Text = "Rescan";
+    }
+
     void Tile_Tapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is PeripheralCard card)

@@ -14,10 +14,20 @@
                 </TransitionCollection>
             </StackPanel.ChildrenTransitions>
 
-            <StackPanel>
-                <TextBlock Text="Dashboard" Style="{StaticResource PageTitle}" Margin="0" />
-                <TextBlock x:Name="Summary" Style="{StaticResource Caption}" Margin="0,4,0,0" />
-            </StackPanel>
+            <Grid>
+                <StackPanel>
+                    <TextBlock Text="Dashboard" Style="{StaticResource PageTitle}" Margin="0" />
+                    <TextBlock x:Name="Summary" Style="{StaticResource Caption}" Margin="0,4,0,0" />
+                </StackPanel>
+                <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button Click="RescanFans_Click" ToolTipService.ToolTip="Look for fans and sensors again (restarts RigControl)" AutomationProperties.Name="Rescan">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE72C;" FontSize="14" />
+                            <TextBlock Text="Rescan" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
 
             <StackPanel x:Name="Notices" Spacing="8" />
 

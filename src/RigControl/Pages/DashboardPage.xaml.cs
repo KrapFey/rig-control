@@ -159,4 +159,6 @@ public sealed partial class DashboardPage : Page
         anim.Duration = TimeSpan.FromMilliseconds(240);
         visual.StartAnimation("Scale", anim);
     }
+
+    async void RescanFans_Click(object sender, RoutedEventArgs e) => await App.Instance!.RescanFansAsync(XamlRoot);
 }

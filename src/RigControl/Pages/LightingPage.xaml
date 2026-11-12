@@ -25,6 +25,12 @@
                     <TextBlock x:Name="Summary" Style="{StaticResource Caption}" Margin="0,4,0,0" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <Button x:Name="RescanButton" Click="Rescan_Click" ToolTipService.ToolTip="Look for devices again (one plugged in or woken up since RigControl started)" AutomationProperties.Name="Rescan">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE72C;" FontSize="14" />
+                            <TextBlock x:Name="RescanText" Text="Rescan" />
+                        </StackPanel>
+                    </Button>
                     <ComboBox x:Name="ProfileBox" Width="190" SelectionChanged="ProfileBox_SelectionChanged" />
                     <Button ToolTipService.ToolTip="Profile actions">
                         <FontIcon Glyph="&#xE712;" FontSize="14" />

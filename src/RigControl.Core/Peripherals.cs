@@ -180,6 +180,13 @@ public sealed class PeripheralHub : IDisposable
         _thread.Start();
     }
 
+    /// <summary>Looks for devices again now (plugging one in already does this by itself).</summary>
+    public void Rescan()
+    {
+        _rescan = true;
+        _wake.Set();
+    }
+
     /// <summary>Call after the user changed a device's settings.</summary>
     public void SettingsChanged()
     {
@@ -198,7 +205,7 @@ public sealed class PeripheralHub : IDisposable
                 {
                     _rescan = false;
                     Thread.Sleep(500); // let a newly plugged device settle
-                    Rescan();
+                    Discover();
                 }
                 bool poll = _clock.Elapsed.TotalSeconds - lastPoll > (Volatile.Read(ref _watchers) > 0 ? 1 : 30);
                 if (_reapply || poll)
@@ -214,7 +221,7 @@ public sealed class PeripheralHub : IDisposable
         }
     }
 
-    void Rescan()
+    void Discover()
     {
         var found = new List<IPeripheral>();
         if (Demo.On) found.AddRange(Demo.Peripherals()); else {

@@ -160,14 +160,19 @@ public partial class App : Application
             Ui.TryEnqueue(() => LightingStateChanged?.Invoke());
             return;
         }
+        await StartRgbAsync();
+    }
+
+    async Task StartRgbAsync()
+    {
         try
         {
-            _seiren = SeirenV3.Open();
-            Rgb = new RgbEngine(Path.Combine(AppConfig.Folder, "openrgb"));
-            Rgb.DevicesChanged += RebuildTargets;
-            Rgb.WantedZoneSize = ZoneSize;
-            await Task.Run(() => Rgb.StartAsync());
-            if (Rgb.Problem is string p) LightingNotice = p;
+            _seiren ??= SeirenV3.Open();
+            var rgb = new RgbEngine(Path.Combine(AppConfig.Folder, "openrgb")) { WantedZoneSize = ZoneSize };
+            Rgb = rgb;
+            rgb.DevicesChanged += RebuildTargets;
+            await Task.Run(() => rgb.StartAsync());
+            LightingNotice = rgb.Problem;
             RebuildTargets();
         }
         catch (Exception e)
@@ -176,6 +181,42 @@ public partial class App : Application
             Log($"rgb: start failed: {e}");
         }
         Ui.TryEnqueue(() => LightingStateChanged?.Invoke());
+    }
+
+    /// <summary>
+    /// Looks for lighting devices again by starting the lighting engine afresh: the detection that runs at start.
+    /// (OpenRGB 1.1's own rescan request leaves it unable to send device details, so it isn't used.)
+    /// </summary>
+    public async Task RescanLightingAsync()
+    {
+        Log("rgb: rescan");
+        if (Demo.On) { Lighting.SetTargets(Demo.RgbDevices(ZoneSize)); Ui.TryEnqueue(() => LightingStateChanged?.Invoke()); return; }
+        if (Rgb is not { } old) return; // not running (another OpenRGB, or the UI-test build): nothing to rescan
+        Rgb = null;
+        Lighting.SetTargets([]);
+        await Task.Run(old.Dispose); // ends our OpenRGB; the devices keep their last colours meanwhile
+        await StartRgbAsync();
+    }
+
+    /// <summary>
+    /// Fans and sensors are opened once and shared with the fan loop, so finding new ones means a fresh start:
+    /// asks first, then restarts (keeping admin; fans hold their speed for the few seconds it takes).
+    /// </summary>
+    public async Task RescanFansAsync(XamlRoot root)
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = root,
+            Title = "Look for fans and sensors again?",
+            Content = "RigControl restarts to find them, which takes a few seconds. Fans hold their speed meanwhile.",
+            PrimaryButtonText = "Restart and rescan",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+        };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        Log("rescan fans and sensors: restarting");
+        Config.Save();
+        Restart();
     }
 
     int? ZoneSize(string device, string zone) => Config.Lighting.ZoneSizes.TryGetValue(device, out var z) && z.TryGetValue(zone, out var n) ? n : null;

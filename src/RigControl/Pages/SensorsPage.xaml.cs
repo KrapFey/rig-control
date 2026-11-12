@@ -24,4 +24,6 @@ public sealed partial class SensorsPage : Page
     }
 
     void Filter_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args) => Fill();
+
+    async void RescanFans_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) => await App.Instance!.RescanFansAsync(XamlRoot);
 }

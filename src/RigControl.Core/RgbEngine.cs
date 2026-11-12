@@ -91,7 +91,11 @@ public sealed class RgbEngine : IDisposable
             if (headers.Count > 0) AppConfig.Log?.Invoke($"rgb: resizable headers: {string.Join("; ", headers)}");
             DevicesChanged?.Invoke();
         }
-        catch (Exception e) { Problem = e.Message; }
+        catch (Exception e)
+        {
+            Problem = e.Message;
+            AppConfig.Log?.Invoke($"rgb: reload failed: {e.Message}");
+        }
         finally { _reload.Release(); }
     }
 
