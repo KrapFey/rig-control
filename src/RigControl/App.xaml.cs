@@ -196,6 +196,8 @@ public partial class App : Application
         Lighting.SetTargets([]);
         await Task.Run(old.Dispose); // ends our OpenRGB; the devices keep their last colours meanwhile
         await StartRgbAsync();
+        if (Rgb is { } rgb) await rgb.SettledAsync(TimeSpan.FromSeconds(20)); // so the button stays busy until devices are back
+        Log($"rgb: rescan done, {Rgb?.Devices.Count ?? 0} device(s)");
     }
 
     /// <summary>

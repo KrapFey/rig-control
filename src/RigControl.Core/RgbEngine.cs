@@ -17,6 +17,7 @@ public sealed class RgbEngine : IDisposable
     OpenRgbClient? _client;
     readonly Job _job = new();
     int _port;
+    volatile bool _disposed;
 
     public static string EngineDir => Path.Combine(AppContext.BaseDirectory, "openrgb");
     public static bool Available => File.Exists(Path.Combine(EngineDir, "OpenRGB.exe"));
@@ -26,6 +27,18 @@ public sealed class RgbEngine : IDisposable
     public string? Problem { get; private set; }
     /// <summary>Raised after the device list was (re)loaded.</summary>
     public event Action? DevicesChanged;
+    readonly Stopwatch _sinceChange = Stopwatch.StartNew();
+
+    /// <summary>
+    /// Waits until detection has settled: OpenRGB starts with an empty list and adds devices over a few seconds, so
+    /// this returns once devices are listed and the list has been still for a moment (or after <paramref name="limit"/>).
+    /// </summary>
+    public async Task SettledAsync(TimeSpan limit)
+    {
+        var waited = Stopwatch.StartNew();
+        while (waited.Elapsed < limit && !_disposed && (Devices.Count == 0 || _sinceChange.Elapsed < TimeSpan.FromSeconds(2.5)))
+            await Task.Delay(250);
+    }
 
     public RgbEngine(string configDir) => _configDir = configDir;
 
@@ -76,10 +89,11 @@ public sealed class RgbEngine : IDisposable
     /// </summary>
     public async Task ReloadAsync()
     {
-        if (_client is null) return;
+        if (_client is null || _disposed) return;
         await _reload.WaitAsync();
         try
         {
+            if (_disposed) return; // replaced by a rescan while waiting
             Devices = await _client.GetDevicesAsync();
             if (ApplyZoneSizes(Devices))
             {
@@ -89,6 +103,7 @@ public sealed class RgbEngine : IDisposable
             AppConfig.Log?.Invoke($"rgb: {Devices.Count} device(s): {string.Join(", ", Devices.Select(d => d.Name))}");
             var headers = Devices.SelectMany(d => d.Zones.Where(z => z.Resizable).Select(z => $"{d.Name} / {z.Name} = {z.LedsCount} ({z.LedsMin}-{z.LedsMax})")).ToList();
             if (headers.Count > 0) AppConfig.Log?.Invoke($"rgb: resizable headers: {string.Join("; ", headers)}");
+            _sinceChange.Restart();
             DevicesChanged?.Invoke();
         }
         catch (Exception e)
@@ -130,6 +145,8 @@ public sealed class RgbEngine : IDisposable
 
     public void Dispose()
     {
+        _disposed = true;
+        DevicesChanged = null;
         _client?.Dispose();
         try { if (_proc is { HasExited: false }) { _proc.Kill(); _proc.WaitForExit(3000); } } catch { }
         _proc?.Dispose();
