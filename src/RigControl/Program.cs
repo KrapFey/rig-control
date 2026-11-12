@@ -15,11 +15,13 @@ public static class Program
 
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
-        // "--after <pid>": a restart. Wait for the old instance to let go of the hardware first.
+        // "--after <pid>": a restart. Wait for the old instance to let go of the hardware first. Shutting down can
+        // take a while (each device gets a few seconds to let go), and an instance started while the old one is
+        // still registered would hand itself over to it below instead of starting.
         var after = Array.IndexOf(args, "--after");
         if (after >= 0 && after + 1 < args.Length && int.TryParse(args[after + 1], out var pid))
         {
-            try { System.Diagnostics.Process.GetProcessById(pid).WaitForExit(15_000); } catch { /* already gone */ }
+            try { System.Diagnostics.Process.GetProcessById(pid).WaitForExit(60_000); } catch { /* already gone */ }
         }
 
         // One instance owns the hardware. A second launch just brings the first one's window up.
@@ -31,7 +33,9 @@ public static class Program
         if (!main.IsCurrent)
         {
             var activation = AppInstance.GetCurrent().GetActivatedEventArgs();
-            Task.Run(() => main.RedirectActivationToAsync(activation).AsTask()).Wait();
+            // Bounded: if the other instance is on its way out it never answers, and waiting forever would leave
+            // this one stuck in the background holding the program files.
+            Task.Run(() => main.RedirectActivationToAsync(activation).AsTask()).Wait(TimeSpan.FromSeconds(10));
             return 0;
         }
         main.Activated += (_, _) => App.Instance?.ShowWindow();

@@ -396,12 +396,20 @@ public partial class App : Application
         _saveTimer?.Stop();
         try { Config.Save(); } catch (Exception e) { Log($"config save on exit failed: {e.Message}"); }
         Log("quit");
-        Engine.Dispose(); // hands every fan back to the hardware
-        Lighting?.Dispose();
-        Peripherals?.Dispose();
-        Rgb?.Dispose();
-        _seiren?.Dispose();
-        Hub.Dispose();
+        // Each step has its own time limit; a slow one is logged, since a restart waits for all of them.
+        void Step(string name, Action? a)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            try { a?.Invoke(); } catch (Exception e) { Log($"quit: {name} failed: {e.Message}"); }
+            if (sw.ElapsedMilliseconds > 1000) Log($"quit: {name} took {sw.ElapsedMilliseconds} ms");
+        }
+        Step("fans", Engine.Dispose); // hands every fan back to the hardware
+        Step("lighting", Lighting is null ? null : Lighting.Dispose);
+        Step("peripherals", Peripherals is null ? null : Peripherals.Dispose);
+        Step("openrgb", Rgb is null ? null : Rgb.Dispose);
+        Step("seiren", _seiren is null ? null : _seiren.Dispose);
+        Step("sensors", Hub.Dispose);
+        Log("quit: done");
         _trayTimer?.Stop();
         _tray?.Dispose();
         _window?.Close();
