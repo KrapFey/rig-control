@@ -25,5 +25,9 @@ public sealed partial class SensorsPage : Page
 
     void Filter_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args) => Fill();
 
-    async void RescanFans_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) => await App.Instance!.RescanFansAsync(XamlRoot);
+    async void RescanFans_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        ((Microsoft.UI.Xaml.Controls.Control)sender).IsEnabled = false; // the page is rebuilt when the scan is done
+        await App.Instance!.RescanFansAsync();
+    }
 }

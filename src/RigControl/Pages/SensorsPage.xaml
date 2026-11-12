@@ -18,7 +18,7 @@
             </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" VerticalAlignment="Center">
                 <AutoSuggestBox x:Name="Filter" Width="260" VerticalAlignment="Center" PlaceholderText="Filter" QueryIcon="Find" TextChanged="Filter_TextChanged" />
-                <Button Click="RescanFans_Click" ToolTipService.ToolTip="Look for fans and sensors again (restarts RigControl)" AutomationProperties.Name="Rescan">
+                <Button Click="RescanFans_Click" ToolTipService.ToolTip="Look for fans and sensors again. Fans go back to their own control for the few seconds this takes." AutomationProperties.Name="Rescan">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <FontIcon Glyph="&#xE72C;" FontSize="14" />
                             <TextBlock Text="Rescan" />

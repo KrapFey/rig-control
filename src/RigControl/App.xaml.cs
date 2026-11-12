@@ -10,7 +10,7 @@ public partial class App : Application
 {
     public static App? Instance { get; private set; }
 
-    public HardwareHub Hub { get; } = new();
+    public HardwareHub Hub { get; private set; } = new();
     public FanEngine Engine { get; private set; } = null!;
     /// <summary>The live config the UI edits. Call <see cref="ConfigChanged"/> after changing it.</summary>
     public AppConfig Config { get; private set; } = null!;
@@ -200,25 +200,34 @@ public partial class App : Application
         Log($"rgb: rescan done, {Rgb?.Devices.Count ?? 0} device(s)");
     }
 
+    bool _rescanningFans;
+
     /// <summary>
-    /// Fans and sensors are opened once and shared with the fan loop, so finding new ones means a fresh start:
-    /// asks first, then restarts (keeping admin; fans hold their speed for the few seconds it takes).
+    /// Looks for fans and sensors again: stops the fan loop (fans go back to their own control for the moment),
+    /// closes the drivers, opens them afresh, and starts a new fan loop on what they find. The open page reloads.
     /// </summary>
-    public async Task RescanFansAsync(XamlRoot root)
+    public async Task RescanFansAsync()
     {
-        var dialog = new ContentDialog
+        if (_rescanningFans) return;
+        _rescanningFans = true;
+        try
         {
-            XamlRoot = root,
-            Title = "Look for fans and sensors again?",
-            Content = "RigControl restarts to find them, which takes a few seconds. Fans hold their speed meanwhile.",
-            PrimaryButtonText = "Restart and rescan",
-            CloseButtonText = "Cancel",
-            DefaultButton = ContentDialogButton.Primary,
-        };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
-        Log("rescan fans and sensors: restarting");
-        Config.Save();
-        Restart();
+            Log("rescan fans and sensors");
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var (oldEngine, oldHub) = (Engine, Hub);
+            // Close before opening: some controllers (NZXT) can only be open once.
+            await Task.Run(() => { oldEngine.Dispose(); oldHub.Dispose(); });
+            var hub = new HardwareHub();
+            await Task.Run(() => hub.Open(Config.Drivers));
+            Hub = hub;
+            Engine = new FanEngine(hub, Config) { Paused = OtherFanAppRunning() };
+            Engine.Start();
+            Live.Instance.Reload();
+            _window?.ReloadPage();
+            Log($"rescan fans and sensors: {oldHub.Fans.Count} -> {hub.Fans.Count} fans, {oldHub.Temps.Count} -> {hub.Temps.Count} sensors ({sw.ElapsedMilliseconds} ms)");
+        }
+        catch (Exception e) { Log($"rescan fans and sensors failed: {e}"); }
+        finally { _rescanningFans = false; }
     }
 
     int? ZoneSize(string device, string zone) => Config.Lighting.ZoneSizes.TryGetValue(device, out var z) && z.TryGetValue(zone, out var n) ? n : null;

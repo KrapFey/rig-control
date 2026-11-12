@@ -165,8 +165,11 @@ public sealed class Live
 
     bool _first = true;
     int _listeners;
+    FanEngine? _engine; // the one listened to (a rescan replaces the app's engine)
 
-    Live()
+    Live() => Fill();
+
+    void Fill()
     {
         var app = App.Instance!;
         foreach (var f in app.Hub.Fans) Fans.Add(new FanVm(f));
@@ -175,13 +178,31 @@ public sealed class Live
 
     public void Attach()
     {
-        if (_listeners++ == 0) App.Instance!.Engine.Updated += OnEngine;
+        if (_listeners++ == 0) Listen(true);
         Refresh();
     }
 
     public void Detach()
     {
-        if (--_listeners == 0) App.Instance!.Engine.Updated -= OnEngine;
+        if (--_listeners == 0) Listen(false);
+    }
+
+    void Listen(bool on)
+    {
+        if (_engine is not null) _engine.Updated -= OnEngine;
+        _engine = on ? App.Instance!.Engine : null;
+        if (_engine is not null) _engine.Updated += OnEngine;
+    }
+
+    /// <summary>After a rescan: the fans and sensors the new drivers found, on the new engine.</summary>
+    public void Reload()
+    {
+        Fans.Clear();
+        Temps.Clear();
+        Fill();
+        _first = true;
+        if (_listeners > 0) Listen(true);
+        Refresh();
     }
 
     void OnEngine() => App.Instance!.Ui.TryEnqueue(Refresh);

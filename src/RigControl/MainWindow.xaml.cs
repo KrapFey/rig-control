@@ -63,6 +63,16 @@ public sealed partial class MainWindow : Window
         ContentFrame.Navigate(Pages[tag], null, info);
     }
 
+    /// <summary>Builds the open page again (after a rescan replaced what it shows). A fan's page goes to the dashboard.</summary>
+    public void ReloadPage()
+    {
+        var page = ContentFrame.CurrentSourcePageType;
+        if (page is null) return;
+        if (page == typeof(FanPage)) page = typeof(DashboardPage);
+        ContentFrame.Navigate(page, null, new SuppressNavigationTransitionInfo());
+        if (ContentFrame.BackStackDepth > 0) ContentFrame.BackStack.RemoveAt(ContentFrame.BackStackDepth - 1); // not a step to go back to
+    }
+
     public void BringToFront()
     {
         if (AppWindow.Presenter is OverlappedPresenter p && p.State == OverlappedPresenterState.Minimized) p.Restore();

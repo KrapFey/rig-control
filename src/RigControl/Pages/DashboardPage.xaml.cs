@@ -160,5 +160,9 @@ public sealed partial class DashboardPage : Page
         visual.StartAnimation("Scale", anim);
     }
 
-    async void RescanFans_Click(object sender, RoutedEventArgs e) => await App.Instance!.RescanFansAsync(XamlRoot);
+    async void RescanFans_Click(object sender, RoutedEventArgs e)
+    {
+        ((Microsoft.UI.Xaml.Controls.Control)sender).IsEnabled = false; // the page is rebuilt when the scan is done
+        await App.Instance!.RescanFansAsync();
+    }
 }
