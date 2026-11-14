@@ -77,11 +77,32 @@ public sealed class RgbEngine : IDisposable
             }
         }
         _client = client;
-        _client.DeviceListChanged += () => _ = ReloadAsync();
+        _client.DeviceListChanged += ReloadSoon;
+        _client.ConnectionLost += () => { if (!_disposed) ConnectionLost?.Invoke(); };
         await ReloadAsync();
     }
 
+    /// <summary>OpenRGB closed the connection by itself (it crashed or was ended): the engine is dead and needs a fresh start.</summary>
+    public event Action? ConnectionLost;
+
+    int _reloadQueued;
+
+    /// <summary>
+    /// OpenRGB announces its list once per device while detecting (ten times in a second or two). Every rebuild puts
+    /// each device back into direct mode, so announcements are gathered: one reload a second at most, with the latest list.
+    /// </summary>
+    void ReloadSoon()
+    {
+        if (Interlocked.Exchange(ref _reloadQueued, 1) == 1) return;
+        _ = Task.Delay(1000).ContinueWith(_ =>
+        {
+            Volatile.Write(ref _reloadQueued, 0);
+            return ReloadAsync();
+        });
+    }
+
     readonly SemaphoreSlim _reload = new(1, 1);
+    string? _loaded; // what the last reload found, to skip lists that didn't change
 
     /// <summary>
     /// Reloads the device list. OpenRGB announces its list several times while detecting, so reloads run one at a
@@ -100,6 +121,9 @@ public sealed class RgbEngine : IDisposable
                 await Task.Delay(300); // let OpenRGB rebuild the resized controllers
                 Devices = await _client.GetDevicesAsync();
             }
+            var loaded = string.Join("\n", Devices.Select(d => $"{d.Index} {d.Key} {string.Join(',', d.Zones.Select(z => z.LedsCount))}"));
+            if (loaded == _loaded) return; // same devices, same LEDs: nothing to rebuild (or log)
+            _loaded = loaded;
             AppConfig.Log?.Invoke($"rgb: {Devices.Count} device(s): {string.Join(", ", Devices.Select(d => d.Name))}");
             var headers = Devices.SelectMany(d => d.Zones.Where(z => z.Resizable).Select(z => $"{d.Name} / {z.Name} = {z.LedsCount} ({z.LedsMin}-{z.LedsMax})")).ToList();
             if (headers.Count > 0) AppConfig.Log?.Invoke($"rgb: resizable headers: {string.Join("; ", headers)}");
@@ -147,6 +171,7 @@ public sealed class RgbEngine : IDisposable
     {
         _disposed = true;
         DevicesChanged = null;
+        ConnectionLost = null;
         _client?.Dispose();
         try { if (_proc is { HasExited: false }) { _proc.Kill(); _proc.WaitForExit(3000); } } catch { }
         _proc?.Dispose();

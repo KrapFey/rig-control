@@ -93,6 +93,20 @@ public sealed class HardwareHub : IDisposable
         Update();
     }
 
+    /// <summary>
+    /// The fan controllers plugged in now (HUE 2, and other liquidctl vendors' HID devices), as one string that changes
+    /// when one is plugged in or out. USB controllers often appear seconds after logon, after the first scan.
+    /// </summary>
+    public static string FanControllersPresent()
+    {
+        if (Demo.On) return "";
+        var native = Hue2Device.Supported.ToHashSet();
+        // ponytail: HID only; a liquidctl device on plain USB (libusb) needs the Rescan button
+        return string.Join("|", HidSharp.DeviceList.Local.GetHidDevices()
+            .Where(d => native.Contains((d.VendorID, d.ProductID)) || LiquidctlBridge.IsCandidate(d.VendorID, d.ProductID, native))
+            .Select(d => d.DevicePath).Order());
+    }
+
     void Collect(IHardware hw)
     {
         _lhmHardware.Add(hw);

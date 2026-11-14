@@ -119,8 +119,11 @@ sealed class Hue2Device : IDisposable
 
     static string SafeSerial(HidDevice dev)
     {
-        try { return dev.GetSerialNumber(); } catch { return dev.DevicePath.GetHashCode().ToString("x8"); }
+        try { return dev.GetSerialNumber(); } catch { return PathSerial(dev.DevicePath); }
     }
+
+    /// <summary>Stand-in serial from the HID path: the same on every run (string.GetHashCode isn't), so fan settings stay matched.</summary>
+    internal static string PathSerial(string devicePath) => Crc32(System.Text.Encoding.UTF8.GetBytes(devicePath)).ToString("x8");
 
     // liquidctl initialize() sends both of these at start. 60 03 rescans the fans and silences the device for
     // seconds (also for any other app reading it), so only nudge a device that isn't reporting on its own.

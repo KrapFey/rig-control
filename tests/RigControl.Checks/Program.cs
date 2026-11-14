@@ -175,6 +175,11 @@ Check(Hue2Device.LiquidctlStableId(Hue, "0123456789ABCDEF0123456789ABCDEF",
 Check(Hue2Device.LiquidctlStableId(Hue, "FEDCBA9876543210FEDCBA98",
     @"\\?\hid#vid_1e71&pid_2011#8&5e6f7a8b&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}") == 1655589662, "liquidctl id, controller B");
 
+// a HUE 2 that can't report its serial gets one from its path: CRC-32 (standard check value), never a per-run hash
+Check(Hue2Device.PathSerial("123456789") == "cbf43926", "HUE 2 stand-in serial is stable across runs");
+Check(LiquidctlBridge.IsCandidate(0x1B1C, 0x0C1C, new HashSet<(int, int)>()) && !LiquidctlBridge.IsCandidate(0x1E71, 0x2001, new HashSet<(int, int)>())
+      && !LiquidctlBridge.IsCandidate(0x1E71, 0x2020, Hue2Device.Supported.ToHashSet()), "fan controller watch: liquidctl vendors yes, lighting-only and native no");
+
 // aliases beat order-matching for identical controllers
 var exact = FanControlImport.Import(json, hw with
 {

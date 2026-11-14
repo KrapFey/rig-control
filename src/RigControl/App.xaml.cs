@@ -61,9 +61,24 @@ public partial class App : Application
             Config = new AppConfig();
         }
 
-        Hub.Open(Config.Drivers);
-        Engine = new FanEngine(Hub, Config) { Paused = OtherFanAppRunning() };
-        Engine.Start();
+        // Opening the hardware takes seconds: do it in the background so the tray and window appear at once.
+        // Until it's done, an engine over the empty hub stands in (it drives nothing).
+        Engine = new FanEngine(Hub, Config);
+
+        // A fan controller plugged in (or one that only showed up after logon): look for fans again.
+        _fanWatch = Ui.CreateTimer();
+        _fanWatch.Interval = TimeSpan.FromSeconds(2); // devices arrive as several interfaces; let them settle
+        _fanWatch.IsRepeating = false;
+        _fanWatch.Tick += async (_, _) =>
+        {
+            try
+            {
+                if (_openingFans || await Task.Run(HardwareHub.FanControllersPresent) == _fanControllers) return;
+                await OpenFansAsync("a fan controller was plugged in or out");
+            }
+            catch (Exception e) { Log($"fan controller check failed: {e.Message}"); }
+        };
+        HidSharp.DeviceList.Local.Changed += (_, _) => Ui.TryEnqueue(() => { _fanWatch.Stop(); _fanWatch.Start(); });
 
         // Two programs writing the same fans fight each other: stay hands-off while FanControl runs.
         var watch = Ui.CreateTimer();
@@ -100,7 +115,7 @@ public partial class App : Application
 
         Lighting = new LightingEngine(id => Hub.Temps.FirstOrDefault(t => t.Id == id)?.Value);
         Lighting.Apply(Config.Lighting);
-        _ = StartLightingAsync();
+        _ = StartHardwareAsync();
 
         CreateTray();
         if (!Environment.GetCommandLineArgs().Contains("--tray")) ShowWindow();
@@ -146,6 +161,13 @@ public partial class App : Application
         }
     }
 
+    /// <summary>Fans first, then OpenRGB, as before: both talk to the NZXT controllers, and fans must not lose that race.</summary>
+    async Task StartHardwareAsync()
+    {
+        await OpenFansAsync("start");
+        await StartLightingAsync();
+    }
+
     async Task StartLightingAsync()
     {
 #if UITEST
@@ -171,6 +193,7 @@ public partial class App : Application
             var rgb = new RgbEngine(Path.Combine(AppConfig.Folder, "openrgb")) { WantedZoneSize = ZoneSize };
             Rgb = rgb;
             rgb.DevicesChanged += RebuildTargets;
+            rgb.ConnectionLost += () => Ui.TryEnqueue(() => _ = LightingLostAsync(rgb));
             await Task.Run(() => rgb.StartAsync());
             LightingNotice = rgb.Problem;
             RebuildTargets();
@@ -200,34 +223,68 @@ public partial class App : Application
         Log($"rgb: rescan done, {Rgb?.Devices.Count ?? 0} device(s)");
     }
 
-    bool _rescanningFans;
+    long _lightingRestartedAt = -60_000;
+
+    /// <summary>OpenRGB went away by itself: start it again, so lighting doesn't stay dead until RigControl restarts.</summary>
+    async Task LightingLostAsync(RgbEngine lost)
+    {
+        if (_quitting || !ReferenceEquals(Rgb, lost)) return; // already replaced (a rescan) or on the way out
+        // ponytail: one restart a minute; an OpenRGB that keeps dying stays off, with a notice
+        if (Environment.TickCount64 - _lightingRestartedAt < 60_000)
+        {
+            LightingNotice = "The lighting engine (OpenRGB) stopped twice in a minute, so it's off for now. Use Rescan on the Lighting page to try again.";
+            Log("rgb: OpenRGB connection lost again within a minute, not restarting");
+            Lighting.SetTargets([]); // Rgb stays the dead engine, so Rescan can replace it
+            LightingStateChanged?.Invoke();
+            return;
+        }
+        _lightingRestartedAt = Environment.TickCount64;
+        Log("rgb: OpenRGB connection lost, starting it again");
+        await RescanLightingAsync();
+    }
+
+    bool _openingFans, _quitting;
+    DispatcherQueueTimer? _fanWatch;
+    string _fanControllers = ""; // what FanControllersPresent said when the hardware was last opened
+
+    /// <summary>Looks for fans and sensors again (the Rescan button).</summary>
+    public Task RescanFansAsync() => OpenFansAsync("rescan");
 
     /// <summary>
-    /// Looks for fans and sensors again: stops the fan loop (fans go back to their own control for the moment),
-    /// closes the drivers, opens them afresh, and starts a new fan loop on what they find. The open page reloads.
+    /// Opens the fan and sensor drivers afresh: stops the fan loop (fans go back to their own control for the moment),
+    /// closes the drivers, opens them again, and starts a new fan loop on what they find. The open page reloads.
     /// </summary>
-    public async Task RescanFansAsync()
+    async Task OpenFansAsync(string why)
     {
-        if (_rescanningFans) return;
-        _rescanningFans = true;
+        if (_openingFans) return;
+        _openingFans = true;
         try
         {
-            Log("rescan fans and sensors");
+            Log($"fans and sensors: opening ({why})");
             var sw = System.Diagnostics.Stopwatch.StartNew();
             var (oldEngine, oldHub) = (Engine, Hub);
-            // Close before opening: some controllers (NZXT) can only be open once.
-            await Task.Run(() => { oldEngine.Dispose(); oldHub.Dispose(); });
+            var drivers = new Dictionary<string, string>(Config.Drivers);
             var hub = new HardwareHub();
-            await Task.Run(() => hub.Open(Config.Drivers));
+            await Task.Run(() =>
+            {
+                // Close before opening: some controllers (NZXT) can only be open once.
+                oldEngine.Dispose();
+                oldHub.Dispose();
+                // Taken before opening: a controller that turns up while the drivers open still counts as new.
+                _fanControllers = HardwareHub.FanControllersPresent();
+                hub.Open(drivers);
+            });
+            if (_quitting) { hub.Dispose(); return; } // Exit was chosen meanwhile: drive nothing
             Hub = hub;
             Engine = new FanEngine(hub, Config) { Paused = OtherFanAppRunning() };
             Engine.Start();
             Live.Instance.Reload();
             _window?.ReloadPage();
-            Log($"rescan fans and sensors: {oldHub.Fans.Count} -> {hub.Fans.Count} fans, {oldHub.Temps.Count} -> {hub.Temps.Count} sensors ({sw.ElapsedMilliseconds} ms)");
+            Log($"fans and sensors: {oldHub.Fans.Count} -> {hub.Fans.Count} fans, {oldHub.Temps.Count} -> {hub.Temps.Count} sensors ({sw.ElapsedMilliseconds} ms)");
+            foreach (var p in hub.Problems) Log($"fans and sensors: {p}");
         }
-        catch (Exception e) { Log($"rescan fans and sensors failed: {e}"); }
-        finally { _rescanningFans = false; }
+        catch (Exception e) { Log($"fans and sensors: opening failed: {e}"); }
+        finally { _openingFans = false; }
     }
 
     int? ZoneSize(string device, string zone) => Config.Lighting.ZoneSizes.TryGetValue(device, out var z) && z.TryGetValue(zone, out var n) ? n : null;
@@ -402,6 +459,8 @@ public partial class App : Application
 
     public void Quit()
     {
+        _quitting = true;
+        _fanWatch?.Stop();
         _saveTimer?.Stop();
         try { Config.Save(); } catch (Exception e) { Log($"config save on exit failed: {e.Message}"); }
         Log("quit");

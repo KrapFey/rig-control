@@ -55,6 +55,10 @@ sealed class LiquidctlBridge : IDisposable
 
     static LiquidctlBridge? Dispose(LiquidctlBridge b) { b.Dispose(); return null; }
 
+    /// <summary>A USB id liquidctl could run fans or pumps on (lighting-only and natively driven devices aside).</summary>
+    internal static bool IsCandidate(int vid, int pid, ISet<(int vid, int pid)> native) =>
+        Vendors.Contains(vid.ToString("X4")) && !native.Contains((vid, pid)) && !LightingOnly.Contains((vid, pid));
+
     static bool CandidatePresent(ISet<(int vid, int pid)> native)
     {
         try

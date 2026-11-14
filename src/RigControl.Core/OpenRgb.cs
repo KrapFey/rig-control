@@ -268,6 +268,8 @@ public sealed class OpenRgbClient : IDisposable
     public uint ServerProtocol { get; private set; }
     /// <summary>Raised (on the reader thread) when OpenRGB's device list changed, e.g. after detection.</summary>
     public event Action? DeviceListChanged;
+    /// <summary>Raised (on the reader thread) when OpenRGB went away by itself, not when this client was closed.</summary>
+    public event Action? ConnectionLost;
     public bool Connected => !_closed && _tcp.Connected;
 
     public async Task ConnectAsync(string host, int port, string clientName, CancellationToken ct = default)
@@ -371,7 +373,12 @@ public sealed class OpenRgbClient : IDisposable
             }
         }
         catch when (_closed) { }
-        catch { _closed = true; _pending?.TrySetException(new IOException("OpenRGB connection lost")); }
+        catch
+        {
+            _closed = true;
+            _pending?.TrySetException(new IOException("OpenRGB connection lost"));
+            ConnectionLost?.Invoke();
+        }
     }
 
     public void Dispose()
