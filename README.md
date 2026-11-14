@@ -97,9 +97,11 @@ headset and keyboard, and watch it all live in a modern WinUI 3 interface.
 
 1. Install [PawnIO](https://pawnio.eu) (`winget install namazso.PawnIO`).
 2. Download `rig-control-<version>-setup.exe` from [Releases](https://github.com/KrapFey/rig-control/releases) and run it.
-   It installs for your user only (no admin prompt) into `%LOCALAPPDATA%\Programs\RigControl` and adds a Start
-   menu shortcut. RigControl asks for admin rights when it starts. Prefer no installer? The
-   `rig-control-<version>-win-x64.zip` is the same app: extract it somewhere permanent.
+   It installs into `Program Files\RigControl` (one admin prompt) and adds a Start menu shortcut. RigControl runs as
+   administrator, so its files live where only administrators can change them. Updating from 0.7.0 or older moves
+   RigControl there from `%LOCALAPPDATA%\Programs` by itself, keeping your settings and Start with Windows. Prefer no
+   installer? The `rig-control-<version>-win-x64.zip` is the same app: extract it somewhere permanent, ideally a
+   folder only administrators can write to.
 3. Optional:
    - **Import FanControl setup** on the dashboard brings over your curves and fan names.
    - **Settings → Start with Windows** starts RigControl in the tray at logon.

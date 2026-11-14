@@ -1,5 +1,6 @@
 ; RigControl installer (Inno Setup 6). Built by tools\build-release.ps1, which passes AppVersion and SourceDir.
-; Per-user install: no admin needed to install (RigControl itself asks for admin when it starts).
+; Installs into Program Files (one admin prompt). RigControl runs as admin, and Start with Windows runs it as admin
+; with no prompt: its files must not be writable by everything the user runs, which a per-user folder would be.
 #ifndef AppVersion
   #error Run tools\build-release.ps1 (it passes /DAppVersion and /DSourceDir)
 #endif
@@ -13,9 +14,9 @@ AppPublisher=KrapFey
 AppPublisherURL=https://github.com/KrapFey/rig-control
 AppSupportURL=https://github.com/KrapFey/rig-control/issues
 AppUpdatesURL=https://github.com/KrapFey/rig-control/releases
-DefaultDirName={localappdata}\Programs\RigControl
+DefaultDirName={autopf}\RigControl
 DisableProgramGroupPage=yes
-PrivilegesRequired=lowest
+PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0.19041
@@ -75,6 +76,32 @@ end;
 function InitializeSetup(): Boolean;
 begin
   Result := WaitUntilClosed();
+end;
+
+const
+  OldUninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{6F1C2B7E-4A9D-4E3B-9C5A-2D7E8B1F0A43}_is1';
+
+{ Up to 0.7.0 RigControl installed per user, into %LOCALAPPDATA%\Programs. That copy is removed once this one is in
+  place. Its uninstaller isn't used: it would also delete the Start with Windows task, which RigControl instead points
+  at this copy the next time it starts. Settings live in %APPDATA% and are untouched. }
+procedure RemovePerUserInstall();
+var
+  dir: String;
+begin
+  if not RegKeyExists(HKCU, OldUninstallKey) then exit;
+  dir := ExpandConstant('{localappdata}\Programs\RigControl');
+  if CompareText(dir, ExpandConstant('{app}')) <> 0 then
+  begin
+    DelTree(dir, True, True, True);
+    DeleteFile(ExpandConstant('{userprograms}\RigControl.lnk'));
+    DeleteFile(ExpandConstant('{userdesktop}\RigControl.lnk'));
+  end;
+  RegDeleteKeyIncludingSubkeys(HKCU, OldUninstallKey);
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then RemovePerUserInstall();
 end;
 
 function InitializeUninstall(): Boolean;

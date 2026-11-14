@@ -218,7 +218,7 @@ public sealed class Live
             app.Engine.Status.TryGetValue(vm.Id, out var st);
             vm.Name = string.IsNullOrWhiteSpace(s?.Name) ? ch.Name : s!.Name!;
             vm.Active = st?.Target is not null;
-            vm.Error = st?.Error;
+            vm.Error = st?.Error ?? (st?.Stalled == true ? "Not spinning: it reads 0 rpm although RigControl asks for speed. Check the fan and its cable." : null);
             vm.Mode = app.Engine.Paused ? "Paused"
                 : s is not { Enabled: true } ? "Hardware auto"
                 : s.Manual is double m ? $"Manual · {m:0}%"

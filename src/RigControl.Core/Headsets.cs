@@ -11,8 +11,9 @@ namespace RigControl.Core;
 public sealed class HeadsetControlDevice : IPeripheral
 {
     readonly string _id; // "vid:pid" for --device
-    PeripheralState _cache = new();
+    volatile PeripheralState _cache = new();
     double _cacheAt = double.NegativeInfinity;
+    Task? _refresh;
     static readonly Stopwatch Clock = Stopwatch.StartNew();
 
     public string Key { get; }
@@ -75,13 +76,25 @@ public sealed class HeadsetControlDevice : IPeripheral
         }
     }
 
+    /// <summary>
+    /// The last state read. Each read starts the tool and talks to the headset, which takes a moment (up to 10 s if it
+    /// hangs), so it runs in the background, at most every 5 s: one slow headset never holds up the mice and keyboards
+    /// that share the peripherals thread. The state found when the headset was listed is there from the start.
+    /// </summary>
     public PeripheralState Read()
     {
-        // Each read starts the tool and talks to the headset: at most every 5 s, even while the page is open.
-        if (Clock.Elapsed.TotalSeconds - _cacheAt < 5) return _cache;
-        _cacheAt = Clock.Elapsed.TotalSeconds;
+        if (Clock.Elapsed.TotalSeconds - _cacheAt >= 5 && _refresh is not { IsCompleted: false })
+        {
+            _cacheAt = Clock.Elapsed.TotalSeconds;
+            _refresh = Task.Run(ReadNow);
+        }
+        return _cache;
+    }
+
+    void ReadNow()
+    {
         var json = Run(["-d", _id, "-o", "json"]);
-        if (json is null) return _cache;
+        if (json is null) return;
         try
         {
             using var doc = JsonDocument.Parse(json);
@@ -89,7 +102,6 @@ public sealed class HeadsetControlDevice : IPeripheral
             if (d.ValueKind == JsonValueKind.Object) _cache = Parse(d);
         }
         catch (Exception e) { AppConfig.Log?.Invoke($"headsetcontrol {Name}: {e.Message}"); }
-        return _cache;
     }
 
     static PeripheralState Parse(JsonElement d)
@@ -130,6 +142,7 @@ public sealed class HeadsetControlDevice : IPeripheral
         if (s.EqPreset is int ep && ep >= 0 && ep < Caps.EqPresets.Length) args.AddRange(["-p", ep.ToString()]);
         if (s.Anc is int anc && Caps.Anc) args.AddRange(["--anc", Math.Clamp(anc, 0, 2).ToString()]);
         if (args.Count == 2) return;
+        _refresh?.Wait(10_000); // one conversation with the headset at a time
         Run(args);
         _cacheAt = double.NegativeInfinity; // read fresh next time
     }

@@ -57,11 +57,35 @@ public sealed class Hysteresis
     }
 }
 
+/// <summary>
+/// Spots a driven fan that has stopped: it reads 0 rpm for <see cref="Seconds"/> while asked for at least
+/// <see cref="MinDuty"/>%. Only fans seen spinning before count, so an empty header or a fan without a speed signal
+/// never raises it.
+/// </summary>
+public sealed class StallWatch
+{
+    public const double MinDuty = 30, Seconds = 10;
+    bool _spun;
+    double? _since;
+
+    public bool Update(float? rpm, double duty, double now)
+    {
+        if (rpm > 0) _spun = true;
+        if (_spun && rpm == 0 && duty >= MinDuty) _since ??= now; else _since = null;
+        return _since is double s && now - s >= Seconds;
+    }
+
+    public void Reset() => _since = null;
+}
+
 public sealed class FanStatus
 {
     public required FanChannel Channel { get; init; }
     public double? Target { get; set; }
     public string? Error { get; set; }
+    /// <summary>Driven but not spinning (see <see cref="StallWatch"/>): stopped, unplugged, or a failed pump.</summary>
+    public bool Stalled { get; set; }
+    internal StallWatch Watch { get; } = new();
 }
 
 /// <summary>
@@ -178,7 +202,7 @@ public sealed class FanEngine : IDisposable
         if (Paused)
         {
             ReleaseDriven();
-            foreach (var st in Status.Values) st.Target = null;
+            foreach (var st in Status.Values) { st.Target = null; st.Stalled = false; st.Watch.Reset(); }
             _last.Clear();
             return;
         }
@@ -192,23 +216,33 @@ public sealed class FanEngine : IDisposable
             {
                 if (_driven.Remove(id)) Safe(st, fan.Release);
                 st.Target = null;
+                st.Stalled = false;
+                st.Watch.Reset();
                 _last.Remove(id);
                 continue;
             }
 
-            double target;
-            if (identify) target = 0;
-            else if (s!.Manual is double m) target = m;
-            else target = (s.Curve is not null ? Eval(s.Curve, 0) : null) ?? 100; // sensor lost -> full speed
-
-            double duty = identify ? 0 : CurveMath.NextDuty(target, _last.TryGetValue(id, out var l) ? l : null, s!);
+            double duty;
+            // Identify stops a fan for a moment; a pump is never stopped, not even briefly: it's sped up instead.
+            if (identify) duty = IsPump(fan, s) ? 100 : 0;
+            else
+            {
+                double target = s!.Manual is double m ? m
+                    : (s.Curve is not null ? Eval(s.Curve, 0) : null) ?? 100; // sensor lost -> full speed
+                duty = CurveMath.NextDuty(target, _last.TryGetValue(id, out var l) ? l : null, s);
+            }
             _last[id] = duty;
             st.Target = duty;
+            st.Stalled = st.Watch.Update(fan.Rpm, duty, now);
             _driven.Add(id);
             Safe(st, () => fan.Set((float)duty));
         }
         _hub.Flush();
     }
+
+    /// <summary>A channel that runs a pump, by its hardware name or the name you gave it.</summary>
+    internal static bool IsPump(FanChannel fan, FanSettings? s) =>
+        fan.Name.Contains("pump", StringComparison.OrdinalIgnoreCase) || s?.Name?.Contains("pump", StringComparison.OrdinalIgnoreCase) == true;
 
     static void Safe(FanStatus st, Action a)
     {

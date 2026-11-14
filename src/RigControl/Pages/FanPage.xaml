@@ -60,7 +60,7 @@
                     <TextBox Grid.Row="1" Header="Name" Text="{x:Bind Name, Mode=TwoWay}" PlaceholderText="{x:Bind Live.Channel.Name}" />
                     <ToggleSwitch Grid.Row="1" Grid.Column="1" Header="Controlled by RigControl" IsOn="{x:Bind Enabled, Mode=TwoWay}" />
                     <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
-                        <Button Content="Identify" Click="{x:Bind Identify}" ToolTipService.ToolTip="Stops this fan for 8 seconds so you can spot it" />
+                        <Button Content="Identify" Click="{x:Bind Identify}" ToolTipService.ToolTip="Stops this fan for 8 seconds so you can spot it (a pump runs at full speed instead)" />
                         <DropDownButton Content="Swap with…" ToolTipService.ToolTip="Exchange name, curve and settings with another fan (fixes mixed-up identical controllers)">
                             <DropDownButton.Flyout>
                                 <MenuFlyout Opening="SwapMenu_Opening" />

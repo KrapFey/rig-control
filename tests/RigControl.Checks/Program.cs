@@ -131,6 +131,20 @@ Check(Near(CurveMath.NextDuty(5, null, s), 0), "below stop -> 0");
 Check(Near(CurveMath.NextDuty(10, 0, s), 16), "spin-up from 0 kicks to start percent");
 Check(Near(CurveMath.NextDuty(10, null, new FanSettings { MinPercent = 25 }), 25), "min percent clamps");
 
+// A stopped fan: 0 rpm for 10 s at 30 %+, after it was seen spinning. Empty headers and slow spin-ups never alarm.
+{
+    var w = new StallWatch();
+    Check(!w.Update(0, 80, 0) && !w.Update(0, 80, 60), "stall: a fan never seen spinning (empty header) never alarms");
+    w.Update(900, 50, 61);
+    Check(!w.Update(0, 50, 62) && !w.Update(0, 50, 71.9), "stall: not yet after under 10 s at 0 rpm");
+    Check(w.Update(0, 50, 72), "stall: 0 rpm for 10 s at 50 % is a stopped fan");
+    Check(!w.Update(0, 20, 73), "stall: below 30 % a 0 rpm fan may just be stopping on purpose");
+    Check(!w.Update(0, 50, 74) && !w.Update(null, 50, 90), "stall: the clock restarts, and no reading (null) isn't 0 rpm");
+    Check(!w.Update(800, 50, 95), "stall: spinning again clears it");
+}
+Check(FanEngine.IsPump(new TestFan("AIO Pump"), null) && FanEngine.IsPump(new TestFan("Fan #2"), new FanSettings { Name = "Loop pump" })
+      && !FanEngine.IsPump(new TestFan("Fan #2"), new FanSettings { Name = "Rear" }), "identify: pumps found by hardware name or your name");
+
 // --- hysteresis: 3 degree deadband, 2 s response
 var h = new Hysteresis();
 Check(Near(h.Apply(50, 0, 3, 2, 85), 50), "first reading is used");
@@ -710,6 +724,12 @@ static void Probe()
 }
 
 /// <summary>A pretend RGB device that notes when each frame arrives.</summary>
+sealed class TestFan(string name) : FanChannel($"test/{name}", name, "test")
+{
+    public override void Set(float percent) { }
+    public override void Release() { }
+}
+
 sealed class PacedTarget(string key, int fps) : IRgbTarget
 {
     readonly List<double> _at = [];

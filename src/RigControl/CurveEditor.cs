@@ -86,7 +86,36 @@ public sealed class CurveEditor : Grid
     {
         _points = [.. points.OrderBy(p => p.Temp)];
         if (_points.Count < 2) _points = [new(30, 30), new(80, 100)];
+        _committed = [.. _points];
+        _undo.Clear(); // another curve: its own history
+        UndoChanged?.Invoke();
         Redraw();
+    }
+
+    // Undo: every finished edit (a drag let go, a point added or removed) keeps the points from before it.
+    readonly Stack<List<CurvePoint>> _undo = new();
+    List<CurvePoint> _committed = [];
+    public bool CanUndo => _undo.Count > 0;
+    public event Action? UndoChanged;
+
+    /// <summary>An edit is finished: remember what came before it, and report the new points.</summary>
+    void Commit()
+    {
+        if (_points.SequenceEqual(_committed)) return; // a click without a move
+        _undo.Push(_committed);
+        _committed = [.. _points];
+        UndoChanged?.Invoke();
+        PointsChanged?.Invoke([.. _points]);
+    }
+
+    public void Undo()
+    {
+        if (_undo.Count == 0) return;
+        _points = _undo.Pop();
+        _committed = [.. _points];
+        UndoChanged?.Invoke();
+        Redraw();
+        PointsChanged?.Invoke([.. _points]);
     }
 
     /// <summary>Where the curve is now: input temperature and resulting percent.</summary>
@@ -166,14 +195,14 @@ public sealed class CurveEditor : Grid
             StrokeThickness = 3,
             RenderTransform = new ScaleTransform { CenterX = 8, CenterY = 8 },
         };
-        ToolTipService.SetToolTip(e, "Drag to move · right-click to remove");
+        ToolTipService.SetToolTip(e, "Drag to move · right-click to remove · Ctrl+Z to undo");
         e.PointerEntered += (_, _) => { SetCursor(InputSystemCursorShape.SizeAll); Grow(e, 1.4); };
         e.PointerExited += (_, _) => { if (_drag < 0) { SetCursor(InputSystemCursorShape.Arrow); Grow(e, 1); } };
         e.PointerPressed += (_, args) =>
         {
             if (args.GetCurrentPoint(e).Properties.IsRightButtonPressed)
             {
-                if (_points.Count > 2) { _points.RemoveAt(_thumbs.IndexOf(e)); Redraw(); PointsChanged?.Invoke([.. _points]); }
+                if (_points.Count > 2) { _points.RemoveAt(_thumbs.IndexOf(e)); Redraw(); Commit(); }
             }
             else
             {
@@ -231,7 +260,7 @@ public sealed class CurveEditor : Grid
         _drag = -1;
         _canvas.ReleasePointerCapture(e.Pointer);
         SetCursor(InputSystemCursorShape.Arrow);
-        PointsChanged?.Invoke([.. _points]);
+        Commit();
     }
 
     void OnDoubleTap(object sender, DoubleTappedRoutedEventArgs e)
@@ -242,7 +271,7 @@ public sealed class CurveEditor : Grid
         _points.Add(new(t, Math.Round(Math.Clamp(p, 0, 100))));
         _points.Sort((a, b) => a.Temp.CompareTo(b.Temp));
         Redraw();
-        PointsChanged?.Invoke([.. _points]);
+        Commit();
     }
 
     void PlaceMarker()

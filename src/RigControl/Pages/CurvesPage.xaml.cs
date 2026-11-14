@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using RigControl.Core;
 
 namespace RigControl.Pages;
@@ -34,6 +35,7 @@ public sealed partial class CurvesPage : Page
     {
         InitializeComponent();
         Editor.PointsChanged += pts => { if (_sel is null) return; _sel.Def.Points = pts; App.Instance!.ConfigChanged(); };
+        Editor.UndoChanged += () => UndoButton.IsEnabled = Editor.CanUndo;
         Loaded += (_, _) =>
         {
             _temps = [.. App.Instance!.Hub.Temps.OrderBy(t => t.Device).ThenBy(t => t.Name).Select(t => new TempOption(t.Id, $"{App.Instance.SensorLabel(t)} · {t.Device}"))];
@@ -46,6 +48,16 @@ public sealed partial class CurvesPage : Page
             OnLive();
         };
         Unloaded += (_, _) => { Live.Instance.Refreshed -= OnLive; Live.Instance.Detach(); };
+    }
+
+    void Undo_Click(object sender, RoutedEventArgs e) => Editor.Undo();
+
+    /// <summary>Ctrl+Z: the curve's, unless you're typing (a text box undoes its own text).</summary>
+    void Undo_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        if (FocusManager.GetFocusedElement(XamlRoot) is TextBox) return;
+        Editor.Undo();
+        args.Handled = true;
     }
 
     void OnLive()
@@ -78,7 +90,7 @@ public sealed partial class CurvesPage : Page
         bool graph = d?.Kind == CurveKind.Graph, mix = d?.Kind == CurveKind.Mix, flat = d?.Kind == CurveKind.Flat;
         NameBox.Visibility = FansButton.Visibility = d is null ? Visibility.Collapsed : Visibility.Visible;
         if (d is not null) ShowFans(d);
-        Editor.Visibility = SourceBox.Visibility = DeadbandBox.Visibility = ResponseBox.Visibility = graph ? Visibility.Visible : Visibility.Collapsed;
+        Editor.Visibility = SourceBox.Visibility = DeadbandBox.Visibility = ResponseBox.Visibility = UndoButton.Visibility = graph ? Visibility.Visible : Visibility.Collapsed;
         MixPanel.Visibility = MixBox.Visibility = mix ? Visibility.Visible : Visibility.Collapsed;
         FlatPanel.Visibility = flat ? Visibility.Visible : Visibility.Collapsed;
         if (d is null) { _loading = false; return; }

@@ -164,6 +164,13 @@ public partial class App : Application
     /// <summary>Fans first, then OpenRGB, as before: both talk to the NZXT controllers, and fans must not lose that race.</summary>
     async Task StartHardwareAsync()
     {
+#if !UITEST
+        _ = Task.Run(() =>
+        {
+            try { if (Startup.FollowThisCopy()) Log($"start with Windows: task now starts {Environment.ProcessPath}"); }
+            catch (Exception e) { Log($"start with Windows: couldn't update the task: {e.Message}"); }
+        });
+#endif
         await OpenFansAsync("start");
         await StartLightingAsync();
     }
@@ -461,9 +468,26 @@ public partial class App : Application
         _tray.ForceCreate(enablesEfficiencyMode: false);
         _trayTimer = Ui.CreateTimer();
         _trayTimer.Interval = TimeSpan.FromSeconds(2);
-        _trayTimer.Tick += (_, _) => UpdateTrayTooltip();
+        _trayTimer.Tick += (_, _) => { UpdateTrayTooltip(); CheckStalls(); };
         _trayTimer.Start();
         UpdateTrayTooltip();
+    }
+
+    readonly HashSet<string> _stallsShown = [];
+
+    /// <summary>A Windows notification when a driven fan stops spinning (once, until it spins again).</summary>
+    void CheckStalls()
+    {
+        foreach (var (id, st) in Engine.Status)
+        {
+            if (!st.Stalled) { _stallsShown.Remove(id); continue; }
+            if (!_stallsShown.Add(id)) continue;
+            var name = Config.Fans.TryGetValue(id, out var s) && !string.IsNullOrWhiteSpace(s.Name) ? s.Name : st.Channel.Name;
+            Log($"fan {id} ({name}): not spinning at {st.Target:0}%");
+            _tray?.ShowNotification("A fan isn't spinning",
+                $"{name} ({st.Channel.Device}) reads 0 rpm at {st.Target:0}%. Check the fan and its cable.",
+                H.NotifyIcon.Core.NotificationIcon.Warning);
+        }
     }
 
     /// <summary>Starts a fresh instance (it waits for this one to exit), then quits. Keeps admin, no UAC prompt.</summary>

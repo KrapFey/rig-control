@@ -161,7 +161,7 @@ public sealed class AudioListener : IDisposable
 {
     readonly AudioAnalyzer _analyzer = new();
     readonly object _lock = new();
-    IWaveIn? _capture;
+    WasapiRecorder? _capture;
     (bool input, string? device)? _want, _running;
     Timer? _retry;
 
@@ -196,9 +196,8 @@ public sealed class AudioListener : IDisposable
         {
             using var e = new MMDeviceEnumerator();
             var dev = s.device is string id ? e.GetDevice(id) : e.GetDefaultAudioEndpoint(s.input ? DataFlow.Capture : DataFlow.Render, Role.Multimedia);
-            IWaveIn cap = s.input ? new WasapiCapture(dev) : new WasapiLoopbackCapture(dev);
-            var format = cap.WaveFormat;
-            cap.DataAvailable += (_, a) => Feed(a, format);
+            var builder = new WasapiRecorderBuilder().WithDevice(dev);
+            var cap = (s.input ? builder : builder.WithLoopbackCapture()).Build();
             cap.RecordingStopped += (_, a) =>
             {
                 // Unplugged, default device changed, exclusive mode taken: try again shortly.
@@ -206,6 +205,9 @@ public sealed class AudioListener : IDisposable
                 lock (_lock) if (_capture == cap) { _capture = null; _running = null; ScheduleRetry(); }
             };
             cap.StartRecording();
+            var format = cap.WaveFormat; // known once recording started
+            // WASAPI's "silent" packets carry no samples worth reading: count them as silence.
+            cap.DataAvailable += (buffer, flags, _, _) => Feed(buffer, flags.HasFlag(AudioClientBufferFlags.Silent), format);
             _capture = cap;
             _running = s;
             AppConfig.Log?.Invoke($"audio: listening to {(s.input ? "microphone" : "output")} \"{dev.FriendlyName}\" ({format.SampleRate} Hz, {format.Channels} ch)");
@@ -223,14 +225,14 @@ public sealed class AudioListener : IDisposable
         _retry = new Timer(_ => { lock (_lock) if (_want is { } w && _capture is null) Start(w); }, null, 2000, Timeout.Infinite);
     }
 
-    void Feed(WaveInEventArgs a, WaveFormat f)
+    void Feed(ReadOnlySpan<byte> span, bool silent, WaveFormat f)
     {
-        int ch = Math.Max(1, f.Channels), frames = a.BytesRecorded / Math.Max(1, f.BlockAlign);
+        int ch = Math.Max(1, f.Channels), frames = span.Length / Math.Max(1, f.BlockAlign);
         if (frames == 0) return;
         // High-rate interfaces (96/192 kHz): average down to about 48 kHz, so the bass bands keep their resolution.
         int step = Math.Max(1, f.SampleRate / 48000);
         var mono = new float[frames / step];
-        var span = a.Buffer.AsSpan(0, a.BytesRecorded);
+        if (silent) { _analyzer.Feed(mono, f.SampleRate / step); return; }
         bool isFloat = f.Encoding == WaveFormatEncoding.IeeeFloat || (f.Encoding == WaveFormatEncoding.Extensible && f.BitsPerSample == 32);
         for (int i = 0; i < frames; i++)
         {

@@ -50,12 +50,30 @@ static class Startup
 
     public static void Disable() => Run("/delete", "/tn", TaskName, "/f");
 
-    static int Run(params string[] args)
+    /// <summary>
+    /// The task starts the program it was made for. When RigControl moved (a new install folder, the zip extracted
+    /// elsewhere), the task is made again for this copy, so Start with Windows keeps working. True when it was.
+    /// </summary>
+    public static bool FollowThisCopy()
+    {
+        var (code, xml) = RunWithOutput("/query", "/tn", TaskName, "/xml");
+        if (code != 0) return false; // no task: Start with Windows is off
+        var m = System.Text.RegularExpressions.Regex.Match(xml, "<Command>(.*?)</Command>");
+        var command = m.Success ? System.Net.WebUtility.HtmlDecode(m.Groups[1].Value).Trim('"') : "";
+        if (string.Equals(command, Environment.ProcessPath, StringComparison.OrdinalIgnoreCase)) return false;
+        Enable();
+        return true;
+    }
+
+    static int Run(params string[] args) => RunWithOutput(args).code;
+
+    static (int code, string output) RunWithOutput(params string[] args)
     {
         var psi = new ProcessStartInfo("schtasks.exe") { CreateNoWindow = true, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
         foreach (var a in args) psi.ArgumentList.Add(a);
         using var p = Process.Start(psi)!;
+        var output = p.StandardOutput.ReadToEndAsync();
         p.WaitForExit(10_000);
-        return p.ExitCode;
+        return (p.ExitCode, output.Wait(1000) ? output.Result : "");
     }
 }

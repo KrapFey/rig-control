@@ -65,6 +65,13 @@
                 <Button x:Name="DeleteButton" Click="Delete_Click" ToolTipService.ToolTip="Delete curve">
                     <FontIcon Glyph="&#xE74D;" FontSize="14" />
                 </Button>
+                <Button x:Name="UndoButton" IsEnabled="False" Click="Undo_Click" AutomationProperties.Name="Undo"
+                        ToolTipService.ToolTip="Undo the last change to the curve's points">
+                    <Button.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="Z" Modifiers="Control" Invoked="Undo_Invoked" />
+                    </Button.KeyboardAccelerators>
+                    <FontIcon Glyph="&#xE7A7;" FontSize="14" />
+                </Button>
             </StackPanel>
         </Grid>
 

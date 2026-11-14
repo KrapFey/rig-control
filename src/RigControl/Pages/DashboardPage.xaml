@@ -90,8 +90,12 @@
                                         <ColumnDefinition />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <!-- the same "opens its settings" hint the device cards have -->
-                                    <FontIcon Grid.Column="2" Glyph="&#xE76C;" FontSize="12" Opacity="0.5" VerticalAlignment="Center" />
+                                    <!-- the same "opens its settings" hint the device cards have; a warning first when something's wrong -->
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <FontIcon Glyph="&#xE7BA;" FontSize="14" Foreground="{StaticResource SystemFillColorCriticalBrush}"
+                                                  Visibility="{x:Bind local:Fmt.ShowText(Error), Mode=OneWay}" ToolTipService.ToolTip="{x:Bind Error, Mode=OneWay}" />
+                                        <FontIcon Glyph="&#xE76C;" FontSize="12" Opacity="0.5" />
+                                    </StackPanel>
                                     <c:FanGlyph Rpm="{x:Bind Rpm.Value, Mode=OneWay}" />
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                         <TextBlock Text="{x:Bind Name, Mode=OneWay}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
