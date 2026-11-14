@@ -76,7 +76,7 @@ headset and keyboard, and watch it all live in a modern WinUI 3 interface.
     are written, never the keyboard's saved profiles.
 - **Supported devices:** a searchable list (fuzzy: "dthaddr v2" finds the DeathAdder V2) of every device and
   device family RigControl handles, built by `tools/gen-supported-devices.py` from each source's own data.
-- **Sensor names:** rename any temperature sensor on the Sensors page; the name is used everywhere (dashboard,
+- **Sensor names:** rename any temperature sensor on the Sensors page; the name is used everywhere (overview,
   curves, temperature lighting).
 - **Import from FanControl:** curves, fan names and fan settings, including NZXT controllers driven through
   the FanControl.Liquidctl plugin (matched by the plugin's own device ids).
@@ -103,7 +103,7 @@ headset and keyboard, and watch it all live in a modern WinUI 3 interface.
    installer? The `rig-control-<version>-win-x64.zip` is the same app: extract it somewhere permanent, ideally a
    folder only administrators can write to.
 3. Optional:
-   - **Import FanControl setup** on the dashboard brings over your curves and fan names.
+   - **Import FanControl setup** on the Overview page brings over your curves and fan names.
    - **Settings → Start with Windows** starts RigControl in the tray at logon.
 
 RigControl checks GitHub for a newer release at start and once a day, and offers to update in one click (the

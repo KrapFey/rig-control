@@ -79,7 +79,8 @@ public sealed class PeripheralCard : Observable
         }
     }
 
-    public string Glyph => _device.Kind switch { "Headset" => "", "Keyboard" => "", _ => "" };
+    public string Glyph => GlyphFor(_device.Kind);
+    public static string GlyphFor(string kind) => kind switch { "Headset" => "", "Keyboard" => "", _ => "" };
     PeripheralCaps Caps => _device.Caps;
 
     static AppConfig Cfg => App.Instance!.Config;
@@ -228,7 +229,9 @@ public sealed class PeripheralCard : Observable
     // Battery
     public Visibility BatteryVisibility => _state.BatteryPercent is null ? Visibility.Collapsed : Visibility.Visible;
     public string BatteryText => _state.BatteryPercent is int b ? $"{b}%" : "";
-    public string BatteryGlyph => _state.Charging == true ? "" : _state.BatteryPercent switch { >= 80 => "", >= 50 => "", >= 20 => "", _ => "" };
+    public string BatteryGlyph => BatteryGlyphFor(_state);
+    public static string BatteryGlyphFor(PeripheralState s) =>
+        s.Charging == true ? "" : s.BatteryPercent switch { >= 80 => "", >= 50 => "", >= 20 => "", _ => "" };
 
     // DPI
     public Visibility DpiVisibility => Caps.Dpi ? Visibility.Visible : Visibility.Collapsed;

@@ -154,6 +154,26 @@ public sealed class TempGroup(string device, IEnumerable<TempVm> items) : List<T
     public string Device { get; } = device;
 }
 
+/// <summary>
+/// The last 10 minutes of the overview's readings (CPU, GPU, liquid, airflow), one sample every 2 s. Kept by the app
+/// whether or not a window is open, so the overview has a past the moment it opens.
+/// </summary>
+public sealed class History
+{
+    public const int Samples = 300;
+    readonly Dictionary<string, Queue<double>> _series = [];
+
+    public void Add(string key, double? value)
+    {
+        if (value is not double v || double.IsNaN(v)) return;
+        if (!_series.TryGetValue(key, out var q)) _series[key] = q = new Queue<double>(Samples + 1);
+        q.Enqueue(v);
+        while (q.Count > Samples) q.Dequeue();
+    }
+
+    public IReadOnlyList<double> Of(string key) => _series.TryGetValue(key, out var q) ? [.. q] : [];
+}
+
 /// <summary>Everything the pages show, refreshed from the engine each tick while a window is open.</summary>
 public sealed class Live
 {
@@ -245,6 +265,9 @@ public sealed class Live
 
     public static TempSensor? CpuSensor(IEnumerable<TempSensor> temps) => Pick(temps, ["CPU Package", "Core (Tctl/Tdie)", "Core Max", "CPU"], "cpu");
     public static TempSensor? GpuSensor(IEnumerable<TempSensor> temps) => Pick(temps, ["GPU Core", "GPU Hot Spot"], "gpu");
+    /// <summary>An AIO's or custom loop's coolant temperature, when a controller reports one.</summary>
+    public static TempSensor? LiquidSensor(IEnumerable<TempSensor> temps) =>
+        temps.FirstOrDefault(t => t.Name.Contains("Liquid", StringComparison.OrdinalIgnoreCase) || t.Name.Contains("Coolant", StringComparison.OrdinalIgnoreCase));
 
     static TempSensor? Pick(IEnumerable<TempSensor> temps, string[] names, string idHint)
     {

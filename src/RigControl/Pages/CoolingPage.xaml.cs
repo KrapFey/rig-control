@@ -110,7 +110,7 @@ public sealed partial class CoolingPage : Page
     List<TempOption> _temps = [];
     CurveGroup? _sel;
     FanEdit? _fan;
-    string? _openFan; // asked for when navigating here (a dashboard tile)
+    string? _openFan, _openCurve; // asked for when navigating here (from the overview)
     bool _loading;
 
     static AppConfig Cfg => App.Instance!.Config;
@@ -127,7 +127,9 @@ public sealed partial class CoolingPage : Page
             BuildGroups();
             Groups.ItemsSource = _groups;
             var fan = Live.Instance.Fans.FirstOrDefault(f => f.Id == _openFan);
-            Select(fan is not null ? GroupOf(fan) ?? _groups.FirstOrDefault(g => g.Def is not null) : _groups.FirstOrDefault(g => g.Def is not null));
+            Select(_groups.FirstOrDefault(g => g.Def is not null && g.Def.Name == _openCurve)
+                   ?? (fan is not null ? GroupOf(fan) : null)
+                   ?? _groups.FirstOrDefault(g => g.Def is not null));
             if (fan is not null) ShowFan(fan);
             Live.Instance.Refreshed += OnLive;
             OnLive();
@@ -135,8 +137,12 @@ public sealed partial class CoolingPage : Page
         Unloaded += (_, _) => { Live.Instance.Refreshed -= OnLive; Live.Instance.Detach(); };
     }
 
-    /// <summary>A fan id opens that fan's settings (from its dashboard tile).</summary>
-    protected override void OnNavigatedTo(NavigationEventArgs e) => _openFan = e.Parameter as string;
+    /// <summary>"curve:Name" selects that curve; a fan id opens that fan's settings.</summary>
+    protected override void OnNavigatedTo(NavigationEventArgs e)
+    {
+        if (e.Parameter is not string p) return;
+        if (p.StartsWith("curve:", StringComparison.Ordinal)) _openCurve = p["curve:".Length..]; else _openFan = p;
+    }
 
     // ---- the curves and their fans
 

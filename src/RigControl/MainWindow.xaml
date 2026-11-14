@@ -57,7 +57,7 @@
             SelectionChanged="Nav_SelectionChanged"
             ItemInvoked="Nav_ItemInvoked">
             <NavigationView.MenuItems>
-                <NavigationViewItem Content="Dashboard" Tag="Dashboard" IsSelected="True">
+                <NavigationViewItem Content="Overview" Tag="Overview" IsSelected="True">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE80F;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem Content="Cooling" Tag="Cooling">

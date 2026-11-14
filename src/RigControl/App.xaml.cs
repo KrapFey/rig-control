@@ -471,9 +471,20 @@ public partial class App : Application
         _tray.ForceCreate(enablesEfficiencyMode: false);
         _trayTimer = Ui.CreateTimer();
         _trayTimer.Interval = TimeSpan.FromSeconds(2);
-        _trayTimer.Tick += (_, _) => { UpdateTrayTooltip(); CheckStalls(); };
+        _trayTimer.Tick += (_, _) => { UpdateTrayTooltip(); CheckStalls(); SampleHistory(); };
         _trayTimer.Start();
         UpdateTrayTooltip();
+    }
+
+    /// <summary>The overview's last 10 minutes (see <see cref="RigControl.History"/>).</summary>
+    public History History { get; } = new();
+
+    void SampleHistory()
+    {
+        History.Add("cpu", Live.CpuSensor(Hub.Temps)?.Value);
+        History.Add("gpu", Live.GpuSensor(Hub.Temps)?.Value);
+        History.Add("liquid", Live.LiquidSensor(Hub.Temps)?.Value);
+        History.Add("air", Live.Airflow(Hub.Fans));
     }
 
     readonly HashSet<string> _stallsShown = [];

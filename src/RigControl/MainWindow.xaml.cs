@@ -13,7 +13,7 @@ public sealed partial class MainWindow : Window
 {
     static readonly Dictionary<string, Type> Pages = new()
     {
-        ["Dashboard"] = typeof(DashboardPage),
+        ["Overview"] = typeof(OverviewPage),
         ["Cooling"] = typeof(CoolingPage),
         ["Lighting"] = typeof(LightingPage),
         ["Devices"] = typeof(DevicesPage),
@@ -41,7 +41,7 @@ public sealed partial class MainWindow : Window
             _statusTimer.Stop();
             RememberPlacement();
         };
-        Navigate("Dashboard", null);
+        Navigate("Overview", null);
         UpdateStatus();
     }
 
@@ -85,7 +85,7 @@ public sealed partial class MainWindow : Window
 
     void Nav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
-        var tag = args.IsSettingsSelected ? "Settings" : (args.SelectedItemContainer?.Tag as string ?? "Dashboard");
+        var tag = args.IsSettingsSelected ? "Settings" : (args.SelectedItemContainer?.Tag as string ?? "Overview");
         Navigate(tag, args.RecommendedNavigationTransitionInfo);
     }
 

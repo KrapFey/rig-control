@@ -42,75 +42,41 @@ static class Heat
     public static Color WithAlpha(this Color c, byte a) => Color.FromArgb(a, c.R, c.G, c.B);
 }
 
-/// <summary>270° arc gauge with a heat-tinted, breathing glow behind it.</summary>
-public sealed class Gauge : Grid
+/// <summary>A small line of recent values (the overview's last 10 minutes), drawn right-aligned over the whole window.</summary>
+public sealed class Sparkline : Grid
 {
-    const double Size = 140, Stroke = 11, Start = 135, Sweep = 270;
-    readonly Path _track = new() { StrokeThickness = Stroke, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round };
-    readonly Path _arc = new() { StrokeThickness = Stroke, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round };
-    readonly Ellipse _glow = new() { Width = Size * 1.25, Height = Size * 1.25, IsHitTestVisible = false };
-    readonly TextBlock _value = new() { FontSize = 36, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
-    readonly TextBlock _label = new() { FontSize = 12, Opacity = 0.65, HorizontalAlignment = HorizontalAlignment.Center, CharacterSpacing = 80 };
-    readonly GradientStop _glowStop = new() { Offset = 0 };
-    readonly LinearGradientBrush _arcBrush = new() { StartPoint = new(0, 1), EndPoint = new(1, 0) };
+    readonly Polyline _line = new() { StrokeThickness = 2, StrokeLineJoin = PenLineJoin.Round };
+    IReadOnlyList<double> _values = [];
 
-    public double Max { get; set; } = 100;
-    public string Unit { get; set; } = "°";
-    public string Label { get => _label.Text; set => _label.Text = value.ToUpperInvariant(); }
+    /// <summary>The smallest range drawn top to bottom, so a steady 40° doesn't look like a storm.</summary>
+    public double MinSpan { get; set; } = 10;
 
-    public Gauge()
+    public Sparkline()
     {
-        Width = Height = Size * 1.25;
-        _track.Stroke = new SolidColorBrush(Color.FromArgb(28, 255, 255, 255));
-        _track.Data = Arc(Sweep);
-        _arc.Stroke = _arcBrush;
-        _glow.Fill = new RadialGradientBrush { GradientStops = { _glowStop, new GradientStop { Offset = 1, Color = Colors.Transparent } } };
-
-        var canvas = new Grid { Width = Size, Height = Size };
-        canvas.Children.Add(_track);
-        canvas.Children.Add(_arc);
-        var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = -4 };
-        text.Children.Add(_value);
-        text.Children.Add(_label);
-        canvas.Children.Add(text);
-        Children.Add(_glow);
-        Children.Add(canvas);
-
-        // Slow "breathing" glow.
-        var breathe = new DoubleAnimation { From = 0.55, To = 1, Duration = TimeSpan.FromSeconds(2.6), AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever, EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } };
-        Storyboard.SetTarget(breathe, _glow);
-        Storyboard.SetTargetProperty(breathe, "Opacity");
-        var sb = new Storyboard { Children = { breathe } };
-        Loaded += (_, _) => sb.Begin();
-        Unloaded += (_, _) => sb.Stop();
-        SetValue(0);
+        Height = 34;
+        _line.Stroke = (Brush)Application.Current.Resources["AccentGradient"];
+        Children.Add(_line);
+        SizeChanged += (_, _) => Draw();
     }
 
-    public void SetValue(double v)
+    public void SetValues(IReadOnlyList<double> values)
     {
-        _value.Text = $"{v:0}{Unit}";
-        var frac = Math.Clamp(v / Max, 0, 1);
-        _arc.Data = frac <= 0.001 ? null : Arc(Sweep * frac);
-        var c = Heat.Of(v);
-        _glowStop.Color = c.WithAlpha(90);
-        _arcBrush.GradientStops.Clear();
-        _arcBrush.GradientStops.Add(new GradientStop { Offset = 0, Color = Color.FromArgb(255, 0, 212, 255) });
-        _arcBrush.GradientStops.Add(new GradientStop { Offset = 1, Color = c });
+        _values = values;
+        Draw();
     }
 
-    static Geometry Arc(double sweep)
+    void Draw()
     {
-        double r = (Size - Stroke) / 2, c = Size / 2;
-        Point P(double deg) => new(c + r * Math.Cos(deg * Math.PI / 180), c + r * Math.Sin(deg * Math.PI / 180));
-        var fig = new PathFigure { StartPoint = P(Start), IsClosed = false };
-        fig.Segments.Add(new ArcSegment
+        var points = new PointCollection();
+        double w = ActualWidth, h = ActualHeight - 4;
+        if (_values.Count >= 2 && w > 0)
         {
-            Point = P(Start + Math.Max(sweep, 0.5)),
-            Size = new Size(r, r),
-            IsLargeArc = sweep > 180,
-            SweepDirection = SweepDirection.Clockwise,
-        });
-        return new PathGeometry { Figures = { fig } };
+            double lo = _values.Min(), hi = _values.Max(), span = Math.Max(hi - lo, MinSpan), bottom = (lo + hi - span) / 2;
+            double step = w / (History.Samples - 1);
+            for (int i = 0; i < _values.Count; i++)
+                points.Add(new Point(w - (_values.Count - 1 - i) * step, 2 + h - (_values[i] - bottom) / span * h));
+        }
+        _line.Points = points;
     }
 }
 
