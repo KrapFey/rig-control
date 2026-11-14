@@ -349,7 +349,9 @@ public partial class App : Application
     }
 
     /// <summary>Redraws the tray icon now (after its setting changed).</summary>
-    public void RefreshTray() => UpdateTrayTooltip();
+    public void RefreshTray() { _trayKey = "redraw"; UpdateTrayTooltip(); }
+
+    string? _trayKey = "first"; // what the tray icon shows now: number|colour, or null for the logo
 
     /// <summary>The live tray icon (a number on a tile, or the logo) and its tooltip.</summary>
     void UpdateTrayTooltip()
@@ -363,8 +365,14 @@ public partial class App : Application
             TrayShow.Airflow => (air, false),
             _ => ((double?)null, false),
         };
-        var icon = value is double v ? TrayArt.Render($"{Math.Round(v):0}", TrayArt.ColorFor(v, isTemp)) : _logo;
-        if (icon is not null && !ReferenceEquals(icon, _tray.Icon)) _tray.Icon = icon;
+        // Drawn again only when the number or its colour changes (a temperature sits still most of the time).
+        var key = value is double v ? $"{Math.Round(v):0}|{TrayArt.ColorFor(v, isTemp).ToArgb()}" : null;
+        if (key != _trayKey)
+        {
+            var icon = value is double w ? TrayArt.Render($"{Math.Round(w):0}", TrayArt.ColorFor(w, isTemp)) : _logo;
+            if (icon is not null) _tray.Icon = icon;
+            _trayKey = key;
+        }
 
         var summary = string.Join(" · ", new[]
         {
@@ -393,17 +401,27 @@ public partial class App : Application
         ConfigChanged();
     }
 
-    /// <summary>Appends a line to %APPDATA%\RigControl\rigcontrol.log (kept short: last 200 KB).</summary>
+    static readonly object LogLock = new();
+
+    /// <summary>
+    /// Appends a line to %APPDATA%\RigControl\rigcontrol.log. Past 200 KB it becomes rigcontrol.old.log and a new one
+    /// starts, so the lines before a problem survive. Any thread: one writer at a time, or lines get lost.
+    /// </summary>
     public static void Log(string line)
     {
-        try
+        var text = $"{DateTime.Now:HH:mm:ss.fff} [{Environment.CurrentManagedThreadId}] {line}\n";
+        lock (LogLock)
         {
-            Directory.CreateDirectory(AppConfig.Folder);
-            var path = Path.Combine(AppConfig.Folder, "rigcontrol.log");
-            if (File.Exists(path) && new FileInfo(path).Length > 200_000) File.Delete(path);
-            File.AppendAllText(path, $"{DateTime.Now:HH:mm:ss.fff} [{Environment.CurrentManagedThreadId}] {line}\n");
+            try
+            {
+                Directory.CreateDirectory(AppConfig.Folder);
+                var path = Path.Combine(AppConfig.Folder, "rigcontrol.log");
+                if (File.Exists(path) && new FileInfo(path).Length > 200_000)
+                    File.Move(path, Path.Combine(AppConfig.Folder, "rigcontrol.old.log"), overwrite: true);
+                File.AppendAllText(path, text);
+            }
+            catch { }
         }
-        catch { }
     }
 
     public void ShowWindow() => Ui.TryEnqueue(() =>
@@ -461,6 +479,7 @@ public partial class App : Application
     {
         _quitting = true;
         _fanWatch?.Stop();
+        _window?.Close(); // first: it notes where it was (saved just below), and the app looks gone at once
         _saveTimer?.Stop();
         try { Config.Save(); } catch (Exception e) { Log($"config save on exit failed: {e.Message}"); }
         Log("quit");
@@ -480,7 +499,6 @@ public partial class App : Application
         Log("quit: done");
         _trayTimer?.Stop();
         _tray?.Dispose();
-        _window?.Close();
         Exit();
     }
 

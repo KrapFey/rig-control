@@ -3,7 +3,9 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
+using RigControl.Core;
 using RigControl.Pages;
+using Windows.Graphics;
 
 namespace RigControl;
 
@@ -30,14 +32,49 @@ public sealed partial class MainWindow : Window
         SetTitleBar(TitleBar);
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "RigControl.ico"));
         AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
-        var scale = (Content as FrameworkElement)?.XamlRoot?.RasterizationScale ?? GetDpiForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this)) / 96.0;
-        AppWindow.Resize(new((int)(1280 * scale), (int)(820 * scale)));
+        PlaceWindow();
 
         _statusTimer.Tick += (_, _) => UpdateStatus();
         _statusTimer.Start();
-        Closed += (_, _) => _statusTimer.Stop();
+        Closed += (_, _) =>
+        {
+            _statusTimer.Stop();
+            RememberPlacement();
+        };
         Navigate("Dashboard", null);
         UpdateStatus();
+    }
+
+    RectInt32 _restored; // the window's bounds when last neither maximized nor minimized
+
+    /// <summary>Where the window was last time, if that spot is still on a connected screen; otherwise 1280×820.</summary>
+    void PlaceWindow()
+    {
+        var saved = App.Instance!.Config.Window;
+        var rect = saved is { Width: >= 400, Height: >= 300 } ? new RectInt32(saved.X, saved.Y, saved.Width, saved.Height) : default;
+        if (rect.Width > 0 && DisplayArea.GetFromRect(rect, DisplayAreaFallback.None) is not null) AppWindow.MoveAndResize(rect);
+        else
+        {
+            var scale = GetDpiForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this)) / 96.0;
+            AppWindow.Resize(new((int)(1280 * scale), (int)(820 * scale)));
+        }
+        _restored = new(AppWindow.Position.X, AppWindow.Position.Y, AppWindow.Size.Width, AppWindow.Size.Height);
+        AppWindow.Changed += (_, e) =>
+        {
+            if ((e.DidPositionChange || e.DidSizeChange) && AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Restored })
+                _restored = new(AppWindow.Position.X, AppWindow.Position.Y, AppWindow.Size.Width, AppWindow.Size.Height);
+        };
+        if (saved is { Maximized: true } && AppWindow.Presenter is OverlappedPresenter p) p.Maximize();
+    }
+
+    void RememberPlacement()
+    {
+        var max = AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Maximized };
+        var app = App.Instance!;
+        var now = new WindowPlacement(_restored.X, _restored.Y, _restored.Width, _restored.Height, max);
+        if (now == app.Config.Window) return;
+        app.Config.Window = now;
+        app.ConfigChanged();
     }
 
     void UpdateStatus()

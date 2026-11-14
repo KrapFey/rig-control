@@ -404,7 +404,7 @@ public sealed partial class DevicesPage : Page
         RescanText.Text = "Rescan";
     }
 
-    void Tile_Tapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    void Tile_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is PeripheralCard card)
             Frame.Navigate(typeof(DevicePage), card.Key, new Microsoft.UI.Xaml.Media.Animation.DrillInNavigationTransitionInfo());

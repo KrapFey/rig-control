@@ -106,7 +106,7 @@ public sealed partial class DashboardPage : Page
         }
     }
 
-    void Tile_Tapped(object sender, TappedRoutedEventArgs e)
+    void Tile_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is FanVm vm)
             Frame.Navigate(typeof(FanPage), vm.Id, new Microsoft.UI.Xaml.Media.Animation.DrillInNavigationTransitionInfo());

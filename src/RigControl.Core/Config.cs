@@ -11,6 +11,9 @@ public enum TrayShow { Logo, CpuTemp, GpuTemp, Airflow }
 
 public sealed record CurvePoint(double Temp, double Percent);
 
+/// <summary>The main window's restored bounds in screen pixels, and whether it was maximized.</summary>
+public sealed record WindowPlacement(int X, int Y, int Width, int Height, bool Maximized);
+
 public sealed class CurveDef
 {
     public string Name { get; set; } = "Curve";
@@ -63,6 +66,8 @@ public sealed class AppConfig
     public TrayShow TrayShows { get; set; } = TrayShow.CpuTemp;
     /// <summary>Left-clicking the tray icon opens the mini dashboard (false: the full window).</summary>
     public bool TrayPopup { get; set; } = true;
+    /// <summary>Where the main window was when it last closed; null = the default size.</summary>
+    public WindowPlacement? Window { get; set; }
     /// <summary>Per-device driver: device key (e.g. "nzxt-hue2/&lt;serial&gt;") -> "liquidctl". Missing = built-in.</summary>
     public Dictionary<string, string> Drivers { get; set; } = [];
     public LightingConfig Lighting { get; set; } = new();

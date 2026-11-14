@@ -437,11 +437,8 @@ public sealed partial class LightingPage : Page
         foreach (var card in _cards) card.Render(frames.GetValueOrDefault(card.Key));
     }
 
-    void Card_Tapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    void Card_Click(object sender, RoutedEventArgs e)
     {
-        // A tap on the card's Identify button is the button's, not "open the page".
-        for (var el = e.OriginalSource as DependencyObject; el is not null && el != sender; el = VisualTreeHelper.GetParent(el))
-            if (el is ButtonBase) return;
         if (((FrameworkElement)sender).DataContext is DeviceCard card)
             Frame.Navigate(typeof(LightingDevicePage), card.Key, new Microsoft.UI.Xaml.Media.Animation.DrillInNavigationTransitionInfo());
     }

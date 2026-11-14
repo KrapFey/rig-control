@@ -66,15 +66,18 @@
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="local:FanVm">
-                        <Border
-                            Height="132"
+                        <Button
+                            Style="{StaticResource TileButton}"
                             DataContext="{x:Bind}"
-                            Tapped="Tile_Tapped"
-                            Style="{StaticResource Card}"
-                            Padding="16"
-                            Opacity="{x:Bind local:Fmt.PresentOpacity(Present), Mode=OneWay}"
+                            Click="Tile_Click"
+                            AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"
                             PointerEntered="Tile_PointerEntered"
                             PointerExited="Tile_PointerExited">
+                        <Border
+                            Height="132"
+                            Style="{StaticResource Card}"
+                            Padding="16"
+                            Opacity="{x:Bind local:Fmt.PresentOpacity(Present), Mode=OneWay}">
                             <Grid RowSpacing="8">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -109,6 +112,7 @@
                                 </Grid>
                             </Grid>
                         </Border>
+                        </Button>
                     </DataTemplate>
                 </ItemsRepeater.ItemTemplate>
             </ItemsRepeater>

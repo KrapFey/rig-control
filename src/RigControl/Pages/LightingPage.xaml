@@ -69,7 +69,9 @@
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="p:DeviceCard">
                         <!-- ItemsRepeater doesn't set DataContext on its items; the handlers need it -->
-                        <Border Style="{StaticResource Card}" Padding="18" DataContext="{x:Bind}" Tapped="Card_Tapped">
+                        <!-- The Identify button inside handles its own clicks, so they never open the page -->
+                        <Button Style="{StaticResource TileButton}" DataContext="{x:Bind}" Click="Card_Click" AutomationProperties.Name="{x:Bind Name}">
+                        <Border Style="{StaticResource Card}" Padding="18">
                             <StackPanel Spacing="12">
                                 <Grid ColumnSpacing="10">
                                     <Grid.ColumnDefinitions>
@@ -100,6 +102,7 @@
                                 <TextBlock Text="{x:Bind Shows, Mode=OneWay}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
                         </Border>
+                        </Button>
                     </DataTemplate>
                 </ItemsRepeater.ItemTemplate>
             </ItemsRepeater>

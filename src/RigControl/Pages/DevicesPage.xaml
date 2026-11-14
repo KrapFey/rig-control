@@ -40,9 +40,10 @@
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="p:PeripheralCard">
-                        <!-- ItemsRepeater doesn't set DataContext on its items; Tile_Tapped needs it -->
-                        <Border Style="{StaticResource Card}" Padding="18" DataContext="{x:Bind}"
-                                Tapped="Tile_Tapped" PointerEntered="Tile_PointerEntered" PointerExited="Tile_PointerExited">
+                        <!-- ItemsRepeater doesn't set DataContext on its items; Tile_Click needs it -->
+                        <Button Style="{StaticResource TileButton}" DataContext="{x:Bind}" Click="Tile_Click" AutomationProperties.Name="{x:Bind Name}"
+                                PointerEntered="Tile_PointerEntered" PointerExited="Tile_PointerExited">
+                        <Border Style="{StaticResource Card}" Padding="18">
                             <Grid ColumnSpacing="14">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
@@ -67,6 +68,7 @@
                                 <FontIcon Grid.Column="3" Glyph="&#xE76C;" FontSize="12" Opacity="0.5" VerticalAlignment="Center" />
                             </Grid>
                         </Border>
+                        </Button>
                     </DataTemplate>
                 </ItemsRepeater.ItemTemplate>
             </ItemsRepeater>

@@ -352,10 +352,16 @@ public static class EffectMath
 public sealed class LightingEngine : IDisposable
 {
     readonly Func<string, double?> _temperature;
-    readonly object _lock = new();
+    // Owned by the lighting thread. Other threads hand changes over (the _new* fields) and the thread takes them at the
+    // start of its next pass, so a pass that's busy talking to devices never keeps the UI waiting.
     List<IRgbTarget> _targets = [];
     LightingProfile _profile = new();
     bool _enabled = true;
+    List<IRgbTarget>? _newTargets;
+    sealed record NewSettings(LightingProfile Profile, bool Enabled);
+    NewSettings? _newSettings;
+    string? _newIdentify;
+    volatile List<IRgbTarget> _latestTargets = [];
     readonly Dictionary<string, string> _applied = [];        // key -> what was last applied (to avoid resending)
     readonly Dictionary<string, (double at, Rgb[] frame)> _sent = [];
     readonly Thread _thread;
@@ -370,7 +376,7 @@ public sealed class LightingEngine : IDisposable
 
     /// <summary>Last frame per device (copy-on-write; safe to read from any thread).</summary>
     public IReadOnlyDictionary<string, Rgb[]> Frames { get; private set; } = new Dictionary<string, Rgb[]>();
-    public IReadOnlyList<IRgbTarget> Targets { get { lock (_lock) return [.. _targets]; } }
+    public IReadOnlyList<IRgbTarget> Targets => _latestTargets;
     public event Action? TargetsChanged;
     /// <summary>The effect clock. Previews use it so the app and the lights stay in step.</summary>
     public double Now => _clock.Elapsed.TotalSeconds;
@@ -399,13 +405,9 @@ public sealed class LightingEngine : IDisposable
 
     public void SetTargets(IEnumerable<IRgbTarget> targets)
     {
-        lock (_lock)
-        {
-            _targets = [.. targets];
-            _layouts.Clear();
-            _applied.Clear();
-            _sent.Clear();
-        }
+        List<IRgbTarget> list = [.. targets];
+        _latestTargets = list;
+        Volatile.Write(ref _newTargets, list);
         TargetsChanged?.Invoke();
         _wake.Set();
     }
@@ -413,34 +415,49 @@ public sealed class LightingEngine : IDisposable
     /// <summary>Pulses one device bright white for 4 seconds so you can see which it is, then restores it.</summary>
     public void Identify(string key)
     {
-        lock (_lock)
-        {
-            _identify = key;
-            _identifyUntil = _clock.Elapsed.TotalSeconds + 4;
-            _applied.Remove(key); // forces Direct mode now, and the profile back afterwards
-        }
+        Volatile.Write(ref _newIdentify, key);
         _wake.Set();
     }
 
     public void Apply(LightingConfig config)
     {
-        lock (_lock)
+        var profile = Clone(config.Current);
+        Volatile.Write(ref _newSettings, new NewSettings(profile, config.Enabled));
+        // Listen only while an audio effect is lit (the microphone only when chosen; Windows shows it in use).
+        // One source at a time: the synced effect's, else the first device's own audio effect.
+        var s = profile.Sync.IsAudio ? profile.Sync
+            : profile.Devices.Values.Where(d => d.Source == LightingSource.Effect).Select(d => d.Effect).FirstOrDefault(e => e?.IsAudio == true);
+        _audio.Listen(config.Enabled && s is { IsAudio: true } ? (s.AudioInput, s.AudioDevice) : null);
+        _wake.Set();
+    }
+
+    /// <summary>Takes the changes other threads handed over since the last pass (lighting thread only).</summary>
+    void TakeChanges()
+    {
+        if (Interlocked.Exchange(ref _newTargets, null) is { } targets)
         {
-            _profile = Clone(config.Current);
-            if (_enabled != config.Enabled)
+            _targets = targets;
+            _layouts.Clear();
+            _applied.Clear();
+            _sent.Clear();
+        }
+        if (Interlocked.Exchange(ref _newSettings, null) is { } s)
+        {
+            if (_enabled != s.Enabled)
             {
                 // Back on: something else may have changed the devices meanwhile, so set them up again.
                 _applied.Clear();
                 _sent.Clear();
             }
-            _enabled = config.Enabled;
-            // Listen only while an audio effect is lit (the microphone only when chosen; Windows shows it in use).
-            // One source at a time: the synced effect's, else the first device's own audio effect.
-            var s = _profile.Sync.IsAudio ? _profile.Sync
-                : _profile.Devices.Values.Where(d => d.Source == LightingSource.Effect).Select(d => d.Effect).FirstOrDefault(e => e?.IsAudio == true);
-            _audio.Listen(_enabled && s is { IsAudio: true } ? (s.AudioInput, s.AudioDevice) : null);
+            _profile = s.Profile;
+            _enabled = s.Enabled;
         }
-        _wake.Set();
+        if (Interlocked.Exchange(ref _newIdentify, null) is { } key)
+        {
+            _identify = key;
+            _identifyUntil = _clock.Elapsed.TotalSeconds + 4;
+            _applied.Remove(key); // forces Direct mode now, and the profile back afterwards
+        }
     }
 
     static LightingProfile Clone(LightingProfile p) =>
@@ -476,11 +493,11 @@ public sealed class LightingEngine : IDisposable
     /// <summary>One pass over all devices. Returns the frame rate the fastest animated device needs (0 = none).</summary>
     double Tick()
     {
-        // The whole pass holds the lock: Apply/SetTargets reset the bookkeeping it uses.
-        lock (_lock) return TickLocked(_targets, _profile, _enabled);
+        TakeChanges();
+        return Pass(_targets, _profile, _enabled);
     }
 
-    double TickLocked(List<IRgbTarget> targets, LightingProfile profile, bool enabled)
+    double Pass(List<IRgbTarget> targets, LightingProfile profile, bool enabled)
     {
         if (_identify is not null && _clock.Elapsed.TotalSeconds > _identifyUntil)
         {

@@ -244,6 +244,15 @@ Check(EffectMath.Gradient([new(0, 0, 0), new(200, 100, 50)], 0.5) == new Rgb(100
     lights.Apply(new LightingConfig());
     Thread.Sleep(300);
     Check(fast.Modes == modes, "lighting: a settings change doesn't re-initialise devices");
+
+    // A device that takes 300 ms per send: changing settings (the UI thread) must not wait for it.
+    var sluggish = new PacedTarget("sluggish", 30) { SendMs = 300 };
+    lights.SetTargets([sluggish]);
+    Thread.Sleep(450); // mid-send
+    var applyTime = System.Diagnostics.Stopwatch.StartNew();
+    lights.Apply(new LightingConfig());
+    _ = lights.Targets;
+    Check(applyTime.ElapsedMilliseconds < 50, $"lighting: settings change doesn't wait for a slow device ({applyTime.ElapsedMilliseconds} ms)");
 }
 Check(Math.Abs(EffectMath.Period(0) - 10) < 1e-9 && Math.Abs(EffectMath.Period(100) - 1) < 1e-9, "speed 0..100 -> 10 s..1 s per cycle");
 var px = new Rgb[3];
@@ -717,7 +726,9 @@ sealed class PacedTarget(string key, int fps) : IRgbTarget
     public float[] LedX { get; } = [0, 1 / 7f, 2 / 7f, 3 / 7f, 4 / 7f, 5 / 7f, 6 / 7f, 1];
     public int MaxFps => fps;
     public void EnterDirect() => Modes++;
-    public void SetLeds(Rgb[] colors) { lock (_at) _at.Add(_clock.Elapsed.TotalMilliseconds); }
+    /// <summary>How long each send takes (a slow USB device).</summary>
+    public int SendMs;
+    public void SetLeds(Rgb[] colors) { if (SendMs > 0) Thread.Sleep(SendMs); lock (_at) _at.Add(_clock.Elapsed.TotalMilliseconds); }
     public void ApplyMode(int index, RgbMode mode) { }
     /// <summary>Milliseconds between frames, skipping the first few while the engine starts.</summary>
     public double[] Gaps() { lock (_at) return [.. _at.Skip(4).Zip(_at.Skip(5), (a, b) => b - a)]; }
