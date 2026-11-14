@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace RigControl.Pages;
 
+/// <summary>Every temperature, grouped by device, to rename: the Sensors view of the Cooling page.</summary>
 public sealed partial class SensorsPage : Page
 {
     public SensorsPage()
@@ -24,10 +25,4 @@ public sealed partial class SensorsPage : Page
     }
 
     void Filter_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args) => Fill();
-
-    async void RescanFans_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
-    {
-        ((Microsoft.UI.Xaml.Controls.Control)sender).IsEnabled = false; // the page is rebuilt when the scan is done
-        await App.Instance!.RescanFansAsync();
-    }
 }

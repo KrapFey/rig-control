@@ -17,8 +17,6 @@ public sealed partial class MainWindow : Window
         ["Cooling"] = typeof(CoolingPage),
         ["Lighting"] = typeof(LightingPage),
         ["Devices"] = typeof(DevicesPage),
-        ["Sensors"] = typeof(SensorsPage),
-        ["Supported"] = typeof(SupportedPage),
         ["Settings"] = typeof(SettingsPage),
     };
 

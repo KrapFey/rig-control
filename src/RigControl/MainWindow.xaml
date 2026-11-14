@@ -69,12 +69,6 @@
                 <NavigationViewItem Content="Devices" Tag="Devices">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE772;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Sensors" Tag="Sensors">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE9CA;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Supported devices" Tag="Supported">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8FD;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
             </NavigationView.MenuItems>
             <Frame x:Name="ContentFrame" Padding="28,8,28,20" />
         </NavigationView>

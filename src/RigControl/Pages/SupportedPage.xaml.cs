@@ -9,6 +9,11 @@ public sealed partial class SupportedPage : Page
 {
     readonly DispatcherTimer _debounce = new() { Interval = TimeSpan.FromMilliseconds(120) };
 
+    void Back_Click(object sender, RoutedEventArgs e)
+    {
+        if (Frame.CanGoBack) Frame.GoBack(); else Frame.Navigate(typeof(SettingsPage));
+    }
+
     public SupportedPage()
     {
         InitializeComponent();

@@ -133,7 +133,11 @@
         <Grid Grid.ColumnSpan="3">
             <StackPanel>
                 <TextBlock Text="Cooling" Style="{StaticResource PageTitle}" Margin="0" />
-                <TextBlock Text="Curves turn temperatures into fan speeds. Drag a fan onto a curve to make it follow, or click it for its settings." Style="{StaticResource Caption}" Margin="0,4,0,0" />
+                <TextBlock x:Name="PageCaption" Text="Curves turn temperatures into fan speeds. Drag a fan onto a curve to make it follow, or click it for its settings." Style="{StaticResource Caption}" Margin="0,4,0,0" />
+                <SelectorBar x:Name="Views" SelectionChanged="Views_SelectionChanged" Margin="-12,4,0,0">
+                    <SelectorBarItem x:Name="CurvesView" Text="Curves" IsSelected="True" />
+                    <SelectorBarItem x:Name="SensorsView" Text="Sensors" />
+                </SelectorBar>
             </StackPanel>
             <Button HorizontalAlignment="Right" VerticalAlignment="Top" Click="Rescan_Click" AutomationProperties.Name="Rescan"
                     ToolTipService.ToolTip="Look for fans and sensors again. Fans go back to their own control for the few seconds this takes.">
@@ -144,8 +148,11 @@
             </Button>
         </Grid>
 
+        <!-- Every temperature, to rename (the Sensors view) -->
+        <Frame x:Name="SensorsFrame" Grid.Row="1" Grid.ColumnSpan="3" Visibility="Collapsed" />
+
         <!-- Curves with their fans -->
-        <Grid Grid.Row="1" RowSpacing="10">
+        <Grid x:Name="CurvesColumn" Grid.Row="1" RowSpacing="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />

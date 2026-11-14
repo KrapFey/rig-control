@@ -137,11 +137,13 @@ public sealed partial class CoolingPage : Page
         Unloaded += (_, _) => { Live.Instance.Refreshed -= OnLive; Live.Instance.Detach(); };
     }
 
-    /// <summary>"curve:Name" selects that curve; a fan id opens that fan's settings.</summary>
+    /// <summary>"curve:Name" selects that curve; a fan id opens that fan's settings; "sensors" opens the Sensors view.</summary>
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         if (e.Parameter is not string p) return;
-        if (p.StartsWith("curve:", StringComparison.Ordinal)) _openCurve = p["curve:".Length..]; else _openFan = p;
+        if (p == "sensors") Views.SelectedItem = SensorsView;
+        else if (p.StartsWith("curve:", StringComparison.Ordinal)) _openCurve = p["curve:".Length..];
+        else _openFan = p;
     }
 
     // ---- the curves and their fans
@@ -328,6 +330,21 @@ public sealed partial class CoolingPage : Page
     }
 
     void Rescan_Click(object sender, RoutedEventArgs e) => _ = App.Instance!.RescanFansAsync();
+
+    const string CurvesCaption = "Curves turn temperatures into fan speeds. Drag a fan onto a curve to make it follow, or click it for its settings.";
+
+    /// <summary>Curves (with their fans) or Sensors (every temperature, to rename).</summary>
+    void Views_SelectionChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args) => ShowView(sender.SelectedItem == SensorsView);
+
+    void ShowView(bool sensors)
+    {
+        if (sensors && SensorsFrame.Content is null) SensorsFrame.Navigate(typeof(SensorsPage));
+        SensorsFrame.Visibility = sensors ? Visibility.Visible : Visibility.Collapsed;
+        CurvesColumn.Visibility = EditorCard.Visibility = sensors ? Visibility.Collapsed : Visibility.Visible;
+        FanCard.Visibility = !sensors && _fan is not null ? Visibility.Visible : Visibility.Collapsed;
+        FanColumn.Width = new GridLength(!sensors && _fan is not null ? 320 : 0);
+        PageCaption.Text = sensors ? "Rename a sensor and the new name is used everywhere: curves, the overview, temperature lighting." : CurvesCaption;
+    }
 
     // ---- the selected curve
 

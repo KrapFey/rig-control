@@ -12,6 +12,13 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <StackPanel>
+            <!-- Opened from Settings -->
+            <Button Click="Back_Click" Padding="10,6" Margin="-10,0,0,8" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Back to Settings">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE72B;" FontSize="14" />
+                    <TextBlock Text="Settings" />
+                </StackPanel>
+            </Button>
             <TextBlock Text="Supported devices" Style="{StaticResource PageTitle}" Margin="0" />
             <TextBlock x:Name="Summary" Style="{StaticResource Caption}" Margin="0,4,0,0" TextWrapping="Wrap" />
         </StackPanel>

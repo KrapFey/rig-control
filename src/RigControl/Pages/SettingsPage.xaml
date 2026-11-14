@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Background="Transparent">
 
+
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="12" MaxWidth="900" HorizontalAlignment="Left" Padding="0,0,0,24">
             <StackPanel.ChildrenTransitions>
@@ -12,8 +13,9 @@
                 </TransitionCollection>
             </StackPanel.ChildrenTransitions>
 
-            <TextBlock Text="Settings" Style="{StaticResource PageTitle}" />
+            <TextBlock Text="Settings" Style="{StaticResource PageTitle}" Margin="0,0,0,4" />
 
+            <TextBlock Text="GENERAL" Style="{StaticResource Caption}" Margin="2,14,0,2" />
             <Border Style="{StaticResource Card}">
                 <Grid ColumnSpacing="16">
                     <Grid.ColumnDefinitions>
@@ -27,7 +29,6 @@
                     <ToggleSwitch x:Name="AutoStart" Grid.Column="1" Toggled="AutoStart_Toggled" />
                 </Grid>
             </Border>
-
             <Border Style="{StaticResource Card}">
                 <StackPanel Spacing="12">
                     <StackPanel>
@@ -49,7 +50,48 @@
                     </Grid>
                 </StackPanel>
             </Border>
-
+            <TextBlock Text="FANS AND SENSORS" Style="{StaticResource Caption}" Margin="2,14,0,2" />
+            <Border Style="{StaticResource Card}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Update interval" FontWeight="SemiBold" />
+                        <TextBlock Text="How often sensors are read and fans adjusted." Style="{StaticResource Caption}" />
+                    </StackPanel>
+                    <ComboBox x:Name="Interval" Grid.Column="1" Width="140" SelectionChanged="Interval_SelectionChanged">
+                        <x:String>0.5 s</x:String>
+                        <x:String>1 s</x:String>
+                        <x:String>2 s</x:String>
+                    </ComboBox>
+                </Grid>
+            </Border>
+            <Border x:Name="DriversCard" Style="{StaticResource Card}" Visibility="Collapsed">
+                <StackPanel Spacing="10">
+                    <StackPanel>
+                        <TextBlock Text="Fan controller drivers" FontWeight="SemiBold" />
+                        <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap"
+                                   Text="Each controller uses RigControl's built-in driver. If one misbehaves, switch it to liquidctl's driver. Fan names, curves and limits move with it; RigControl restarts to apply." />
+                    </StackPanel>
+                    <StackPanel x:Name="DriversList" Spacing="8" />
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Card}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Import from FanControl" FontWeight="SemiBold" />
+                        <TextBlock x:Name="ImportHint" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button x:Name="ImportButton" Grid.Column="1" Content="Import…" Click="Import_Click" />
+                </Grid>
+            </Border>
+            <TextBlock Text="UPDATES" Style="{StaticResource Caption}" Margin="2,14,0,2" />
             <Border Style="{StaticResource Card}">
                 <StackPanel Spacing="10">
                     <Grid ColumnSpacing="16">
@@ -71,50 +113,29 @@
                     </StackPanel>
                 </StackPanel>
             </Border>
-
+            <TextBlock Text="ABOUT" Style="{StaticResource Caption}" Margin="2,14,0,2" />
             <Border Style="{StaticResource Card}">
-                <Grid ColumnSpacing="16">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel>
-                        <TextBlock Text="Update interval" FontWeight="SemiBold" />
-                        <TextBlock Text="How often sensors are read and fans adjusted." Style="{StaticResource Caption}" />
-                    </StackPanel>
-                    <ComboBox x:Name="Interval" Grid.Column="1" Width="140" SelectionChanged="Interval_SelectionChanged">
-                        <x:String>0.5 s</x:String>
-                        <x:String>1 s</x:String>
-                        <x:String>2 s</x:String>
-                    </ComboBox>
-                </Grid>
-            </Border>
-
-            <Border x:Name="DriversCard" Style="{StaticResource Card}" Visibility="Collapsed">
-                <StackPanel Spacing="10">
-                    <StackPanel>
-                        <TextBlock Text="Fan controller drivers" FontWeight="SemiBold" />
-                        <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap"
-                                   Text="Each controller uses RigControl's built-in driver. If one misbehaves, switch it to liquidctl's driver. Fan names, curves and limits move with it; RigControl restarts to apply." />
-                    </StackPanel>
-                    <StackPanel x:Name="DriversList" Spacing="8" />
+                <StackPanel Spacing="6">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="AboutTitle" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Click="Supported_Click" AutomationProperties.Name="Supported devices" ToolTipService.ToolTip="Every device and device family RigControl handles, searchable">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE8FD;" FontSize="14" />
+                                <TextBlock Text="Supported devices" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap">
+                        GPL-3.0-or-later. Sensors and motherboard/GPU fans: LibreHardwareMonitor (MPL-2.0) via PawnIO.
+                        NZXT HUE 2 fan protocol: ported from liquidctl (GPL-3.0-or-later). USB HID: HidSharp (Apache-2.0).
+                        Tray: H.NotifyIcon (MIT).
+                    </TextBlock>
                 </StackPanel>
             </Border>
-
-            <Border Style="{StaticResource Card}">
-                <Grid ColumnSpacing="16">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel>
-                        <TextBlock Text="Import from FanControl" FontWeight="SemiBold" />
-                        <TextBlock x:Name="ImportHint" Style="{StaticResource Caption}" TextWrapping="Wrap" />
-                    </StackPanel>
-                    <Button x:Name="ImportButton" Grid.Column="1" Content="Import…" Click="Import_Click" />
-                </Grid>
-            </Border>
-
             <Border Style="{StaticResource Card}">
                 <Grid ColumnSpacing="16">
                     <Grid.ColumnDefinitions>
@@ -127,17 +148,6 @@
                     </StackPanel>
                     <Button Grid.Column="1" Content="Open" Click="OpenFolder_Click" />
                 </Grid>
-            </Border>
-
-            <Border Style="{StaticResource Card}">
-                <StackPanel Spacing="6">
-                    <TextBlock x:Name="AboutTitle" FontWeight="SemiBold" />
-                    <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap">
-                        GPL-3.0-or-later. Sensors and motherboard/GPU fans: LibreHardwareMonitor (MPL-2.0) via PawnIO.
-                        NZXT HUE 2 fan protocol: ported from liquidctl (GPL-3.0-or-later). USB HID: HidSharp (Apache-2.0).
-                        Tray: H.NotifyIcon (MIT).
-                    </TextBlock>
-                </StackPanel>
             </Border>
         </StackPanel>
     </ScrollViewer>

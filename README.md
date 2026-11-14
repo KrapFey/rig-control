@@ -74,9 +74,9 @@ headset and keyboard, and watch it all live in a modern WinUI 3 interface.
   - **Keyboards with adjustable switches:** actuation depth for every analog key on the SteelSeries Apex Pro
     TKL (2023, wired) and Apex Pro Gen 3 (firmware 4.16.8), plus rapid trigger on the TKL (2023). Only live settings
     are written, never the keyboard's saved profiles.
-- **Supported devices:** a searchable list (fuzzy: "dthaddr v2" finds the DeathAdder V2) of every device and
+- **Supported devices** (Settings → About): a searchable list (fuzzy: "dthaddr v2" finds the DeathAdder V2) of every device and
   device family RigControl handles, built by `tools/gen-supported-devices.py` from each source's own data.
-- **Sensor names:** rename any temperature sensor on the Sensors page; the name is used everywhere (overview,
+- **Sensor names:** rename any temperature sensor in Cooling → Sensors; the name is used everywhere (overview,
   curves, temperature lighting).
 - **Import from FanControl:** curves, fan names and fan settings, including NZXT controllers driven through
   the FanControl.Liquidctl plugin (matched by the plugin's own device ids).

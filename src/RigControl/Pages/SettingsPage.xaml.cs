@@ -15,7 +15,7 @@ public sealed partial class SettingsPage : Page
         InitializeComponent();
         Loaded += (_, _) =>
         {
-            AutoStart.IsOn = Startup.IsEnabled();
+            _ = ShowAutoStartAsync();
             var i = Array.IndexOf(Intervals, App.Instance!.Config.IntervalSeconds);
             Interval.SelectedIndex = i < 0 ? 1 : i;
             var path = FanControlImport.DefaultPath;
@@ -104,20 +104,34 @@ public sealed partial class SettingsPage : Page
             await new ContentDialog { XamlRoot = root, Title = "Couldn't update", Content = error, CloseButtonText = "OK" }.ShowAsync();
     }
 
-    void AutoStart_Toggled(object sender, RoutedEventArgs e)
+    // Start with Windows is a scheduled task, read and written by running schtasks. Never wait for that on the UI
+    // thread: the wait lets other window messages run in the middle of a layout pass, and WinUI fails fast on it
+    // (opening Settings crashed with 0xC000027B).
+    bool _autoStartBusy;
+
+    async Task ShowAutoStartAsync()
     {
-        if (_loading) return;
+        var on = await Task.Run(Startup.IsEnabled);
+        _autoStartBusy = true;
+        AutoStart.IsOn = on;
+        _autoStartBusy = false;
+    }
+
+    async void AutoStart_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_loading || _autoStartBusy) return;
+        bool on = AutoStart.IsOn;
+        AutoStart.IsEnabled = false;
         try
         {
-            if (AutoStart.IsOn) Startup.Enable(); else Startup.Disable();
+            await Task.Run(() => { if (on) Startup.Enable(); else Startup.Disable(); });
         }
         catch (Exception ex)
         {
-            _loading = true;
-            AutoStart.IsOn = Startup.IsEnabled();
-            _loading = false;
+            await ShowAutoStartAsync();
             _ = new ContentDialog { XamlRoot = XamlRoot, Title = "Couldn't change startup", Content = ex.Message, CloseButtonText = "OK" }.ShowAsync();
         }
+        finally { AutoStart.IsEnabled = true; }
     }
 
     void BuildDrivers()
@@ -173,6 +187,10 @@ public sealed partial class SettingsPage : Page
     }
 
     async void Import_Click(object sender, RoutedEventArgs e) => await ImportFanControl(XamlRoot);
+
+    /// <summary>The searchable list of supported devices, opened from About (Back returns here).</summary>
+    void Supported_Click(object sender, RoutedEventArgs e) =>
+        Frame.Navigate(typeof(SupportedPage), null, new Microsoft.UI.Xaml.Media.Animation.DrillInNavigationTransitionInfo());
 
     void OpenFolder_Click(object sender, RoutedEventArgs e)
     {
