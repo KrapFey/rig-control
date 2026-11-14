@@ -5,7 +5,7 @@ using RigControl.Core;
 
 namespace RigControl.Pages;
 
-/// <summary>All settings of one device (opened from a Devices tile).</summary>
+/// <summary>All settings of one device, shown beside the list on the Devices page.</summary>
 public sealed partial class DevicePage : Page
 {
     string? _key;
@@ -45,11 +45,6 @@ public sealed partial class DevicePage : Page
         if (_card is not null && hub.Devices.Any(d => d.Key == _key)) _card.Update(hub.States.GetValueOrDefault(_key!));
         else Build(); // unplugged, or plugged back in
     });
-
-    void Back_Click(object sender, RoutedEventArgs e)
-    {
-        if (Frame.CanGoBack) Frame.GoBack(); else Frame.Navigate(typeof(DevicesPage));
-    }
 
     // Device settings are only written for changes the user makes. While a card is being set up, a slider can
     // get its value before its range (5000 DPI clamped to the default maximum of 100), and that must never

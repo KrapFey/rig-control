@@ -5,73 +5,77 @@
     xmlns:p="using:RigControl.Pages"
     Background="Transparent">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Spacing="16" Padding="0,0,0,24">
-            <StackPanel.ChildrenTransitions>
-                <TransitionCollection>
-                    <EntranceThemeTransition FromVerticalOffset="40" IsStaggeringEnabled="True" />
-                </TransitionCollection>
-            </StackPanel.ChildrenTransitions>
+    <Grid RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-            <Grid>
-                <StackPanel>
-                    <TextBlock Text="Devices" Style="{StaticResource PageTitle}" Margin="0" />
-                    <TextBlock x:Name="Summary" Style="{StaticResource Caption}" Margin="0,4,0,0" />
-                </StackPanel>
-                <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button x:Name="RescanButton" Click="Rescan_Click" ToolTipService.ToolTip="Look for devices again (one plugged in or woken up since RigControl started)" AutomationProperties.Name="Rescan">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <FontIcon Glyph="&#xE72C;" FontSize="14" />
-                            <TextBlock x:Name="RescanText" Text="Rescan" />
-                        </StackPanel>
-                    </Button>
-                </StackPanel>
-            </Grid>
-
-            <StackPanel x:Name="Empty" Spacing="8" Visibility="Collapsed" HorizontalAlignment="Center" Margin="0,40,0,0">
-                <FontIcon Glyph="&#xE772;" FontSize="40" Opacity="0.5" />
-                <TextBlock Text="No configurable devices found yet." Opacity="0.7" HorizontalAlignment="Center" />
-                <TextBlock Text="Supported so far: Razer, Logitech, SteelSeries and ASUS mice, Razer and Logitech keyboards, SteelSeries Apex Pro TKL (2023) and Gen 3 keyboards, and ~50 headsets (via HeadsetControl)." Style="{StaticResource Caption}" HorizontalAlignment="Center" />
+        <Grid>
+            <StackPanel>
+                <TextBlock Text="Devices" Style="{StaticResource PageTitle}" Margin="0" />
+                <TextBlock x:Name="Summary" Style="{StaticResource Caption}" Margin="0,4,0,0" />
             </StackPanel>
+            <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button x:Name="RescanButton" Click="Rescan_Click" ToolTipService.ToolTip="Look for devices again (one plugged in or woken up since RigControl started)" AutomationProperties.Name="Rescan">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE72C;" FontSize="14" />
+                        <TextBlock x:Name="RescanText" Text="Rescan" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
 
-            <ItemsRepeater x:Name="Tiles">
-                <ItemsRepeater.Layout>
-                    <UniformGridLayout MinItemWidth="380" MinItemHeight="118" MinRowSpacing="12" MinColumnSpacing="12" ItemsStretch="Fill" />
-                </ItemsRepeater.Layout>
-                <ItemsRepeater.ItemTemplate>
-                    <DataTemplate x:DataType="p:PeripheralCard">
-                        <!-- ItemsRepeater doesn't set DataContext on its items; Tile_Click needs it -->
-                        <Button Style="{StaticResource TileButton}" DataContext="{x:Bind}" Click="Tile_Click" AutomationProperties.Name="{x:Bind Name}"
-                                PointerEntered="Tile_PointerEntered" PointerExited="Tile_PointerExited">
-                        <Border Style="{StaticResource Card}" Padding="18">
-                            <Grid ColumnSpacing="14">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <Border Width="48" Height="48" CornerRadius="14" Background="{StaticResource AccentGradient}" VerticalAlignment="Center">
-                                    <FontIcon Glyph="{x:Bind Glyph}" FontSize="22" Foreground="White" />
-                                </Border>
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                    <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" FontSize="16" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{x:Bind Vital, Mode=OneWay}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{x:Bind Source}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
-                                </StackPanel>
-                                    <Border Grid.Column="2" VerticalAlignment="Center" CornerRadius="12" Padding="10,4" Background="#1AFFFFFF" Visibility="{x:Bind BatteryVisibility, Mode=OneWay}">
-                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                            <FontIcon Glyph="{x:Bind BatteryGlyph, Mode=OneWay}" FontSize="14" />
+        <StackPanel x:Name="Empty" Grid.Row="1" Spacing="8" Visibility="Collapsed" HorizontalAlignment="Center" Margin="0,40,0,0">
+            <FontIcon Glyph="&#xE772;" FontSize="40" Opacity="0.5" />
+            <TextBlock Text="No configurable devices found yet." Opacity="0.7" HorizontalAlignment="Center" />
+            <TextBlock Text="Supported so far: Razer, Logitech, SteelSeries and ASUS mice, Razer and Logitech keyboards, SteelSeries Apex Pro TKL (2023) and Gen 3 keyboards, and ~50 headsets (via HeadsetControl)." Style="{StaticResource Caption}" HorizontalAlignment="Center" />
+        </StackPanel>
+
+        <Grid x:Name="Body" Grid.Row="1" ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="320" />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+
+            <!-- Every device, with what matters now -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
+                <ItemsRepeater x:Name="Tiles" Margin="0,0,0,16">
+                    <ItemsRepeater.Layout>
+                        <StackLayout Spacing="8" />
+                    </ItemsRepeater.Layout>
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="p:PeripheralCard">
+                            <!-- ItemsRepeater doesn't set DataContext on its items; Tile_Click needs it -->
+                            <Button Style="{StaticResource TileButton}" DataContext="{x:Bind}" Click="Tile_Click" AutomationProperties.Name="{x:Bind Name}">
+                                <Border Style="{StaticResource Card}" Padding="12,10" BorderBrush="{x:Bind Stroke, Mode=OneWay}" BorderThickness="{x:Bind StrokeThickness, Mode=OneWay}">
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="36" Height="36" CornerRadius="10" Background="{StaticResource AccentGradient}" VerticalAlignment="Center">
+                                            <FontIcon Glyph="{x:Bind Glyph}" FontSize="17" Foreground="White" />
+                                        </Border>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{x:Bind Vital, Mode=OneWay}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" Visibility="{x:Bind BatteryVisibility, Mode=OneWay}">
+                                            <FontIcon Glyph="{x:Bind BatteryGlyph, Mode=OneWay}" FontSize="13" />
                                             <TextBlock Text="{x:Bind BatteryText, Mode=OneWay}" FontWeight="SemiBold" />
                                         </StackPanel>
-                                    </Border>
-                                <FontIcon Grid.Column="3" Glyph="&#xE76C;" FontSize="12" Opacity="0.5" VerticalAlignment="Center" />
-                            </Grid>
-                        </Border>
-                        </Button>
-                    </DataTemplate>
-                </ItemsRepeater.ItemTemplate>
-            </ItemsRepeater>
-        </StackPanel>
-    </ScrollViewer>
+                                    </Grid>
+                                </Border>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </ScrollViewer>
+
+            <!-- The selected device's settings -->
+            <Frame x:Name="Detail" Grid.Column="1" />
+        </Grid>
+    </Grid>
 </Page>

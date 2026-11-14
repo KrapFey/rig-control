@@ -238,7 +238,7 @@ public sealed partial class OverviewPage : Page
                 var right = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { glyph, battery } };
                 Grid.SetColumn(right, 2);
                 grid.Children.Add(right);
-                DeviceRows.Children.Add(Row(grid, d.Name, () => AppI.OpenPage("Devices", null)));
+                DeviceRows.Children.Add(Row(grid, d.Name, () => AppI.OpenPage("Devices", d.Key)));
                 _deviceRows.Add((d.Key, battery, glyph));
             }
             if (devices.Count == 0)

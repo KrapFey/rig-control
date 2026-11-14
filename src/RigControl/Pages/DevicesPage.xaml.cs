@@ -53,6 +53,12 @@ public sealed class PeripheralCard : Observable
 
     public string Key => _device.Key;
     public string Name => _device.Name;
+
+    bool _current;
+    /// <summary>The device whose settings are open beside the list.</summary>
+    public bool IsCurrent { get => _current; set { if (Set(ref _current, value)) { Raise(nameof(Stroke)); Raise(nameof(StrokeThickness)); } } }
+    public Microsoft.UI.Xaml.Media.Brush Stroke => (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources[IsCurrent ? "AccentGradient" : "CardStroke"];
+    public Thickness StrokeThickness => new(IsCurrent ? 2 : 1);
     public string Source => $"{_device.Kind} · {_device.Source}";
     /// <summary>One line of what matters now, for the overview tile.</summary>
     public string Vital
@@ -356,6 +362,7 @@ public sealed class PeripheralCard : Observable
 public sealed partial class DevicesPage : Page
 {
     readonly List<PeripheralCard> _cards = [];
+    string? _selectedKey;
 
     public DevicesPage()
     {
@@ -372,6 +379,9 @@ public sealed partial class DevicesPage : Page
             App.Instance.Peripherals.Watch(false);
         };
     }
+
+    /// <summary>A device key opens that device (from the overview).</summary>
+    protected override void OnNavigatedTo(Microsoft.UI.Xaml.Navigation.NavigationEventArgs e) => _selectedKey = e.Parameter as string ?? _selectedKey;
 
     void OnChanged() => DispatcherQueue.TryEnqueue(() =>
     {
@@ -393,7 +403,10 @@ public sealed partial class DevicesPage : Page
         Tiles.ItemsSource = null;
         Tiles.ItemsSource = _cards;
         Empty.Visibility = _cards.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        Summary.Text = _cards.Count == 0 ? "Mice, headsets and keyboards with settings show up here." : $"{_cards.Count} device{(_cards.Count == 1 ? "" : "s")} · click one for its settings";
+        Body.Visibility = _cards.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        Summary.Text = _cards.Count == 0 ? "Mice, headsets and keyboards with settings show up here." : $"{_cards.Count} device{(_cards.Count == 1 ? "" : "s")}";
+        // The same device stays open when others come and go; the first one otherwise.
+        Select(_cards.FirstOrDefault(c => c.Key == _selectedKey) ?? _cards.FirstOrDefault());
     }
 
     /// <summary>Looks for devices again; the button says so for a few seconds while detection runs.</summary>
@@ -409,22 +422,17 @@ public sealed partial class DevicesPage : Page
 
     void Tile_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is PeripheralCard card)
-            Frame.Navigate(typeof(DevicePage), card.Key, new Microsoft.UI.Xaml.Media.Animation.DrillInNavigationTransitionInfo());
+        if ((sender as FrameworkElement)?.DataContext is PeripheralCard card) Select(card);
     }
 
-    // Hover lift (composition, like the dashboard fan tiles).
-    void Tile_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e) => Lift((UIElement)sender, 1.03f);
-    void Tile_PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e) => Lift((UIElement)sender, 1f);
-
-    static void Lift(UIElement el, float scale)
+    /// <summary>Shows a device's settings beside the list.</summary>
+    void Select(PeripheralCard? card)
     {
-        var visual = Microsoft.UI.Xaml.Hosting.ElementCompositionPreview.GetElementVisual(el);
-        visual.CenterPoint = new System.Numerics.Vector3(el.ActualSize.X / 2, el.ActualSize.Y / 2, 0);
-        var comp = visual.Compositor;
-        var anim = comp.CreateVector3KeyFrameAnimation();
-        anim.InsertKeyFrame(1, new System.Numerics.Vector3(scale, scale, 1), comp.CreateCubicBezierEasingFunction(new(0.2f, 0.9f), new(0.3f, 1.2f)));
-        anim.Duration = TimeSpan.FromMilliseconds(220);
-        visual.StartAnimation("Scale", anim);
+        foreach (var c in _cards) c.IsCurrent = c == card;
+        if (card is null) { Detail.Content = null; return; }
+        if (card.Key == _selectedKey && Detail.Content is DevicePage) return; // already open
+        _selectedKey = card.Key;
+        Detail.Navigate(typeof(DevicePage), card.Key, new Microsoft.UI.Xaml.Media.Animation.EntranceNavigationTransitionInfo());
+        Detail.BackStack.Clear(); // a side panel, not a history
     }
 }

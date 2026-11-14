@@ -168,13 +168,13 @@
                                     <TextBlock Text="{x:Bind StagesTitle}" Style="{StaticResource Caption}" />
                                     <ItemsControl ItemsSource="{x:Bind Stages}">
                                         <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="14" /></ItemsPanelTemplate>
+                                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="10" /></ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="p:StageVm">
                                                 <StackPanel Spacing="4">
                                                     <RadioButton GroupName="{x:Bind Group}" IsChecked="{x:Bind Active, Mode=OneWay}" Content="{x:Bind Label}" MinWidth="0" Checked="Stage_Checked" IsEnabled="{x:Bind Selectable}" />
-                                                    <NumberBox Minimum="100" Maximum="{x:Bind Max}" Value="{x:Bind Value, Mode=OneWay}" ValueChanged="Stage_ValueChanged" GotFocus="Number_GotFocus" SmallChange="50" LargeChange="400" Width="120" SpinButtonPlacementMode="Hidden" />
+                                                    <NumberBox Minimum="100" Maximum="{x:Bind Max}" Value="{x:Bind Value, Mode=OneWay}" ValueChanged="Stage_ValueChanged" GotFocus="Number_GotFocus" SmallChange="50" LargeChange="400" Width="96" SpinButtonPlacementMode="Hidden" />
                                                 </StackPanel>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -200,17 +200,14 @@
         </DataTemplate>
     </Page.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Spacing="16" Padding="0,0,24,24">
-            <Button Click="Back_Click" Padding="10,6" Background="Transparent" BorderThickness="0">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xE72B;" FontSize="14" />
-                    <TextBlock Text="Devices" />
-                </StackPanel>
-            </Button>
+    <!-- Shown beside the list on the Devices page -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
+        <StackPanel Spacing="16" Padding="0,0,0,16">
             <InfoBar x:Name="Gone" IsOpen="True" Visibility="Collapsed" IsClosable="False" Severity="Informational"
                      Message="This device isn't connected right now. Its settings are kept and applied when it's back." />
-            <ContentControl x:Name="CardHost" ContentTemplate="{StaticResource FullCard}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" />
+            <Border Style="{StaticResource Card}" Padding="22">
+                <ContentControl x:Name="CardHost" ContentTemplate="{StaticResource FullCard}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" />
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </Page>
