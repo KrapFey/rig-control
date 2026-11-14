@@ -94,7 +94,7 @@ public sealed class FanEngine : IDisposable
     public FanEngine(HardwareHub hub, AppConfig config)
     {
         _hub = hub;
-        _config = config;
+        _config = config.Clone(); // the UI keeps editing the caller's copy; this thread must never see it mid-edit
         Status = hub.Fans.ToDictionary(f => f.Id, f => new FanStatus { Channel = f });
         _thread = new Thread(Loop) { IsBackground = true, Name = "FanEngine", Priority = ThreadPriority.AboveNormal };
     }
