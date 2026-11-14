@@ -209,11 +209,16 @@ public sealed partial class CurvesPage : Page
         if (_sel is null) return;
         var name = _sel.Name;
         var users = Cfg.Fans.Values.Count(f => f.Curve == name);
+        var message = users == 0 ? "No fan uses it." : $"{users} fan(s) use it; they go back to the hardware's own control.";
+        // A mix of only this curve is left with nothing to mix, and an empty mix runs its fans at 100% (fail-safe).
+        var emptied = Cfg.Curves.Where(c => c.Kind == CurveKind.Mix && c.Inputs.Count > 0 && c.Inputs.All(i => i == name)).Select(c => $"\"{c.Name}\"").ToList();
+        if (emptied.Count > 0)
+            message += $"\n\nThe mix curve{(emptied.Count > 1 ? "s" : "")} {string.Join(", ", emptied)} use{(emptied.Count > 1 ? "" : "s")} only this one: with nothing left to mix, fans on {(emptied.Count > 1 ? "them" : "it")} run at 100%.";
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
             Title = $"Delete \"{name}\"?",
-            Content = users == 0 ? "No fan uses it." : $"{users} fan(s) use it; they go back to the hardware's own control.",
+            Content = message,
             PrimaryButtonText = "Delete",
             CloseButtonText = "Cancel",
             DefaultButton = ContentDialogButton.Close,

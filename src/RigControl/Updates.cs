@@ -67,18 +67,23 @@ public static class Updates
                 if (total > 0) progress?.Report((double)done / total);
             }
         }
-        await using (var f = File.OpenRead(file))
+        // RigControl runs as admin, and %TEMP% is writable by every program of this user: the file could be swapped
+        // between checking and running it. So it's opened once, readable but not writable or deletable by anyone
+        // else, checked through that handle, and only let go of once setup is running. (A swap before this handle
+        // opens is caught by the check itself.)
+        await using (var f = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
         {
             var hash = Convert.ToHexString(await SHA256.HashDataAsync(f));
             if (!hash.Equals(update.SetupSha256, StringComparison.OrdinalIgnoreCase))
             {
+                await f.DisposeAsync();
                 File.Delete(file);
                 return "The downloaded installer didn't match the checksum GitHub publishes for it, so it wasn't run.";
             }
+            AppConfig.Log?.Invoke($"update: running setup for {update.Version}");
+            // Setup waits for RigControl to finish exiting (it hands fans back first), then installs and starts it again.
+            Process.Start(new ProcessStartInfo(file, "/SILENT") { UseShellExecute = true });
         }
-        AppConfig.Log?.Invoke($"update: running setup for {update.Version}");
-        // Setup waits for RigControl to finish exiting (it hands fans back first), then installs and starts it again.
-        Process.Start(new ProcessStartInfo(file, "/SILENT") { UseShellExecute = true });
         App.Instance!.Ui.TryEnqueue(App.Instance.Quit);
         return null;
     }

@@ -92,14 +92,13 @@ sealed class LiquidctlBridge : IDisposable
             RedirectStandardError = true,
         };
         psi.ArgumentList.Add("-I"); // isolated: ignore PYTHON* env vars and user site-packages
-        psi.ArgumentList.Add("-B"); // no __pycache__ beside the app
-        psi.ArgumentList.Add("-u");
         psi.ArgumentList.Add("-B"); // never write .pyc files next to the app
+        psi.ArgumentList.Add("-u");
         psi.ArgumentList.Add(Path.Combine(_dir, "bridge.py"));
         try
         {
             _proc = Process.Start(psi)!;
-            _proc.ErrorDataReceived += (_, e) => { if (e.Data is { Length: > 0 }) Trace.WriteLine($"liquidctl: {e.Data}"); };
+            _proc.ErrorDataReceived += (_, e) => { if (e.Data is { Length: > 0 }) LogHelper(e.Data); };
             _proc.BeginErrorReadLine();
             var reply = Call(new JsonObject { ["op"] = "start", ["exclude"] = new JsonArray([.. _exclude.Select(e => (JsonNode)e)]) }, 30_000);
             var seen = Devices.ToDictionary(d => d.Id);
@@ -115,6 +114,20 @@ sealed class LiquidctlBridge : IDisposable
             _problems.Add($"liquidctl: {e.Message}");
             Kill();
         }
+    }
+
+    int _helperLines;
+    const int HelperLinesMax = 200;
+
+    /// <summary>
+    /// The helper's own messages (device errors, Python tracebacks) go to rigcontrol.log, where a failing device can be
+    /// diagnosed. Capped per session: a device failing every second would otherwise fill the log.
+    /// </summary>
+    void LogHelper(string line)
+    {
+        var n = Interlocked.Increment(ref _helperLines);
+        if (n <= HelperLinesMax) AppConfig.Log?.Invoke($"liquidctl helper: {line}");
+        else if (n == HelperLinesMax + 1) AppConfig.Log?.Invoke($"liquidctl helper: more than {HelperLinesMax} messages, the rest aren't logged");
     }
 
     JsonNode? Call(JsonObject request, int timeoutMs = 5000)
@@ -143,7 +156,7 @@ sealed class LiquidctlBridge : IDisposable
             var status = Call(new JsonObject { ["op"] = "status" })?["status"]?.AsObject();
             foreach (var d in Devices) d.Apply(status?[d.Id]);
         }
-        catch (Exception e) { Trace.WriteLine($"liquidctl status: {e.Message}"); }
+        catch (Exception e) { LogHelper($"status failed: {e.Message}"); }
     }
 
     internal void QueueSet(string dev, string channel, double duty) =>

@@ -1,0 +1,23 @@
+# Self-checks and an app build on every push and pull request. No hardware here: the hardware probes aren't run,
+# and the headset checks skip themselves (HeadsetControl isn't fetched).
+name: checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Self-checks
+        run: dotnet run --project tests/RigControl.Checks
+      - name: Build the app
+        run: dotnet build src/RigControl -nologo
