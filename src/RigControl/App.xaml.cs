@@ -431,6 +431,9 @@ public partial class App : Application
         }
     }
 
+    /// <summary>Goes to a page of the main window with something to open there (see <see cref="MainWindow.Open"/>).</summary>
+    public void OpenPage(string tag, object? parameter) => _window?.Open(tag, parameter);
+
     public void ShowWindow() => Ui.TryEnqueue(() =>
     {
         Log($"ShowWindow (window exists: {_window is not null})");

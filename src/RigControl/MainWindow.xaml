@@ -60,7 +60,7 @@
                 <NavigationViewItem Content="Dashboard" Tag="Dashboard" IsSelected="True">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE80F;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Curves" Tag="Curves">
+                <NavigationViewItem Content="Cooling" Tag="Cooling">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem Content="Lighting" Tag="Lighting">

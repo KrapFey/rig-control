@@ -14,7 +14,7 @@ public sealed partial class MainWindow : Window
     static readonly Dictionary<string, Type> Pages = new()
     {
         ["Dashboard"] = typeof(DashboardPage),
-        ["Curves"] = typeof(CurvesPage),
+        ["Cooling"] = typeof(CoolingPage),
         ["Lighting"] = typeof(LightingPage),
         ["Devices"] = typeof(DevicesPage),
         ["Sensors"] = typeof(SensorsPage),
@@ -99,24 +99,37 @@ public sealed partial class MainWindow : Window
         if (tag is not null && Pages.ContainsKey(tag)) Navigate(tag, null);
     }
 
-    void Navigate(string tag, NavigationTransitionInfo? _)
+    object? _parameter; // for the next navigation (see Open)
+
+    /// <summary>Goes to a menu page with something to open there, e.g. Cooling with one fan's settings.</summary>
+    public void Open(string tag, object? parameter)
     {
-        if (ContentFrame.CurrentSourcePageType == Pages[tag]) return; // already there (both menu events can ask)
+        var item = Nav.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(i => i.Tag as string == tag);
+        if (item is null) return;
+        _parameter = parameter;
+        if (ReferenceEquals(Nav.SelectedItem, item)) Navigate(tag, null, force: true);
+        else Nav.SelectedItem = item; // navigates through SelectionChanged
+    }
+
+    void Navigate(string tag, NavigationTransitionInfo? _, bool force = false)
+    {
+        if (!force && ContentFrame.CurrentSourcePageType == Pages[tag]) return; // already there (both menu events can ask)
         var index = Pages.Keys.ToList().IndexOf(tag);
         // Going down the menu slides up from below; going back up drills in.
         NavigationTransitionInfo info = index >= _lastIndex
             ? new SlideNavigationTransitionInfo { Effect = SlideNavigationTransitionEffect.FromBottom }
             : new DrillInNavigationTransitionInfo();
         _lastIndex = index;
-        ContentFrame.Navigate(Pages[tag], null, info);
+        var parameter = _parameter;
+        _parameter = null;
+        ContentFrame.Navigate(Pages[tag], parameter, info);
     }
 
-    /// <summary>Builds the open page again (after a rescan replaced what it shows). A fan's page goes to the dashboard.</summary>
+    /// <summary>Builds the open page again (after a rescan replaced what it shows).</summary>
     public void ReloadPage()
     {
         var page = ContentFrame.CurrentSourcePageType;
         if (page is null) return;
-        if (page == typeof(FanPage)) page = typeof(DashboardPage);
         if (page == typeof(LightingDevicePage)) page = typeof(LightingPage);
         ContentFrame.Navigate(page, null, new SuppressNavigationTransitionInfo());
         if (ContentFrame.BackStackDepth > 0) ContentFrame.BackStack.RemoveAt(ContentFrame.BackStackDepth - 1); // not a step to go back to
