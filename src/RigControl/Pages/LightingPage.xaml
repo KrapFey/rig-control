@@ -6,106 +6,197 @@
     xmlns:local="using:RigControl"
     Background="Transparent">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Spacing="16" Padding="0,0,0,24">
-            <StackPanel.ChildrenTransitions>
-                <TransitionCollection>
-                    <EntranceThemeTransition FromVerticalOffset="40" IsStaggeringEnabled="True" />
-                </TransitionCollection>
-            </StackPanel.ChildrenTransitions>
+    <Grid RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-            <!-- Header: title, profiles, master switch -->
-            <Grid ColumnSpacing="12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <StackPanel>
-                    <TextBlock Text="Lighting" Style="{StaticResource PageTitle}" Margin="0" />
-                    <TextBlock x:Name="Summary" Style="{StaticResource Caption}" Margin="0,4,0,0" />
+        <!-- Header: title, profiles, master switch -->
+        <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="Lighting" Style="{StaticResource PageTitle}" Margin="0" />
+                <TextBlock x:Name="Summary" Style="{StaticResource Caption}" Margin="0,4,0,0" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <Button x:Name="RescanButton" Click="Rescan_Click" ToolTipService.ToolTip="Look for devices again (one plugged in or woken up since RigControl started)" AutomationProperties.Name="Rescan">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE72C;" FontSize="14" />
+                        <TextBlock x:Name="RescanText" Text="Rescan" />
+                    </StackPanel>
+                </Button>
+                <ComboBox x:Name="ProfileBox" Width="190" SelectionChanged="ProfileBox_SelectionChanged" AutomationProperties.Name="Profile" />
+                <Button ToolTipService.ToolTip="Profile actions" AutomationProperties.Name="Profile actions">
+                    <FontIcon Glyph="&#xE712;" FontSize="14" />
+                    <Button.Flyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Text="New profile (copy of this one)" Click="NewProfile_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE710;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Rename…" Click="RenameProfile_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8AC;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
+                            <MenuFlyoutItem x:Name="DeleteProfileItem" Text="Delete" Click="DeleteProfile_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74D;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+            </StackPanel>
+            <ToggleSwitch x:Name="EnabledSwitch" Grid.Column="2" OnContent="Lighting on" OffContent="Lighting off" VerticalAlignment="Center" Toggled="EnabledSwitch_Toggled" />
+        </Grid>
+
+        <InfoBar x:Name="Notice" Grid.Row="1" Severity="Informational" IsClosable="False" />
+
+        <Grid Grid.Row="2" ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="320" />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+
+            <!-- The synced effect, then every device with its LEDs now -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
+                <StackPanel Spacing="8" Padding="0,0,0,16">
+                    <Button Style="{StaticResource TileButton}" Click="Sync_Click" AutomationProperties.Name="Synced effect">
+                        <Border x:Name="SyncBorder" Style="{StaticResource Card}" Padding="14,12">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="34" Height="34" CornerRadius="10" Background="{StaticResource AccentGradient}">
+                                    <FontIcon Glyph="&#xE895;" FontSize="16" Foreground="White" />
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Synced effect" FontWeight="SemiBold" />
+                                    <TextBlock x:Name="SyncLine" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Button>
+
+                    <TextBlock Text="DEVICES" Style="{StaticResource Caption}" Margin="2,8,0,0" />
+                    <ItemsRepeater x:Name="DeviceList">
+                        <ItemsRepeater.Layout>
+                            <StackLayout Spacing="8" />
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="p:DeviceCard">
+                                <!-- ItemsRepeater doesn't set DataContext on its items; the handlers need it.
+                                     The Identify button inside handles its own clicks, so they don't select the device. -->
+                                <Button Style="{StaticResource TileButton}" DataContext="{x:Bind}" Click="Card_Click" AutomationProperties.Name="{x:Bind Name}">
+                                    <Border Style="{StaticResource Card}" Padding="12,10" BorderBrush="{x:Bind Stroke, Mode=OneWay}" BorderThickness="{x:Bind StrokeThickness, Mode=OneWay}">
+                                        <StackPanel Spacing="8">
+                                            <Grid ColumnSpacing="10">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="30" Height="30" CornerRadius="8" Background="#1AFFFFFF">
+                                                    <FontIcon Glyph="{x:Bind Glyph}" FontSize="15" />
+                                                </Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{x:Bind Shows, Mode=OneWay}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                                <Button Grid.Column="2" Click="Identify_Click" Padding="8,6" AutomationProperties.Name="Identify"
+                                                        ToolTipService.ToolTip="Identify: pulses this device white for 4 seconds" VerticalAlignment="Center">
+                                                    <FontIcon Glyph="&#xE7B3;" FontSize="13" />
+                                                </Button>
+                                            </Grid>
+                                            <Border Height="8" CornerRadius="4" Background="{x:Bind Preview}" />
+                                        </StackPanel>
+                                    </Border>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                    <Button x:Name="RescanButton" Click="Rescan_Click" ToolTipService.ToolTip="Look for devices again (one plugged in or woken up since RigControl started)" AutomationProperties.Name="Rescan">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <FontIcon Glyph="&#xE72C;" FontSize="14" />
-                            <TextBlock x:Name="RescanText" Text="Rescan" />
+            </ScrollViewer>
+
+            <!-- What's selected on the left -->
+            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
+                <Grid Padding="0,0,0,16">
+                    <!-- The synced effect -->
+                    <Border x:Name="SyncPanel" Style="{StaticResource Card}" Padding="22" VerticalAlignment="Top">
+                        <StackPanel Spacing="16">
+                            <Grid>
+                                <TextBlock Text="Synced effect" FontSize="18" FontWeight="SemiBold" />
+                                <TextBlock x:Name="SyncCount" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                            </Grid>
+                            <TextBlock Text="Every device set to it shows this effect, in step with the others." Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,-8,0,0" />
+                            <local:EffectEditor x:Name="Editor" Synced="True" />
                         </StackPanel>
-                    </Button>
-                    <ComboBox x:Name="ProfileBox" Width="190" SelectionChanged="ProfileBox_SelectionChanged" />
-                    <Button ToolTipService.ToolTip="Profile actions">
-                        <FontIcon Glyph="&#xE712;" FontSize="14" />
-                        <Button.Flyout>
-                            <MenuFlyout>
-                                <MenuFlyoutItem Text="New profile (copy of this one)" Click="NewProfile_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE710;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
-                                <MenuFlyoutItem Text="Rename…" Click="RenameProfile_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8AC;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
-                                <MenuFlyoutItem x:Name="DeleteProfileItem" Text="Delete" Click="DeleteProfile_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74D;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
-                            </MenuFlyout>
-                        </Button.Flyout>
-                    </Button>
-                </StackPanel>
-                <ToggleSwitch x:Name="EnabledSwitch" Grid.Column="2" OnContent="Lighting on" OffContent="Lighting off" VerticalAlignment="Center" Toggled="EnabledSwitch_Toggled" />
-            </Grid>
+                    </Border>
 
-            <InfoBar x:Name="Notice" Severity="Informational" IsClosable="False" />
-
-            <!-- Synced effect -->
-            <Border Style="{StaticResource Card}" Padding="22">
-                <StackPanel Spacing="16">
-                    <Grid>
-                        <TextBlock Text="SYNCED EFFECT" Style="{StaticResource Caption}" VerticalAlignment="Center" />
-                        <TextBlock x:Name="SyncCount" Style="{StaticResource Caption}" HorizontalAlignment="Right" />
-                    </Grid>
-                    <local:EffectEditor x:Name="Editor" Synced="True" />
-                </StackPanel>
-            </Border>
-
-            <TextBlock Text="DEVICES · CLICK ONE FOR ITS SETTINGS" Style="{StaticResource Caption}" Margin="2,4,0,0" />
-
-            <ItemsRepeater x:Name="DeviceGrid">
-                <ItemsRepeater.Layout>
-                    <UniformGridLayout MinItemWidth="330" MinItemHeight="150" MinRowSpacing="14" MinColumnSpacing="14" ItemsStretch="Fill" />
-                </ItemsRepeater.Layout>
-                <ItemsRepeater.ItemTemplate>
-                    <DataTemplate x:DataType="p:DeviceCard">
-                        <!-- ItemsRepeater doesn't set DataContext on its items; the handlers need it -->
-                        <!-- The Identify button inside handles its own clicks, so they never open the page -->
-                        <Button Style="{StaticResource TileButton}" DataContext="{x:Bind}" Click="Card_Click" AutomationProperties.Name="{x:Bind Name}">
-                        <Border Style="{StaticResource Card}" Padding="18">
-                            <StackPanel Spacing="12">
-                                <Grid ColumnSpacing="10">
+                    <!-- One device and every setting it has -->
+                    <StackPanel x:Name="DevicePanel" Spacing="14" Visibility="Collapsed">
+                        <Border Style="{StaticResource Card}" Padding="22">
+                            <StackPanel Spacing="16">
+                                <Grid ColumnSpacing="16">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition />
                                         <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <Border Width="38" Height="38" CornerRadius="10" Background="#1AFFFFFF">
-                                        <FontIcon Glyph="{x:Bind Glyph}" FontSize="18" />
+                                    <Border Width="48" Height="48" CornerRadius="14" Background="{StaticResource AccentGradient}">
+                                        <FontIcon Glyph="{x:Bind Card.Glyph, Mode=OneWay}" FontSize="22" Foreground="White" />
                                     </Border>
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Text="{x:Bind Detail, Mode=OneWay}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock Text="{x:Bind Card.Name, Mode=OneWay}" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{x:Bind Card.Detail, Mode=OneWay}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
                                     </StackPanel>
-                                    <Button Grid.Column="2" Click="Identify_Click" AutomationProperties.Name="Identify" ToolTipService.ToolTip="Identify: pulses this device white for 4 seconds" VerticalAlignment="Center">
-                                        <FontIcon Glyph="&#xE7B3;" FontSize="14" />
+                                    <Button Grid.Column="2" Click="IdentifySelected_Click" VerticalAlignment="Center" ToolTipService.ToolTip="Pulses this device white for 4 seconds">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon Glyph="&#xE7B3;" FontSize="14" />
+                                            <TextBlock Text="Identify" />
+                                        </StackPanel>
                                     </Button>
-                                    <FontIcon Grid.Column="3" Glyph="&#xE76C;" FontSize="12" Opacity="0.5" VerticalAlignment="Center" />
                                 </Grid>
 
-                                <!-- Live LED strip with a soft glow -->
-                                <Grid Height="22">
-                                    <Border Background="{x:Bind Preview}" CornerRadius="11" Opacity="0.4" Margin="6,6,6,-4" />
-                                    <Border Background="{x:Bind Preview}" CornerRadius="8" Margin="0,2" BorderBrush="#26FFFFFF" BorderThickness="1" />
+                                <!-- What the LEDs show right now -->
+                                <Grid Height="26">
+                                    <Border Background="{x:Bind Card.Preview, Mode=OneWay}" CornerRadius="13" Opacity="0.4" Margin="8,8,8,-6" />
+                                    <Border Background="{x:Bind Card.Preview, Mode=OneWay}" CornerRadius="9" Margin="0,2" BorderBrush="#26FFFFFF" BorderThickness="1" />
                                 </Grid>
 
-                                <TextBlock Text="{x:Bind Shows, Mode=OneWay}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="SHOWS" Style="{StaticResource Caption}" />
+                                <ComboBox MinWidth="320" ItemsSource="{x:Bind Card.Options, Mode=OneWay}" SelectedIndex="{x:Bind Card.Selected, Mode=TwoWay}"
+                                          AutomationProperties.Name="What this device shows" Margin="0,-8,0,0" />
+                                <TextBlock x:Name="SourceNote" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+
+                                <!-- A built-in effect: the settings the device offers for it -->
+                                <StackPanel Spacing="12" Visibility="{x:Bind Card.HardwareVisibility, Mode=OneWay}">
+                                    <StackPanel Orientation="Horizontal" Spacing="10" Visibility="{x:Bind Card.ColorVisibility, Mode=OneWay}">
+                                        <Button Width="44" Height="32" Padding="0" CornerRadius="8" Background="{x:Bind Card.ColorBrush, Mode=OneWay}" Click="PickColor_Click" ToolTipService.ToolTip="Colour" AutomationProperties.Name="Colour" />
+                                        <TextBlock Text="{x:Bind Card.ColorText, Mode=OneWay}" VerticalAlignment="Center" Style="{StaticResource Caption}" />
+                                    </StackPanel>
+                                    <Grid ColumnSpacing="32">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition />
+                                            <ColumnDefinition />
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Header="Speed" Minimum="0" Maximum="100" Value="{x:Bind Card.Speed, Mode=TwoWay}" Visibility="{x:Bind Card.SpeedVisibility, Mode=OneWay}" />
+                                        <Slider Grid.Column="1" Header="Brightness" Minimum="0" Maximum="100" Value="{x:Bind Card.Brightness, Mode=TwoWay}" Visibility="{x:Bind Card.BrightnessVisibility, Mode=OneWay}" />
+                                    </Grid>
+                                </StackPanel>
+
+                                <!-- Its own effect -->
+                                <local:EffectEditor x:Name="DeviceEditor" Visibility="{x:Bind Card.OwnEffectVisibility, Mode=OneWay}" />
                             </StackPanel>
                         </Border>
-                        </Button>
-                    </DataTemplate>
-                </ItemsRepeater.ItemTemplate>
-            </ItemsRepeater>
-        </StackPanel>
-    </ScrollViewer>
+
+                        <!-- Layout, zones and single LEDs -->
+                        <Border Style="{StaticResource Card}" Padding="22" Visibility="{x:Bind Card.ZonesVisibility, Mode=OneWay}">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="LAYOUT AND ZONES" Style="{StaticResource Caption}" />
+                                <ContentControl x:Name="ZonesHost" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
 </Page>

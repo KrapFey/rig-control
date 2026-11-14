@@ -130,7 +130,6 @@ public sealed partial class MainWindow : Window
     {
         var page = ContentFrame.CurrentSourcePageType;
         if (page is null) return;
-        if (page == typeof(LightingDevicePage)) page = typeof(LightingPage);
         ContentFrame.Navigate(page, null, new SuppressNavigationTransitionInfo());
         if (ContentFrame.BackStackDepth > 0) ContentFrame.BackStack.RemoveAt(ContentFrame.BackStackDepth - 1); // not a step to go back to
     }

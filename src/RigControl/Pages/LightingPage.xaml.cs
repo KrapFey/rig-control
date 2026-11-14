@@ -16,7 +16,7 @@ public sealed record EffectChoice(EffectKind Kind, string Label, string Glyph)
 }
 
 /// <summary>
-/// One lighting device in the current profile: what it shows, its live LED preview, and (on its own page) every setting:
+/// One lighting device in the current profile: what it shows, its live LED preview, and (when it is selected) every setting:
 /// built-in effect settings, layout, and zones down to single LEDs.
 /// </summary>
 public sealed class DeviceCard : Observable
@@ -69,6 +69,12 @@ public sealed class DeviceCard : Observable
     };
     public List<string> Options { get; }
     public LinearGradientBrush Preview { get; }
+
+    bool _current;
+    /// <summary>The device whose settings are open beside the list.</summary>
+    public bool IsCurrent { get => _current; set { if (Set(ref _current, value)) { Raise(nameof(Stroke)); Raise(nameof(StrokeThickness)); } } }
+    public Brush Stroke => (Brush)Application.Current.Resources[IsCurrent ? "AccentGradient" : "CardStroke"];
+    public Thickness StrokeThickness => new(IsCurrent ? 2 : 1);
 
     static string Label(RgbDeviceType t) => t switch
     {
@@ -377,10 +383,14 @@ public sealed record SensorOption(string Id, string Label);
 public sealed partial class LightingPage : Page
 {
     readonly List<DeviceCard> _cards = [];
+    string? _selectedKey; // null: the synced effect
     bool _loading;
 
     static App AppI => App.Instance!;
     static LightingConfig Cfg => AppI.Config.Lighting;
+
+    /// <summary>The device whose settings are open (null while the synced effect is).</summary>
+    public DeviceCard? Card { get; private set; }
 
     public LightingPage()
     {
@@ -397,6 +407,7 @@ public sealed partial class LightingPage : Page
             AppI.LightingStateChanged -= Rebuild;
             DeviceCard.SourceChanged -= UpdateSyncCount;
             CompositionTarget.Rendering -= RenderFrame;
+            if (Card is not null) Card.PropertyChanged -= CardChanged;
         };
     }
 
@@ -414,10 +425,12 @@ public sealed partial class LightingPage : Page
 
         _cards.Clear();
         _cards.AddRange(Cards(AppI.Lighting.Targets));
-        DeviceGrid.ItemsSource = null;
-        DeviceGrid.ItemsSource = _cards;
+        DeviceList.ItemsSource = null;
+        DeviceList.ItemsSource = _cards;
         Summary.Text = _cards.Count == 0 ? "No RGB devices yet." : $"{_cards.Count} devices · profile \"{Cfg.Current.Name}\"";
         Editor.Effect = Cfg.Current.Sync;
+        // The same device stays open across a rebuild (a resized header, a rescan, another profile).
+        Select(_cards.FirstOrDefault(c => c.Key == _selectedKey));
         UpdateSyncCount();
         _loading = false;
     }
@@ -429,7 +442,12 @@ public sealed partial class LightingPage : Page
         return targets.Select(t => new DeviceCard(t, dupes.Contains(t.Name)));
     }
 
-    void UpdateSyncCount() => SyncCount.Text = $"{_cards.Count(c => c.Selected == 0)} of {_cards.Count} devices follow it";
+    void UpdateSyncCount()
+    {
+        var follow = $"{_cards.Count(c => c.Selected == 0)} of {_cards.Count} devices follow it";
+        SyncCount.Text = follow;
+        SyncLine.Text = $"{EffectEditor.LabelOf(Cfg.Current.Sync.Kind)} · {follow}";
+    }
 
     void RenderFrame(object? sender, object e)
     {
@@ -437,11 +455,54 @@ public sealed partial class LightingPage : Page
         foreach (var card in _cards) card.Render(frames.GetValueOrDefault(card.Key));
     }
 
+    // ---- what's open on the right
+
+    void Sync_Click(object sender, RoutedEventArgs e) => Select(null);
+
     void Card_Click(object sender, RoutedEventArgs e)
     {
-        if (((FrameworkElement)sender).DataContext is DeviceCard card)
-            Frame.Navigate(typeof(LightingDevicePage), card.Key, new Microsoft.UI.Xaml.Media.Animation.DrillInNavigationTransitionInfo());
+        if (((FrameworkElement)sender).DataContext is DeviceCard card) Select(card);
     }
+
+    /// <summary>Opens a device's settings beside the list, or the synced effect (null).</summary>
+    void Select(DeviceCard? card)
+    {
+        if (Card is not null) Card.PropertyChanged -= CardChanged;
+        Card = card;
+        _selectedKey = card?.Key;
+        foreach (var c in _cards) c.IsCurrent = c == card;
+        SyncBorder.BorderBrush = (Brush)Application.Current.Resources[card is null ? "AccentGradient" : "CardStroke"];
+        SyncBorder.BorderThickness = new Thickness(card is null ? 2 : 1);
+        SyncPanel.Visibility = card is null ? Visibility.Visible : Visibility.Collapsed;
+        DevicePanel.Visibility = card is null ? Visibility.Collapsed : Visibility.Visible;
+        if (card is not null) card.PropertyChanged += CardChanged;
+        Bindings.Update();
+        ShowDeviceParts();
+    }
+
+    void CardChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        // A new choice in "Shows": the effect editor and the zone list follow it.
+        if (string.IsNullOrEmpty(e.PropertyName)) ShowDeviceParts();
+    }
+
+    void ShowDeviceParts()
+    {
+        if (Card is null) return;
+        if (Card.OwnEffect is { } own) DeviceEditor.Effect = own;
+        Card.ShowZones(ZonesHost);
+        SourceNote.Text = Card.Selected switch
+        {
+            0 => "Shows the synced effect, along with every other device set to it.",
+            1 => "An effect just for this device. Change it below; the synced effect and other devices aren't affected.",
+            _ when Card.OwnEffect is null && Card.HardwareVisibility == Visibility.Visible => "An effect the device runs by itself, with the settings it offers.",
+            _ => "",
+        };
+    }
+
+    void IdentifySelected_Click(object sender, RoutedEventArgs e) => Card?.Identify();
+
+    void PickColor_Click(object sender, RoutedEventArgs e) => Card?.PickColor(sender, e);
 
     void Identify_Click(object sender, RoutedEventArgs e)
     {
