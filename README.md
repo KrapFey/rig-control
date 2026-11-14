@@ -6,12 +6,12 @@ An open-source Windows app for your PC's fans, RGB lighting and gaming periphera
 curves for motherboard, GPU, fan-controller and AIO fans, light every RGB device in sync, set up your mouse,
 headset and keyboard, and watch it all live in a modern WinUI 3 interface.
 
-![Dashboard: CPU, GPU and airflow gauges above live fan tiles](docs/screenshots/dashboard.png)
+![Overview: CPU, GPU, liquid and airflow with their last 10 minutes, cooling by curve, lighting and device batteries](docs/screenshots/overview.png)
 
 | | |
 |---|---|
-| ![Fan curve editor](docs/screenshots/curves.png) | ![Lighting with a synced rainbow effect](docs/screenshots/lighting.png) |
-| ![Mouse settings: DPI, stages, polling rate](docs/screenshots/device-mouse.png) | ![Keyboard settings: lighting, actuation, rapid trigger](docs/screenshots/device-keyboard.png) |
+| ![Cooling: curves with the fans that follow them, beside the curve editor](docs/screenshots/cooling.png) | ![Lighting: the synced effect and every device with its LEDs live](docs/screenshots/lighting.png) |
+| ![Devices: mouse settings, DPI, stages and polling rate, beside the device list](docs/screenshots/device-mouse.png) | ![Devices: keyboard settings, lighting, actuation and rapid trigger](docs/screenshots/device-keyboard.png) |
 
 ![Supported devices, fuzzy search for "kraken x"](docs/screenshots/supported.png)
 
