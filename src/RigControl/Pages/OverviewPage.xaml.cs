@@ -272,6 +272,8 @@ public sealed partial class OverviewPage : Page
     }
 
     void OpenCooling_Click(object sender, RoutedEventArgs e) => AppI.OpenPage("Cooling", null);
+    /// <summary>A temperature tile: every sensor, to see them all or rename one.</summary>
+    void Sensors_Click(object sender, RoutedEventArgs e) => AppI.OpenPage("Cooling", "sensors");
     void OpenLighting_Click(object sender, RoutedEventArgs e) => AppI.OpenPage("Lighting", null);
     void OpenDevices_Click(object sender, RoutedEventArgs e) => AppI.OpenPage("Devices", null);
 

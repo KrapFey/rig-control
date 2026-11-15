@@ -111,6 +111,7 @@ public sealed partial class CoolingPage : Page
     CurveGroup? _sel;
     FanEdit? _fan;
     string? _openFan, _openCurve; // asked for when navigating here (from the overview)
+    bool _openSensors;
     bool _loading;
 
     static AppConfig Cfg => App.Instance!.Config;
@@ -133,6 +134,8 @@ public sealed partial class CoolingPage : Page
             BuildGroups();
             Groups.ItemsSource = _groups;
             ShowProfiles();
+            // Picked once loaded: before that, the bar resets itself to its first view.
+            if (_openSensors) Views.SelectedItem = SensorsView;
             var fan = Live.Instance.Fans.FirstOrDefault(f => f.Id == _openFan);
             Select(_groups.FirstOrDefault(g => g.Def is not null && g.Def.Name == _openCurve)
                    ?? (fan is not null ? GroupOf(fan) : null)
@@ -148,7 +151,7 @@ public sealed partial class CoolingPage : Page
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         if (e.Parameter is not string p) return;
-        if (p == "sensors") Views.SelectedItem = SensorsView;
+        if (p == "sensors") _openSensors = true;
         else if (p.StartsWith("curve:", StringComparison.Ordinal)) _openCurve = p["curve:".Length..];
         else _openFan = p;
     }

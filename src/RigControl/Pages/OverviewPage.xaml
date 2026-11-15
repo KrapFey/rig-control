@@ -35,38 +35,46 @@
 
             <!-- The readings that matter most, with their last 10 minutes -->
             <Grid x:Name="Stats" ColumnSpacing="14">
-                <Border x:Name="CpuTile" Style="{StaticResource Card}" Padding="16,14">
-                    <StackPanel>
-                        <TextBlock Text="CPU" Style="{StaticResource Caption}" />
-                        <TextBlock x:Name="CpuValue" Style="{StaticResource StatValue}" />
-                        <TextBlock x:Name="CpuName" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
-                        <c:Sparkline x:Name="CpuLine" Margin="0,8,0,0" />
-                    </StackPanel>
-                </Border>
-                <Border x:Name="GpuTile" Style="{StaticResource Card}" Padding="16,14">
-                    <StackPanel>
-                        <TextBlock Text="GPU" Style="{StaticResource Caption}" />
-                        <TextBlock x:Name="GpuValue" Style="{StaticResource StatValue}" />
-                        <TextBlock x:Name="GpuName" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
-                        <c:Sparkline x:Name="GpuLine" Margin="0,8,0,0" />
-                    </StackPanel>
-                </Border>
-                <Border x:Name="LiquidTile" Style="{StaticResource Card}" Padding="16,14">
-                    <StackPanel>
-                        <TextBlock Text="LIQUID" Style="{StaticResource Caption}" />
-                        <TextBlock x:Name="LiquidValue" Style="{StaticResource StatValue}" />
-                        <TextBlock x:Name="LiquidName" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
-                        <c:Sparkline x:Name="LiquidLine" Margin="0,8,0,0" MinSpan="5" />
-                    </StackPanel>
-                </Border>
-                <Border x:Name="AirTile" Style="{StaticResource Card}" Padding="16,14">
-                    <StackPanel>
-                        <TextBlock Text="AIRFLOW" Style="{StaticResource Caption}" />
-                        <TextBlock x:Name="AirValue" Style="{StaticResource StatValue}" />
-                        <TextBlock x:Name="AirText" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
-                        <c:Sparkline x:Name="AirLine" Margin="0,8,0,0" MinSpan="20" />
-                    </StackPanel>
-                </Border>
+                <Button x:Name="CpuTile" Style="{StaticResource TileButton}" Click="Sensors_Click" AutomationProperties.Name="CPU temperature" ToolTipService.ToolTip="Every temperature sensor (Cooling, Sensors)">
+                    <Border Style="{StaticResource Card}" Padding="16,14">
+                        <StackPanel>
+                            <TextBlock Text="CPU" Style="{StaticResource Caption}" />
+                            <TextBlock x:Name="CpuValue" Style="{StaticResource StatValue}" />
+                            <TextBlock x:Name="CpuName" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                            <c:Sparkline x:Name="CpuLine" Margin="0,8,0,0" />
+                        </StackPanel>
+                    </Border>
+                </Button>
+                <Button x:Name="GpuTile" Style="{StaticResource TileButton}" Click="Sensors_Click" AutomationProperties.Name="GPU temperature" ToolTipService.ToolTip="Every temperature sensor (Cooling, Sensors)">
+                    <Border Style="{StaticResource Card}" Padding="16,14">
+                        <StackPanel>
+                            <TextBlock Text="GPU" Style="{StaticResource Caption}" />
+                            <TextBlock x:Name="GpuValue" Style="{StaticResource StatValue}" />
+                            <TextBlock x:Name="GpuName" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                            <c:Sparkline x:Name="GpuLine" Margin="0,8,0,0" />
+                        </StackPanel>
+                    </Border>
+                </Button>
+                <Button x:Name="LiquidTile" Style="{StaticResource TileButton}" Click="Sensors_Click" AutomationProperties.Name="Liquid temperature" ToolTipService.ToolTip="Every temperature sensor (Cooling, Sensors)">
+                    <Border Style="{StaticResource Card}" Padding="16,14">
+                        <StackPanel>
+                            <TextBlock Text="LIQUID" Style="{StaticResource Caption}" />
+                            <TextBlock x:Name="LiquidValue" Style="{StaticResource StatValue}" />
+                            <TextBlock x:Name="LiquidName" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                            <c:Sparkline x:Name="LiquidLine" Margin="0,8,0,0" MinSpan="5" />
+                        </StackPanel>
+                    </Border>
+                </Button>
+                <Button x:Name="AirTile" Style="{StaticResource TileButton}" Click="OpenCooling_Click" AutomationProperties.Name="Airflow" ToolTipService.ToolTip="The curves that set the fans (Cooling)">
+                    <Border Style="{StaticResource Card}" Padding="16,14">
+                        <StackPanel>
+                            <TextBlock Text="AIRFLOW" Style="{StaticResource Caption}" />
+                            <TextBlock x:Name="AirValue" Style="{StaticResource StatValue}" />
+                            <TextBlock x:Name="AirText" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                            <c:Sparkline x:Name="AirLine" Margin="0,8,0,0" MinSpan="20" />
+                        </StackPanel>
+                    </Border>
+                </Button>
             </Grid>
             <TextBlock Text="Lines show the last 10 minutes." Style="{StaticResource Caption}" Margin="2,-8,0,0" />
 
