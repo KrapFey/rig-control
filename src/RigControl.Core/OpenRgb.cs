@@ -23,8 +23,10 @@ public readonly record struct Rgb(byte R, byte G, byte B)
     public override string ToString() => $"#{R:X2}{G:X2}{B:X2}";
     public static Rgb Parse(string hex)
     {
-        var s = hex.TrimStart('#');
-        return new(Convert.ToByte(s[..2], 16), Convert.ToByte(s[2..4], 16), Convert.ToByte(s[4..6], 16));
+        // On spans: the lighting thread parses colours on every frame, and substrings there were garbage 30 times a second.
+        var s = hex.AsSpan().TrimStart('#');
+        const System.Globalization.NumberStyles Hex = System.Globalization.NumberStyles.AllowHexSpecifier;
+        return new(byte.Parse(s[..2], Hex), byte.Parse(s[2..4], Hex), byte.Parse(s[4..6], Hex));
     }
 }
 

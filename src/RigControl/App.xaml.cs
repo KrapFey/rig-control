@@ -45,7 +45,8 @@ public partial class App : Application
     TaskbarIcon? _tray;
     System.Drawing.Icon? _logo;
     DispatcherQueueTimer? _trayTimer, _historyTimer; // fields: a timer only a local holds gets collected and stops
-    DispatcherQueueTimer? _saveTimer;
+    DispatcherQueueTimer? _saveTimer, _applyTimer;
+    bool _applyPending, _peripheralsChanged;
 
     public App()
     {
@@ -136,11 +137,20 @@ public partial class App : Application
             try { Config.Save(); } catch (Exception e) { Log($"config save failed: {e.Message}"); }
         };
 
+        // Changes come in bursts (a slider drag, "Fill all" over a hundred LEDs) and applying one copies the config:
+        // at most one apply every 30 ms, with the latest state.
+        _applyTimer = Ui.CreateTimer();
+        _applyTimer.Interval = TimeSpan.FromMilliseconds(30);
+        _applyTimer.IsRepeating = false;
+        _applyTimer.Tick += (_, _) => { _applyPending = false; ApplyConfig(); };
+
+        // The peripherals thread reads the fan engine's copy of the config (made on the UI thread at each apply and
+        // never changed afterwards), not the live one: that is being edited on the UI thread.
 #if UITEST
         // the UI-test build reads devices but never writes settings (demo devices are made up, so they may)
-        Peripherals = new PeripheralHub(() => Demo.On ? Config.Clone().Peripherals : []);
+        Peripherals = new PeripheralHub(() => Demo.On ? Engine.Config.Peripherals : []);
 #else
-        Peripherals = new PeripheralHub(() => Config.Clone().Peripherals);
+        Peripherals = new PeripheralHub(() => Engine.Config.Peripherals);
 #endif
         Peripherals.Changed += () => Ui.TryEnqueue(UpdateTrayTooltip);
         Peripherals.ChangedOnDevice += (key, state) => Ui.TryEnqueue(() =>
@@ -386,10 +396,8 @@ public partial class App : Application
     /// <summary>A device setting (DPI, polling…) changed: save it and send it to the device.</summary>
     public void PeripheralSettingsChanged()
     {
+        _peripheralsChanged = true; // sent once the change is applied (ApplyConfig), so the device gets the new settings
         ConfigChanged();
-#if !UITEST
-        Peripherals.SettingsChanged();
-#endif
     }
 
     /// <summary>Redraws the tray icon now (after its setting changed).</summary>
@@ -443,13 +451,27 @@ public partial class App : Application
         _window?.ReloadPage();
     }
 
+    /// <summary>The config was edited: the fans, lights and tray menu follow within 30 ms (see _applyTimer), and it's saved.</summary>
     public void ConfigChanged()
     {
+        if (!_applyPending && _applyTimer is not null) { _applyPending = true; _applyTimer.Start(); }
+        _saveTimer?.Stop();
+        _saveTimer?.Start();
+    }
+
+    void ApplyConfig()
+    {
+        if (_quitting) return;
         Engine.Apply(Config);
         Lighting?.Apply(Config.Lighting);
         if (_tray is not null) BuildTrayMenu(); // a profile or lighting change shows in the tray menu
-        _saveTimer?.Stop();
-        _saveTimer?.Start();
+        if (_peripheralsChanged)
+        {
+            _peripheralsChanged = false;
+#if !UITEST
+            Peripherals.SettingsChanged();
+#endif
+        }
     }
 
     public void ReplaceConfig(AppConfig config)
@@ -671,6 +693,7 @@ public partial class App : Application
         _fanWatch?.Stop();
         _window?.Close(); // first: it notes where it was (saved just below), and the app looks gone at once
         _saveTimer?.Stop();
+        _applyTimer?.Stop();
         try { Config.Save(); } catch (Exception e) { Log($"config save on exit failed: {e.Message}"); }
         Log("quit");
         // Each step has its own time limit; a slow one is logged, since a restart waits for all of them.

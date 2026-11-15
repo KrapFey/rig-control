@@ -222,7 +222,12 @@ public static class EffectMath
 
     public static void Render(EffectSettings e, double t, ReadOnlySpan<float> ledX, double? temp, Span<Rgb> output, AudioFrame? audio = null)
     {
-        var colors = e.Colors.Count > 0 ? e.Colors.Select(Rgb.Parse).ToArray() : [new Rgb(255, 255, 255)];
+        // Parsed on the stack: this runs per device on every frame.
+        int n = e.Colors.Count;
+        Span<Rgb> parsed = n <= 16 ? stackalloc Rgb[Math.Max(n, 1)] : new Rgb[n];
+        parsed[0] = new Rgb(255, 255, 255); // no colours: white
+        for (int i = 0; i < n; i++) parsed[i] = Rgb.Parse(e.Colors[i]);
+        ReadOnlySpan<Rgb> colors = parsed, heat = n >= 2 ? parsed : HeatDefault;
         double p = Period(e.Speed), k = Math.Clamp(e.Brightness, 0, 100) / 100;
         if (e.IsAudio)
         {
@@ -238,7 +243,7 @@ public static class EffectMath
                 EffectKind.Breathing => colors[(int)(t / p) % colors.Length].Scale((1 - Math.Cos(2 * Math.PI * t / p)) / 2),
                 EffectKind.Rainbow => Rgb.Hsv(360 * (x - t / p)),
                 EffectKind.ColorCycle => Rgb.Hsv(360 * t / p),
-                EffectKind.Temperature => Gradient(e.Colors.Count >= 2 ? colors : HeatDefault,
+                EffectKind.Temperature => Gradient(heat,
                     temp is double tv ? Math.Clamp((tv - e.ColdTemp) / Math.Max(1, e.HotTemp - e.ColdTemp), 0, 1) : 1), // no reading: show hot
                 _ => default,
             };
@@ -247,7 +252,7 @@ public static class EffectMath
     }
 
     /// <summary>Colour at <paramref name="f"/> (0..1) along evenly spaced stops.</summary>
-    public static Rgb Gradient(Rgb[] stops, double f)
+    public static Rgb Gradient(ReadOnlySpan<Rgb> stops, double f)
     {
         if (stops.Length == 1) return stops[0];
         f = Math.Clamp(f, 0, 1) * (stops.Length - 1);
@@ -300,7 +305,7 @@ public static class EffectMath
     /// <summary>Sensitivity 0..100 as a gain: 50 = 1x, 0 = 0.25x, 100 = 4x.</summary>
     public static double Gain(double sensitivity) => Math.Pow(2, (Math.Clamp(sensitivity, 0, 100) - 50) / 25);
 
-    static void RenderAudio(EffectSettings e, Rgb[] colors, ReadOnlySpan<float> ledX, AudioFrame a, Span<Rgb> output, double k)
+    static void RenderAudio(EffectSettings e, ReadOnlySpan<Rgb> colors, ReadOnlySpan<float> ledX, AudioFrame a, Span<Rgb> output, double k)
     {
         double gain = Gain(e.Sensitivity);
         bool custom = e.Colors.Count >= 2; // one colour: the level meter uses green→red, the spectrum a rainbow
@@ -315,7 +320,7 @@ public static class EffectMath
                     // A VU meter along the device: lit up to the level, the edge LED partly.
                     double level = Math.Clamp(a.Level * gain, 0, 1);
                     double lit = Math.Clamp((level - x) * 12 + 1, 0, 1);
-                    c = Gradient(custom ? colors : MeterDefault, x).Scale(lit);
+                    c = Gradient(custom ? colors : (ReadOnlySpan<Rgb>)MeterDefault, x).Scale(lit);
                     break;
                 }
                 case EffectKind.AudioSpectrum:
