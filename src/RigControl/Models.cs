@@ -162,16 +162,20 @@ public sealed class History
 {
     public const int Samples = 180; // 3 minutes at one a second: recent enough to show what just happened
     readonly Dictionary<string, Queue<double>> _series = [];
+    readonly Dictionary<string, long> _added = [];
 
     public void Add(string key, double? value)
     {
         if (value is not double v || double.IsNaN(v)) return;
         if (!_series.TryGetValue(key, out var q)) _series[key] = q = new Queue<double>(Samples + 1);
         q.Enqueue(v);
+        _added[key] = _added.GetValueOrDefault(key) + 1;
         while (q.Count > Samples) q.Dequeue();
     }
 
     public IReadOnlyList<double> Of(string key) => _series.TryGetValue(key, out var q) ? [.. q] : [];
+    /// <summary>Samples ever added under <paramref name="key"/> (the kept ones are the last of them).</summary>
+    public long Added(string key) => _added.GetValueOrDefault(key);
 }
 
 /// <summary>Everything the pages show, refreshed from the engine each tick while a window is open.</summary>

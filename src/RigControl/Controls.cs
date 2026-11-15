@@ -49,7 +49,13 @@ static class Heat
 public sealed class Sparkline : Grid
 {
     readonly Path _line = new() { StrokeThickness = 2, StrokeLineJoin = PenLineJoin.Round, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round };
+    // A new sample moves the line one step left: it glides there over the second until the next one (on the
+    // compositor, no UI thread work) instead of jumping.
+    readonly TranslateTransform _slide = new();
+    readonly DoubleAnimation _glide = new() { To = 0, Duration = TimeSpan.FromSeconds(1) };
+    readonly Storyboard _story = new();
     IReadOnlyList<double> _values = [];
+    long _added = -1;
 
     /// <summary>The smallest range drawn top to bottom, so a steady 40° doesn't look like a storm.</summary>
     public double MinSpan { get; set; } = 10;
@@ -59,18 +65,32 @@ public sealed class Sparkline : Grid
         Height = 34;
         _line.Stroke = (Brush)Application.Current.Resources["AccentGradient"];
         Children.Add(_line);
-        SizeChanged += (_, _) => Draw();
+        _line.RenderTransform = _slide;
+        Storyboard.SetTarget(_glide, _slide);
+        Storyboard.SetTargetProperty(_glide, "X");
+        _story.Children.Add(_glide);
+        SizeChanged += (_, _) => { Clip = new RectangleGeometry { Rect = new Rect(0, 0, ActualWidth, ActualHeight) }; Draw(); };
     }
 
-    public void SetValues(IReadOnlyList<double> values)
+    /// <param name="added">Samples ever added to this series (see <see cref="History.Added"/>).</param>
+    public void SetValues(IReadOnlyList<double> values, long added)
     {
+        long fresh = _added < 0 ? 0 : added - _added;
+        if (fresh == 0 && _values.Count > 0) return; // nothing new: leave the line (and its glide) alone
         _values = values;
+        _added = added;
         Draw();
+        if (fresh is > 0 and < 5 && ActualWidth > 0)
+        {
+            _story.Stop();
+            _glide.From = fresh * ActualWidth / (History.Samples - 1);
+            _story.Begin();
+        }
     }
 
     void Draw()
     {
-        var points = RigControl.Core.SparklineMath.Layout(_values, History.Samples, ActualWidth, ActualHeight, MinSpan);
+        var points = RigControl.Core.SparklineMath.Layout(_values, History.Samples, ActualWidth, ActualHeight, MinSpan, first: _added - _values.Count);
         if (points.Count < 2) { _line.Data = null; return; }
         var figure = new PathFigure { StartPoint = new Point(points[0].X, points[0].Y) };
         foreach (var (c1, c2, end) in RigControl.Core.SparklineMath.Curve(points))

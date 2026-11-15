@@ -76,7 +76,7 @@ public sealed partial class OverviewPage : Page
         var air = Live.Airflow(hub.Fans);
         AirValue.Text = air is double a ? $"{a:0}%" : "–";
         AirText.Text = $"{_live.Fans.Count(f => f.Present)} fans · {_live.Fans.Count(f => f.Active)} driven";
-        AirLine.SetValues(app.History.Of("air"));
+        AirLine.SetValues(app.History.Of("air"), app.History.Added("air"));
 
         UpdateCurveRows();
         UpdateLighting();
@@ -90,7 +90,7 @@ public sealed partial class OverviewPage : Page
     {
         value.Text = sensor?.Value is float v ? $"{v:0}°" : "–";
         name.Text = sensor is null ? "no sensor found" : $"{AppI.SensorLabel(sensor)} · {sensor.Device}";
-        line.SetValues(AppI.History.Of(key));
+        line.SetValues(AppI.History.Of(key), AppI.History.Added(key));
     }
 
     // ---- cooling

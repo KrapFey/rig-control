@@ -245,8 +245,13 @@ static string WriteTemp(AppConfig c) { var p = Path.Combine(Path.GetTempPath(), 
     Check(pts.Count is > 40 and <= 51 && Math.Abs(pts[^1].X - 200) < 4 && pts.Zip(pts.Skip(1)).All(q => q.First.X < q.Second.X),
           "history line: 300 samples averaged into ~4 px columns, left to right, newest at the right edge");
     Check(pts.Zip(pts.Skip(1)).Count(q => q.Second.Y > q.First.Y) <= 2, "history line: the 2-second jitter is averaged away (the slow rise is what shows)");
-    var shortHistory = SparklineMath.Layout([40, 41, 42, 43, 44, 45], 300, 200, 34, 10);
-    Check(shortHistory.Count >= 1 && shortHistory.All(q => q.X > 190), "history line: a short history fills only the right-hand part");
+    var wave = Enumerable.Range(0, 121).Select(i => 50 + 5 * Math.Sin(i / 7.0)).ToList();
+    var before = SparklineMath.Layout(wave[..120], 180, 80, 34, 10, first: 0);
+    var after = SparklineMath.Layout(wave[1..], 180, 80, 34, 10, first: 1);
+    Check(before.Count == after.Count && Enumerable.Range(1, before.Count - 2).All(i => Math.Abs(before[i].X - 80.0 / 179 - after[i].X) < 1e-9),
+          "history line: a new sample moves every full column exactly one step left (no wobble, so it can glide)");
+    var shortHistory = SparklineMath.Layout([.. Enumerable.Range(40, 20).Select(i => (double)i)], 300, 200, 34, 10);
+    Check(shortHistory.Count >= 2 && shortHistory.All(q => q.X > 180), "history line: a short history fills only the right-hand part");
     var bumpy = new List<(double, double)> { (0, 30), (10, 5), (20, 28), (30, 28), (40, 2), (50, 20) };
     var curve = SparklineMath.Curve(bumpy);
     bool inBand = true;
