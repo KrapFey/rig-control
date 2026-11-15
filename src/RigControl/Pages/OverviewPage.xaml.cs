@@ -315,6 +315,21 @@ public sealed partial class OverviewPage : Page
             Notices.Children.Add(bar);
         }
 
+        if (app.Config.Curves.Count == 0)
+        {
+            var bar = new InfoBar
+            {
+                IsOpen = true,
+                Severity = InfoBarSeverity.Informational,
+                Title = "Set up cooling in one step",
+                Message = "RigControl makes curves for your CPU, GPU and cooler and suggests which fan follows which. You see it all before anything changes.",
+            };
+            var button = new Button { Content = "Set up cooling…", Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
+            button.Click += async (_, _) => await StarterSetupDialog.RunAsync(XamlRoot);
+            bar.ActionButton = button;
+            Notices.Children.Add(bar);
+        }
+
         if (app.Config.Curves.Count == 0 && !app.Config.Fans.Values.Any(f => f.Enabled) && File.Exists(FanControlImport.DefaultPath))
         {
             var bar = new InfoBar

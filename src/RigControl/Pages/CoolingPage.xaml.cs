@@ -672,6 +672,9 @@ public sealed partial class CoolingPage : Page
         RefreshFanPanel();
     }
 
+    /// <summary>The starter setup: curves for this PC and a guess at which fan follows which, confirmed first.</summary>
+    async void Setup_Click(object sender, RoutedEventArgs e) => await StarterSetupDialog.RunAsync(XamlRoot);
+
     async void Import_Click(object sender, RoutedEventArgs e)
     {
         if (!await SettingsPage.ImportFanControl(XamlRoot)) return;

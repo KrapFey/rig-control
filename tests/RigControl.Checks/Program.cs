@@ -204,6 +204,40 @@ static string WriteTemp(AppConfig c) { var p = Path.Combine(Path.GetTempPath(), 
           && mixCurve.Points.Count == 0 && flat.Percent == 55, "presets: a graph curve reshaped for its sensor; mix and flat left alone");
 }
 
+// Starter setup: curves for what this PC has, fans guessed from where they're connected, pumps left alone.
+{
+    StarterFan F(string id, string name, string device) => new(id, name, device);
+    var fans = new[]
+    {
+        F("/lpc/it8689e/control/0", "CPU Fan", "Motherboard"),
+        F("liquidctl/k/pump", "Pump", "NZXT Kraken · 1A2B"),
+        F("liquidctl/k/fan1", "Fan 1", "NZXT Kraken · 1A2B"),
+        F("/gpu-nvidia/0/control/0", "GPU Fan", "RTX 4070"),
+        F("/lpc/it8689e/control/1", "System Fan #1", "Motherboard"),
+    };
+    string? Name(string id) => id.Contains("Liquid") ? "Liquid temperature" : null;
+    var plan = StarterSetup.Plan("/intelcpu/0/temperature/0", "/gpu-nvidia/0/temperature/0", ("liquidctl/k/temp/Liquid", "NZXT Kraken · 1A2B"),
+        fans, CoolingPreset.Balanced, Name);
+    string? Follows(string id) => plan.Fans.Single(c => c.Fan.Id == id).Curve;
+    Check(plan.Curves.Select(c => c.Name).SequenceEqual(["CPU", "GPU", "Liquid", "Case"])
+          && plan.Curves.Single(c => c.Name == "Case") is { Kind: CurveKind.Mix, Mix: MixFunction.Max } cs && cs.Inputs.SequenceEqual(["CPU", "GPU"]),
+          "starter: CPU, GPU and Liquid curves, and Case = the higher of CPU and GPU");
+    Check(plan.Curves[0].Points.SequenceEqual(CoolingPresets.Shape(SensorKind.Cpu, CoolingPreset.Balanced))
+          && plan.Curves[2].Points.SequenceEqual(CoolingPresets.Shape(SensorKind.Liquid, CoolingPreset.Balanced)), "starter: each curve shaped for its sensor");
+    Check(Follows("/lpc/it8689e/control/0") == "CPU" && Follows("liquidctl/k/fan1") == "Liquid" && Follows("/gpu-nvidia/0/control/0") == "GPU"
+          && Follows("/lpc/it8689e/control/1") == "Case" && Follows("liquidctl/k/pump") is null,
+          "starter: CPU header -> CPU, radiator -> Liquid, graphics card -> GPU, others -> Case, pump left alone");
+    var bare = StarterSetup.Plan("/amdcpu/0/temperature/0", null, null, fans, CoolingPreset.Silent, Name);
+    Check(bare.Curves.Select(c => c.Name).SequenceEqual(["CPU", "Case"]) && bare.Fans.Single(c => c.Fan.Id == "/gpu-nvidia/0/control/0").Curve == "Case"
+          && bare.Fans.Single(c => c.Fan.Id == "liquidctl/k/fan1").Curve == "Case",
+          "starter: no GPU or coolant sensor -> no such curves, those fans follow Case");
+    var cfgS = new AppConfig();
+    cfgS.Fans["liquidctl/k/pump"] = new FanSettings { Manual = 70, Enabled = true };
+    StarterSetup.Apply(plan, cfgS);
+    Check(cfgS.Curves.Count == 4 && cfgS.Fans["/lpc/it8689e/control/1"] is { Enabled: true, Curve: "Case", Manual: null }
+          && cfgS.Fans["liquidctl/k/pump"] is { Manual: 70 }, "starter: applied, the pump's own setting kept");
+}
+
 // The watchdog: bring RigControl back after it died without exiting, up to 3 times in 10 minutes, then give the
 // fans to the hardware; never when it exited cleanly (no mark, or another process's) or Windows is ending.
 Check(CrashGuard.Decide(10, 10, 0, false) == CrashGuard.Action.Restart, "watchdog: died without exiting -> start it again");
