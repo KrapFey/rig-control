@@ -93,7 +93,8 @@ public sealed partial class MainWindow : Window
     void UpdateStatus()
     {
         var app = App.Instance!;
-        Status.Text = app.Engine.Paused ? "Paused · FanControl is running" : "Live";
+        StatusPill.Visibility = app.Engine.Paused ? Visibility.Visible : Visibility.Collapsed;
+        Status.Text = "Paused · FanControl is running";
     }
 
     void Nav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)

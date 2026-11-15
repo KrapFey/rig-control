@@ -556,9 +556,19 @@ public sealed partial class LightingPage : Page
         Rebuild();
     }
 
-    void DeleteProfile_Click(object sender, RoutedEventArgs e)
+    async void DeleteProfile_Click(object sender, RoutedEventArgs e)
     {
         if (Cfg.Profiles.Count < 2) return;
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = $"Delete \"{Cfg.Current.Name}\"?",
+            Content = "Its synced effect and device settings go with it.",
+            PrimaryButtonText = "Delete",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Close,
+        };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
         Cfg.Profiles.Remove(Cfg.Current);
         Cfg.Active = Cfg.Profiles[0].Name;
         AppI.ConfigChanged();

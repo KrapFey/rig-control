@@ -19,6 +19,15 @@ public sealed class CoolingProfile
     public Dictionary<string, FanSettings> Fans { get; set; } = [];
 }
 
+/// <summary>While <see cref="Process"/> runs, these profiles are in use (null = leave that one alone).</summary>
+public sealed class AppRule
+{
+    /// <summary>The program's file name, e.g. "game.exe" (".exe" is optional).</summary>
+    public string Process { get; set; } = "";
+    public string? Cooling { get; set; }
+    public string? Lighting { get; set; }
+}
+
 /// <summary>The main window's restored bounds in screen pixels, and whether it was maximized.</summary>
 public sealed record WindowPlacement(int X, int Y, int Width, int Height, bool Maximized);
 
@@ -72,6 +81,12 @@ public sealed class AppConfig
     public bool CheckForUpdates { get; set; } = true;
     /// <summary>The tray icon shows this value live (or the logo).</summary>
     public TrayShow TrayShows { get; set; } = TrayShow.CpuTemp;
+    /// <summary>A notification when a mouse's, keyboard's or headset's battery falls to this percent (0 = never).</summary>
+    public int LowBatteryAlert { get; set; } = 15;
+    /// <summary>A notification when the CPU or GPU stays at or above this many °C (0 = never).</summary>
+    public int HotAlert { get; set; } = 95;
+    /// <summary>Apps that bring their own cooling and lighting profiles while they run; the first one running wins.</summary>
+    public List<AppRule> AppRules { get; set; } = [];
     /// <summary>Where the main window was when it last closed; null = the default size.</summary>
     public WindowPlacement? Window { get; set; }
     /// <summary>Per-device driver: device key (e.g. "nzxt-hue2/&lt;serial&gt;") -> "liquidctl". Missing = built-in.</summary>

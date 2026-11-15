@@ -81,7 +81,13 @@ headset and keyboard, and watch it all live in a modern WinUI 3 interface.
 - **Import from FanControl:** curves, fan names and fan settings, including NZXT controllers driven through
   the FanControl.Liquidctl plugin (matched by the plugin's own device ids).
 - **Identify** stops one fan for 8 seconds so you can see which it is; **Swap with…** exchanges two fans'
-  settings.
+  settings; **Calibrate…** finds where a fan stops and where it starts again (about a minute) and sets its
+  Minimum and Start limits from that. Pumps are never calibrated.
+- **Profiles that follow apps** (Settings): while a program you list is running, its cooling and lighting profiles
+  are in use; when it closes, the ones from before come back.
+- **Notifications:** a fan that stops, a mouse, keyboard or headset battery that runs low, a CPU or graphics card
+  that stays hot. The battery and temperature limits are in Settings (0 turns one off).
+- **Dark while locked** (Settings, off by default): every light RigControl drives goes off while Windows is locked.
 - **Tray icon:** shows a live CPU or GPU temperature or the airflow, coloured by how hot it is; its tooltip has the
   rest and device batteries. Clicking it opens RigControl; right-click it to switch the cooling profile (or start one from a preset) or the lighting. Windows 11 hides new tray icons at first: drag it onto the
   taskbar to keep it in view.

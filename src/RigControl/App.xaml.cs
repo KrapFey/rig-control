@@ -126,7 +126,7 @@ public partial class App : Application
         // Two programs writing the same fans fight each other: stay hands-off while FanControl runs.
         var watch = Ui.CreateTimer();
         watch.Interval = TimeSpan.FromSeconds(2);
-        watch.Tick += (_, _) => Engine.Paused = OtherFanAppRunning();
+        watch.Tick += (_, _) => { Engine.Paused = OtherFanAppRunning(); _ = CheckAppRulesAsync(); };
         watch.Start();
 
         _saveTimer = Ui.CreateTimer();
@@ -167,6 +167,17 @@ public partial class App : Application
 
         Lighting = new LightingEngine(id => Hub.Temps.FirstOrDefault(t => t.Id == id)?.Value);
         Lighting.Apply(Config.Lighting);
+        // Locked: the lights go dark, when that's switched on in Settings.
+        Microsoft.Win32.SystemEvents.SessionSwitch += (_, e) =>
+        {
+            if (e.Reason is not (Microsoft.Win32.SessionSwitchReason.SessionLock or Microsoft.Win32.SessionSwitchReason.SessionUnlock)) return;
+            Ui.TryEnqueue(() =>
+            {
+                _locked = e.Reason == Microsoft.Win32.SessionSwitchReason.SessionLock;
+                Log($"Windows {(_locked ? "locked" : "unlocked")}");
+                ApplyConfig();
+            });
+        };
         _ = StartHardwareAsync();
 
         CreateTray();
@@ -459,11 +470,14 @@ public partial class App : Application
         _saveTimer?.Start();
     }
 
+    bool _locked; // Windows is locked
+
     void ApplyConfig()
     {
         if (_quitting) return;
         Engine.Apply(Config);
         Lighting?.Apply(Config.Lighting);
+        if (Lighting is not null) Lighting.Dark = _locked && Config.Lighting.OffWhenLocked;
         if (_tray is not null) BuildTrayMenu(); // a profile or lighting change shows in the tray menu
         if (_peripheralsChanged)
         {
@@ -617,7 +631,7 @@ public partial class App : Application
         _tray.ForceCreate(enablesEfficiencyMode: false);
         _trayTimer = Ui.CreateTimer();
         _trayTimer.Interval = TimeSpan.FromSeconds(2);
-        _trayTimer.Tick += (_, _) => { UpdateTrayTooltip(); CheckStalls(); CheckFanLoop(); ExpireExitNote(); };
+        _trayTimer.Tick += (_, _) => { UpdateTrayTooltip(); CheckStalls(); CheckAlerts(); CheckFanLoop(); ExpireExitNote(); };
         // The overview's history lines: a sample a second (see History).
         _historyTimer = Ui.CreateTimer();
         _historyTimer.Interval = TimeSpan.FromSeconds(1);
@@ -676,6 +690,88 @@ public partial class App : Application
                 $"{name} ({st.Channel.Device}) reads 0 rpm at {st.Target:0}%. Check the fan and its cable.",
                 H.NotifyIcon.Core.NotificationIcon.Warning);
         }
+    }
+
+    readonly HashSet<string> _alerted = []; // what a notification is out for, until it's over
+    readonly Dictionary<string, int> _hotChecks = [];
+
+    /// <summary>Windows notifications: a device's battery is low, or the CPU or GPU stays hot. Once each, until it's over.</summary>
+    void CheckAlerts()
+    {
+        int low = Config.LowBatteryAlert;
+        var states = Peripherals.States;
+        foreach (var d in Peripherals.Devices)
+        {
+            if (!states.TryGetValue(d.Key, out var s) || s.BatteryPercent is not int pct) continue;
+            if (low > 0 && pct <= low && s.Charging != true && s.Connected != false)
+            {
+                if (!_alerted.Add(d.Key)) continue;
+                Log($"battery low: {d.Name} {pct}%");
+                _tray?.ShowNotification("Battery low", $"{d.Name} is at {pct}%.", H.NotifyIcon.Core.NotificationIcon.Warning);
+            }
+            else if (low == 0 || pct > low + 5 || s.Charging == true) _alerted.Remove(d.Key); // 5% of slack: a reading that hovers doesn't notify twice
+        }
+        Hot("hot/cpu", "The CPU", Live.CpuSensor(Hub.Temps));
+        Hot("hot/gpu", "The graphics card", Live.GpuSensor(Hub.Temps));
+    }
+
+    void Hot(string key, string what, TempSensor? sensor)
+    {
+        int limit = Config.HotAlert;
+        float? t = sensor?.Value;
+        if (limit <= 0 || t is null || t < limit)
+        {
+            _hotChecks[key] = 0;
+            if (limit <= 0 || t is null || t < limit - 5) _alerted.Remove(key);
+            return;
+        }
+        // 20 s at or above the limit (the tray timer runs every 2 s): a spike isn't worth a notification
+        if ((_hotChecks[key] = _hotChecks.GetValueOrDefault(key) + 1) < 10 || !_alerted.Add(key)) return;
+        Log($"hot: {sensor!.Name} {t:0} °C (limit {limit})");
+        _tray?.ShowNotification($"{what} is hot", $"{SensorLabel(sensor)} has been at {limit} °C or more for 20 seconds ({t:0} °C now).",
+            H.NotifyIcon.Core.NotificationIcon.Warning);
+    }
+
+    AppRule? _rule; // the app rule in force
+    (string Cooling, string Lighting) _beforeRule; // the profiles in use when the first rule took over
+    bool _checkingRules;
+
+    /// <summary>
+    /// Profiles that follow running apps (Settings): while a rule's program runs, its cooling and lighting profiles are
+    /// in use; when it ends, the ones from before come back. A profile you pick by hand meanwhile stays until then.
+    /// </summary>
+    async Task CheckAppRulesAsync()
+    {
+        if (_checkingRules || _quitting || (Config.AppRules.Count == 0 && _rule is null)) return;
+        _checkingRules = true;
+        try
+        {
+            var running = await Task.Run(() =>
+            {
+                var all = System.Diagnostics.Process.GetProcesses();
+                var names = all.Select(p => p.ProcessName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                foreach (var p in all) p.Dispose();
+                return names;
+            });
+            static string Name(string process) => process.Trim() is var n && n.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? n[..^4] : n;
+            var rule = Config.AppRules.FirstOrDefault(r => Name(r.Process).Length > 0 && running.Contains(Name(r.Process)));
+            if (ReferenceEquals(rule, _rule)) return;
+            if (_rule is null) _beforeRule = (Config.ActiveCooling, Config.Lighting.Active);
+            // What the ending rule changed goes back; what the new one names comes in.
+            string? cooling = rule?.Cooling ?? (_rule?.Cooling is null ? null : _beforeRule.Cooling);
+            string? lighting = rule?.Lighting ?? (_rule?.Lighting is null ? null : _beforeRule.Lighting);
+            Log(rule is null ? $"app rule: {_rule!.Process} ended" : $"app rule: {rule.Process} is running (cooling {rule.Cooling ?? "unchanged"}, lighting {rule.Lighting ?? "unchanged"})");
+            _rule = rule;
+            if (lighting is not null && lighting != Config.Lighting.Active && Config.Lighting.Profiles.Any(p => p.Name == lighting))
+            {
+                Config.Lighting.Active = lighting;
+                ConfigChanged();
+                LightingStateChanged?.Invoke();
+            }
+            if (cooling is not null && Config.CoolingProfiles.Any(p => p.Name == cooling)) SwitchCoolingFromTray(cooling);
+        }
+        catch (Exception e) { Log($"app rules: {e.Message}"); }
+        finally { _checkingRules = false; }
     }
 
     /// <summary>Starts a fresh instance (it waits for this one to exit), then quits. Keeps admin, no UAC prompt.</summary>

@@ -20,7 +20,19 @@ namespace RigControl.Controls;
 /// </summary>
 public sealed class CurveEditor : Grid
 {
-    const double TMin = 20, TMax = 100, Pad = 40;
+    const double Pad = 40;
+    /// <summary>The temperatures the graph spans (see <see cref="SetRange"/>).</summary>
+    public double TMin { get; private set; } = 20;
+    public double TMax { get; private set; } = 100;
+
+    /// <summary>A narrower span for curves that live in a few degrees (coolant: 20–60 instead of 20–100).</summary>
+    public void SetRange(double min, double max)
+    {
+        if (min == TMin && max == TMax || max <= min) return;
+        (TMin, TMax) = (min, max);
+        Redraw();
+    }
+
     readonly Canvas _canvas = new() { Background = new SolidColorBrush(Colors.Transparent) };
     readonly Path _area = new();
     readonly Polyline _line = new() { StrokeThickness = 3, StrokeLineJoin = PenLineJoin.Round };
@@ -163,7 +175,7 @@ public sealed class CurveEditor : Grid
         _canvas.Children.Clear();
         var grid = new SolidColorBrush(Color.FromArgb(22, 255, 255, 255));
         var label = new SolidColorBrush(Color.FromArgb(130, 255, 255, 255));
-        for (int t = (int)TMin; t <= TMax; t += 10)
+        for (int t = (int)TMin; t <= TMax; t += TMax - TMin <= 50 ? 5 : 10)
         {
             var a = ToScreen(t, 0); var b = ToScreen(t, 100);
             _canvas.Children.Add(new Line { X1 = a.X, Y1 = a.Y, X2 = b.X, Y2 = b.Y, Stroke = grid });

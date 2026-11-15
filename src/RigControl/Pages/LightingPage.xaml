@@ -26,13 +26,9 @@
                 <TextBlock x:Name="Summary" Style="{StaticResource Caption}" Margin="0,4,0,0" />
             </StackPanel>
             <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                <Button x:Name="RescanButton" Click="Rescan_Click" ToolTipService.ToolTip="Look for devices again (one plugged in or woken up since RigControl started)" AutomationProperties.Name="Rescan">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <FontIcon Glyph="&#xE72C;" FontSize="14" />
-                        <TextBlock x:Name="RescanText" Text="Rescan" />
-                    </StackPanel>
-                </Button>
-                <ComboBox x:Name="ProfileBox" Width="190" SelectionChanged="ProfileBox_SelectionChanged" AutomationProperties.Name="Profile" />
+                <TextBlock Text="Profile" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <ComboBox x:Name="ProfileBox" Width="190" SelectionChanged="ProfileBox_SelectionChanged" AutomationProperties.Name="Lighting profile"
+                          ToolTipService.ToolTip="Lighting profile: its own synced effect and device settings. Also switchable from the tray." />
                 <Button ToolTipService.ToolTip="Profile actions" AutomationProperties.Name="Profile actions">
                     <FontIcon Glyph="&#xE712;" FontSize="14" />
                     <Button.Flyout>
@@ -42,6 +38,12 @@
                             <MenuFlyoutItem x:Name="DeleteProfileItem" Text="Delete" Click="DeleteProfile_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74D;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
                         </MenuFlyout>
                     </Button.Flyout>
+                </Button>
+                <Button x:Name="RescanButton" Click="Rescan_Click" ToolTipService.ToolTip="Look for devices again (one plugged in or woken up since RigControl started)" AutomationProperties.Name="Rescan">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE72C;" FontSize="14" />
+                        <TextBlock x:Name="RescanText" Text="Rescan" />
+                    </StackPanel>
                 </Button>
             </StackPanel>
             <ToggleSwitch x:Name="EnabledSwitch" Grid.Column="1" Margin="20,0,0,0" OnContent="On" OffContent="Off" VerticalAlignment="Center" Toggled="EnabledSwitch_Toggled"

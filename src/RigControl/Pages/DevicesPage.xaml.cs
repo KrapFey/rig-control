@@ -410,6 +410,10 @@ public sealed partial class DevicesPage : Page
     }
 
     /// <summary>Looks for devices again; the button says so for a few seconds while detection runs.</summary>
+    /// <summary>The searchable list of supported devices (Back returns here).</summary>
+    void Supported_Click(object sender, RoutedEventArgs e) =>
+        Frame.Navigate(typeof(SupportedPage), null, new Microsoft.UI.Xaml.Media.Animation.DrillInNavigationTransitionInfo());
+
     async void Rescan_Click(object sender, RoutedEventArgs e)
     {
         RescanButton.IsEnabled = false;

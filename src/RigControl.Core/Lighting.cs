@@ -86,6 +86,8 @@ public sealed class LightingProfile
 public sealed class LightingConfig
 {
     public bool Enabled { get; set; } = true;
+    /// <summary>Every light goes dark while Windows is locked.</summary>
+    public bool OffWhenLocked { get; set; }
     public string Active { get; set; } = "Default";
     public List<LightingProfile> Profiles { get; set; } = [new()];
     /// <summary>LED counts of addressable headers, by device key and zone name (hardware, so shared by all profiles).</summary>
@@ -390,6 +392,10 @@ public sealed class LightingEngine : IDisposable
     public AudioFrame CurrentAudio => _audio.Current;
 
     /// <summary>The temperature the effect is using now (smoothed), when the effect is Temperature.</summary>
+    volatile bool _dark;
+    /// <summary>While set, every device RigControl lights is dark (Windows is locked); the profile comes back after.</summary>
+    public bool Dark { get => _dark; set { _dark = value; _wake.Set(); } }
+
     public double? CurrentTemperature => double.IsNaN(_smoothTemp) ? null : _smoothTemp;
 
     public LightingEngine(Func<string, double?> temperature)
@@ -530,10 +536,11 @@ public sealed class LightingEngine : IDisposable
             return v;
         }
         var frames = new Dictionary<string, Rgb[]>(Frames);
+        bool dark = _dark;
         foreach (var target in targets)
         {
             profile.Devices.TryGetValue(target.Key, out var dl);
-            var source = dl?.Source ?? LightingSource.Sync;
+            var source = dark ? LightingSource.Off : dl?.Source ?? LightingSource.Sync;
             bool identify = target.Key == _identify;
             if (!enabled && !identify) continue;
             try

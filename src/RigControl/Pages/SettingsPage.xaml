@@ -47,6 +47,65 @@
                     </ComboBox>
                 </Grid>
             </Border>
+            <Border Style="{StaticResource Card}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Dark while Windows is locked" FontWeight="SemiBold" />
+                        <TextBlock Text="Every light RigControl drives goes off when you lock the PC and comes back when you unlock it." Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="DarkLocked" Grid.Column="1" Toggled="DarkLocked_Toggled" AutomationProperties.Name="Lights off while Windows is locked" />
+                </Grid>
+            </Border>
+            <TextBlock Text="NOTIFICATIONS" Style="{StaticResource Caption}" Margin="2,14,0,2" />
+            <Border Style="{StaticResource Card}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Low battery" FontWeight="SemiBold" />
+                        <TextBlock Text="Tells you when a mouse, keyboard or headset falls to this charge (%). 0 turns it off." Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <NumberBox x:Name="BatteryAlert" Grid.Column="1" Width="140" Minimum="0" Maximum="50" SmallChange="5" SpinButtonPlacementMode="Compact" VerticalAlignment="Center"
+                               ValueChanged="Alert_ValueChanged" AutomationProperties.Name="Low battery notification, percent" />
+                </Grid>
+            </Border>
+            <Border Style="{StaticResource Card}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="CPU or graphics card hot" FontWeight="SemiBold" />
+                        <TextBlock Text="Tells you when either stays at this temperature (°C) or above for 20 seconds. 0 turns it off." Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <NumberBox x:Name="HotAlert" Grid.Column="1" Width="140" Minimum="0" Maximum="110" SmallChange="5" SpinButtonPlacementMode="Compact" VerticalAlignment="Center"
+                               ValueChanged="Alert_ValueChanged" AutomationProperties.Name="Hot notification, degrees Celsius" />
+                </Grid>
+            </Border>
+            <TextBlock Text="PROFILES THAT FOLLOW APPS" Style="{StaticResource Caption}" Margin="2,14,0,2" />
+            <Border Style="{StaticResource Card}">
+                <StackPanel Spacing="10">
+                    <StackPanel>
+                        <TextBlock Text="Switch profiles while a program runs" FontWeight="SemiBold" />
+                        <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap"
+                                   Text="While a program listed here is running, its cooling and lighting profiles are in use; when it closes, the ones from before come back. With several running, the first in the list wins." />
+                    </StackPanel>
+                    <StackPanel x:Name="RulesList" Spacing="8" />
+                    <Button Click="AddRule_Click" AutomationProperties.Name="Add a program" HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE710;" FontSize="12" />
+                            <TextBlock Text="Add a program" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Border>
             <TextBlock Text="FANS AND SENSORS" Style="{StaticResource Caption}" Margin="2,14,0,2" />
             <Border Style="{StaticResource Card}">
                 <Grid ColumnSpacing="16">

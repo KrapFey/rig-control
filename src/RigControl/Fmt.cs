@@ -4,6 +4,7 @@ namespace RigControl;
 public static class Fmt
 {
     public static string Int(double v) => v.ToString("0");
+    public static string Rpm(double v) => $"{v:0} rpm";
     public static string Percent(double v) => $"{v:0}%";
     public static string Duty(double v, bool known) => known ? $"{v:0}%" : "–";
     public static string Temp(double v) => $"{v:0.0} °C";

@@ -39,7 +39,8 @@
             <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                 <Image Source="ms-appx:///Assets/RigControl.png" Width="18" Height="18" />
                 <TextBlock Text="RigControl" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
-                <Border CornerRadius="8" Padding="8,2" Background="{StaticResource AccentGradient}" VerticalAlignment="Center">
+                <!-- Only while paused: a pill that always says "Live" says nothing -->
+                <Border x:Name="StatusPill" CornerRadius="8" Padding="8,2" Background="{StaticResource AccentGradient}" VerticalAlignment="Center" Visibility="Collapsed">
                     <TextBlock x:Name="Status" Text="Live" FontSize="11" FontWeight="SemiBold" Foreground="White" />
                 </Border>
             </StackPanel>

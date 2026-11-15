@@ -31,6 +31,9 @@ public sealed partial class OverviewPage : Page
     void OnLoaded(object sender, RoutedEventArgs e)
     {
         _live.Attach();
+        var fans = _live.Fans.Where(f => f.Present).ToList();
+        FanTiles.ItemsSource = fans;
+        FansCard.Visibility = fans.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         LayoutStats();
         BuildCurveRows();
         BuildNotices();
@@ -72,13 +75,14 @@ public sealed partial class OverviewPage : Page
             ? "FanControl is running, so RigControl is only watching. Exit FanControl to take over."
             : $"{hub.Temps.Count} sensors · {_live.Fans.Count} fan channels · updated every {app.Config.IntervalSeconds:0.#} s";
 
-        Stat(Live.CpuSensor(hub.Temps), CpuValue, CpuName, CpuLine, "cpu");
-        Stat(Live.GpuSensor(hub.Temps), GpuValue, GpuName, GpuLine, "gpu");
-        Stat(Live.LiquidSensor(hub.Temps), LiquidValue, LiquidName, LiquidLine, "liquid");
+        Stat(Live.CpuSensor(hub.Temps), CpuValue, CpuName, CpuLine, CpuRange, "cpu");
+        Stat(Live.GpuSensor(hub.Temps), GpuValue, GpuName, GpuLine, GpuRange, "gpu");
+        Stat(Live.LiquidSensor(hub.Temps), LiquidValue, LiquidName, LiquidLine, LiquidRange, "liquid");
         var air = Live.Airflow(hub.Fans);
         AirValue.Text = air is double a ? $"{a:0}%" : "–";
         AirText.Text = $"{_live.Fans.Count(f => f.Present)} fans · {_live.Fans.Count(f => f.Active)} driven";
         AirLine.SetValues(app.History.Of("air"), app.History.Added("air"));
+        AirRange.Text = Range(app.History.Of("air"), "%");
 
         UpdateCurveRows();
         UpdateLighting();
@@ -88,8 +92,13 @@ public sealed partial class OverviewPage : Page
         if (!stalled.SetEquals(_stalled)) { _stalled = stalled; BuildNotices(); }
     }
 
-    void Stat(TempSensor? sensor, TextBlock value, TextBlock name, Sparkline line, string key)
+    /// <summary>"41–63°": the lowest and highest of a tile's line, so the line has a scale.</summary>
+    static string Range(IReadOnlyList<double> values, string unit) =>
+        values.Count < 2 ? "" : $"{values.Min():0}–{values.Max():0}{unit}";
+
+    void Stat(TempSensor? sensor, TextBlock value, TextBlock name, Sparkline line, TextBlock range, string key)
     {
+        range.Text = Range(AppI.History.Of(key), "°");
         value.Text = sensor?.Value is float v ? $"{v:0}°" : "–";
         name.Text = sensor is null ? "no sensor found" : $"{AppI.SensorLabel(sensor)} · {sensor.Device}";
         line.SetValues(AppI.History.Of(key), AppI.History.Added(key));
@@ -101,7 +110,11 @@ public sealed partial class OverviewPage : Page
     void BuildCurveRows()
     {
         var cfg = AppI.Config;
-        CoolingProfileText.Text = cfg.CoolingProfiles.Count > 0 ? $"profile \"{cfg.ActiveCooling}\"" : "";
+        _loading = true;
+        CoolingProfileBox.ItemsSource = cfg.CoolingProfileNames();
+        CoolingProfileBox.SelectedItem = cfg.ActiveCooling;
+        CoolingProfileBox.Visibility = cfg.CoolingProfiles.Count > 0 ? Visibility.Visible : Visibility.Collapsed; // with one profile there's nothing to switch
+        _loading = false;
         CurveRows.Children.Clear();
         _curveRows.Clear();
         foreach (var def in AppI.Config.Curves)
@@ -160,6 +173,18 @@ public sealed partial class OverviewPage : Page
         CoolingNote.Visibility = CoolingNote.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    void CoolingProfileBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || CoolingProfileBox.SelectedItem is not string name || name == AppI.Config.ActiveCooling) return;
+        AppI.Config.SwitchCooling(name);
+        AppI.CoolingProfileChanged(); // builds this page again
+    }
+
+    void Fan_Click(object sender, RoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).DataContext is FanVm fan) AppI.OpenPage("Cooling", fan.Id);
+    }
+
     // ---- lighting
 
     void UpdateLighting()
@@ -168,13 +193,16 @@ public sealed partial class OverviewPage : Page
         var cfg = app.Config.Lighting;
         _loading = true;
         LightingSwitch.IsOn = cfg.Enabled;
+        var names = cfg.Profiles.Select(p => p.Name).ToList();
+        if (LightingProfileBox.ItemsSource is not List<string> listed || !listed.SequenceEqual(names)) LightingProfileBox.ItemsSource = names;
+        LightingProfileBox.SelectedItem = cfg.Current.Name;
+        LightingProfileBox.Visibility = names.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
         _loading = false;
         var targets = app.Lighting.Targets;
         LightingText.Text = app.LightingNotice is { } notice ? notice
             : !cfg.Enabled ? "Off"
             : targets.Count == 0 ? "No lighting devices found."
-            : $"{EffectEditor.LabelOf(cfg.Current.Sync.Kind)} · {targets.Count} device{(targets.Count == 1 ? "" : "s")}"
-              + (cfg.Profiles.Count > 1 ? $" · profile \"{cfg.Current.Name}\"" : "");
+            : $"{EffectEditor.LabelOf(cfg.Current.Sync.Kind)} · {targets.Count} device{(targets.Count == 1 ? "" : "s")}";
 
         // A swatch per device showing its LEDs now (a few of them, left to right), so a rainbow looks like one.
         var shown = targets.Take(16).ToList();
@@ -208,6 +236,14 @@ public sealed partial class OverviewPage : Page
     }
 
     const int SwatchStops = 8;
+
+    void LightingProfileBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || LightingProfileBox.SelectedItem is not string name || name == AppI.Config.Lighting.Active) return;
+        AppI.Config.Lighting.Active = name;
+        AppI.ConfigChanged();
+        UpdateLighting();
+    }
 
     void LightingSwitch_Toggled(object sender, RoutedEventArgs e)
     {
@@ -309,6 +345,13 @@ public sealed partial class OverviewPage : Page
         {
             var bar = new InfoBar { IsOpen = true, Severity = InfoBarSeverity.Warning, Message = note };
             bar.Closed += (_, _) => app.DismissNote(note); // closed stays closed, not back at the next rebuild
+            var log = System.IO.Path.Combine(AppConfig.Folder, "rigcontrol.log");
+            if (note.Contains("rigcontrol.log") && File.Exists(log))
+            {
+                var open = new Button { Content = "Open log" };
+                open.Click += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(log) { UseShellExecute = true });
+                bar.ActionButton = open;
+            }
             Notices.Children.Add(bar);
         }
         foreach (var problem in app.Hub.Problems)

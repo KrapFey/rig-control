@@ -15,12 +15,15 @@ public static class Demo
     sealed class DemoFan(string id, string name, string device, double rpmAtFull) : FanChannel(id, name, device)
     {
         double _duty = 45;
+        bool _spinning = true;
         public override void Set(float percent) => _duty = percent;
         public override void Release() { }
         public void Tick()
         {
             Duty = (float)_duty;
-            Rpm = (float)(_duty / 100 * rpmAtFull + Math.Sin(T * 1.3 + rpmAtFull) * 12);
+            // like a real fan: it stops below 14% and needs 22% to start again
+            _spinning = _duty >= (_spinning ? 14 : 22);
+            Rpm = _spinning ? (float)(_duty / 100 * rpmAtFull + Math.Sin(T * 1.3 + rpmAtFull) * 12) : 0;
             Connected = true;
         }
     }

@@ -144,7 +144,7 @@ public sealed partial class CoolingPage : Page
             Live.Instance.Refreshed += OnLive;
             OnLive();
         };
-        Unloaded += (_, _) => { Live.Instance.Refreshed -= OnLive; Live.Instance.Detach(); };
+        Unloaded += (_, _) => { _calibration?.Cancel(); Live.Instance.Refreshed -= OnLive; Live.Instance.Detach(); };
     }
 
     /// <summary>"curve:Name" selects that curve; a fan id opens that fan's settings; "sensors" opens the Sensors view.</summary>
@@ -277,6 +277,7 @@ public sealed partial class CoolingPage : Page
 
     void ShowFan(FanVm fan)
     {
+        _calibration?.Cancel(); // its button goes with the old panel
         if (_fan is not null) _fan.PropertyChanged -= FanChanged;
         _fan = new FanEdit(fan, [.. Cfg.Curves.Select(c => c.Name)]);
         _fan.PropertyChanged += FanChanged;
@@ -294,6 +295,7 @@ public sealed partial class CoolingPage : Page
 
     void CloseFan_Click(object sender, RoutedEventArgs e)
     {
+        _calibration?.Cancel();
         if (_fan is not null) _fan.PropertyChanged -= FanChanged;
         _fan = null;
         FanHost.Content = null;
@@ -307,6 +309,104 @@ public sealed partial class CoolingPage : Page
     {
         foreach (var list in _lists)
             list.SelectedItem = _fan is not null && list.Items.Contains(_fan.Live) ? _fan.Live : null;
+    }
+
+    CancellationTokenSource? _calibration;
+
+    /// <summary>
+    /// Finds a fan's limits by trying: slower and slower until it stops, then faster until it starts again. Minimum
+    /// becomes the slowest speed it kept spinning at and Start the speed that got it going, so a curve never asks it
+    /// for a speed it stalls at. Each speed is held for a few seconds only (FanEngine.Hold), so walking away, a
+    /// closed panel or a crash leaves the fan on its curve.
+    /// </summary>
+    async void Calibrate_Click(object sender, RoutedEventArgs e)
+    {
+        if (_fan is not { } fan || _calibration is not null) return;
+        var app = App.Instance!;
+        var channel = fan.Live.Channel;
+        var name = fan.Live.Name;
+        async Task Tell(string title, string text) =>
+            await new ContentDialog { XamlRoot = XamlRoot, Title = title, Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap }, CloseButtonText = "OK" }.ShowAsync();
+
+        if (FanEngine.IsPump(channel, Cfg.Fans.GetValueOrDefault(channel.Id)))
+        {
+            await Tell("Pumps aren't calibrated", "Calibrating stops the fan to find where it stalls, and a pump must never stop.");
+            return;
+        }
+        if (app.Engine.Paused)
+        {
+            await Tell("RigControl is paused", "Another fan app is running, so RigControl isn't touching the fans. Exit it first.");
+            return;
+        }
+        var ask = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = $"Calibrate {name}?",
+            Content = new TextBlock { TextWrapping = TextWrapping.Wrap, Text = "RigControl slows this fan down until it stops, then speeds it up until it starts again. That takes about a minute, and the fan is stopped for part of it, so do it while the PC is idle.\n\nMinimum and Start are then set so the fan never stalls." },
+            PrimaryButtonText = "Calibrate",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+        };
+        if (await ask.ShowAsync() != ContentDialogResult.Primary) return;
+
+        const double TooHot = 85;
+        var button = (Button)sender;
+        var label = button.Content;
+        var cancel = _calibration = new CancellationTokenSource();
+        button.IsEnabled = false;
+        double? lowest = null, start = null;
+        string? problem = null;
+        try
+        {
+            // Holds a speed for 5 s (the fan settles, the reading follows) and says whether the fan still turns.
+            async Task<bool> Spins(double duty)
+            {
+                button.Content = $"Trying {duty:0}%…";
+                for (int i = 0; i < 5; i++)
+                {
+                    app.Engine.Hold(channel.Id, duty, 3);
+                    await Task.Delay(1000, cancel.Token);
+                    if (Live.CpuSensor(app.Hub.Temps)?.Value > TooHot || Live.GpuSensor(app.Hub.Temps)?.Value > TooHot)
+                        throw new InvalidOperationException($"Stopped: the CPU or graphics card passed {TooHot:0} °C. Try again while the PC is idle.");
+                }
+                return channel.Rpm >= 1;
+            }
+
+            if (!await Spins(100)) problem = "This fan reports no speed, so RigControl can't tell when it stops.";
+            else
+            {
+                double stalled = -1;
+                foreach (double duty in new[] { 50, 40, 30, 25, 20, 15, 10, 5, 0 })
+                {
+                    if (!await Spins(duty)) { stalled = duty; break; }
+                    lowest = duty;
+                }
+                if (stalled < 0) start = 0; // it turns even at 0%: the hardware won't let it stop
+                else
+                    for (double duty = stalled + 5; duty <= 100 && start is null; duty += 5)
+                        if (await Spins(duty)) start = duty;
+                if (start is null) problem = "The fan stopped and didn't start again at any speed. Check it.";
+            }
+        }
+        catch (OperationCanceledException) { return; }
+        catch (InvalidOperationException ex) { problem = ex.Message; }
+        finally
+        {
+            _calibration = null;
+            button.Content = label;
+            button.IsEnabled = true;
+        }
+
+        if (problem is not null) { await Tell($"{name} wasn't calibrated", problem); return; }
+        App.Log($"calibrated {channel.Id} ({name}): spins down to {lowest}%, starts at {start}%");
+        if (start == 0)
+        {
+            await Tell($"{name} never stops", "It keeps turning even at 0%, so there's nothing to set: its limits stay as they were.");
+            return;
+        }
+        fan.Min = lowest ?? start!.Value;
+        fan.Start = start!.Value;
+        await Tell($"{name} is calibrated", $"It keeps spinning down to {fan.Min:0}% and needs {fan.Start:0}% to start. Minimum and Start are set to that.");
     }
 
     // Built when opened, so it lists the current names.
@@ -474,7 +574,7 @@ public sealed partial class CoolingPage : Page
         var points = Editor.Points;
         for (int i = 0; i < points.Count; i++)
         {
-            var temp = new NumberBox { Value = points[i].Temp, Minimum = 20, Maximum = 100, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact, Width = 120 };
+            var temp = new NumberBox { Value = points[i].Temp, Minimum = Editor.TMin, Maximum = Editor.TMax, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact, Width = 120 };
             var percent = new NumberBox { Value = points[i].Percent, Minimum = 0, Maximum = 100, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact, Width = 120 };
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(temp, $"Point {i + 1} temperature, °C");
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(percent, $"Point {i + 1} fan speed, %");
@@ -552,6 +652,7 @@ public sealed partial class CoolingPage : Page
             SourceBox.SelectedItem = opts.FirstOrDefault(o => o.Id == d.Source);
             DeadbandBox.Value = d.Deadband;
             ResponseBox.Value = d.ResponseSeconds;
+            FitRange(d);
             Editor.SetPoints(d.Points);
             BuildPointRows();
         }
@@ -603,6 +704,19 @@ public sealed partial class CoolingPage : Page
         if (_loading || _sel?.Def is null || SourceBox.SelectedItem is not TempOption o) return;
         _sel.Def.Source = o.Id;
         App.Instance!.ConfigChanged();
+        FitRange(_sel.Def);
+        BuildPointRows(); // their limits follow the range
+    }
+
+    /// <summary>
+    /// A coolant curve lives between about 25 and 45 °C, a fifth of a 20–100 graph: its graph spans 20–60 instead
+    /// (further when its points go further).
+    /// </summary>
+    void FitRange(CurveDef d)
+    {
+        bool liquid = CoolingPresets.KindOf(d.Source, d.Source is null ? null : SensorName(d.Source)) == SensorKind.Liquid;
+        double top = Math.Max(liquid ? 60 : 100, d.Points.Count == 0 ? 0 : Math.Ceiling(d.Points.Max(p => p.Temp) / 10) * 10);
+        Editor.SetRange(20, Math.Min(top, 100));
     }
 
     void Tuning_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)

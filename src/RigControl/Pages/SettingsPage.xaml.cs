@@ -28,6 +28,10 @@ public sealed partial class SettingsPage : Page
             BuildDrivers();
             AutoUpdate.IsOn = App.Instance.Config.CheckForUpdates;
             TrayShowsBox.SelectedIndex = (int)App.Instance.Config.TrayShows;
+            DarkLocked.IsOn = App.Instance.Config.Lighting.OffWhenLocked;
+            BatteryAlert.Value = App.Instance.Config.LowBatteryAlert;
+            HotAlert.Value = App.Instance.Config.HotAlert;
+            BuildRules();
             ShowUpdate();
             App.Instance.UpdateFound += ShowUpdate;
             _loading = false;
@@ -41,6 +45,91 @@ public sealed partial class SettingsPage : Page
         App.Instance!.Config.TrayShows = (TrayShow)TrayShowsBox.SelectedIndex;
         App.Instance.ConfigChanged();
         App.Instance.RefreshTray();
+    }
+
+    void DarkLocked_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        App.Instance!.Config.Lighting.OffWhenLocked = DarkLocked.IsOn;
+        App.Instance.ConfigChanged();
+    }
+
+    void Alert_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    {
+        if (_loading) return;
+        if (double.IsNaN(args.NewValue)) { sender.Value = 0; return; } // emptied: off
+        var cfg = App.Instance!.Config;
+        if (sender == BatteryAlert) cfg.LowBatteryAlert = (int)args.NewValue; else cfg.HotAlert = (int)args.NewValue;
+        App.Instance.ConfigChanged();
+    }
+
+    // ---- profiles that follow apps (AppConfig.AppRules; App.CheckAppRulesAsync acts on them)
+
+    static readonly GridLength[] RuleColumns = [new(1, GridUnitType.Star), new(180), new(180), new(36)];
+
+    static Grid RuleRow(params FrameworkElement[] cells)
+    {
+        var row = new Grid { ColumnSpacing = 8 };
+        for (int i = 0; i < RuleColumns.Length; i++)
+        {
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = RuleColumns[i] });
+            if (i >= cells.Length) continue;
+            Grid.SetColumn(cells[i], i);
+            row.Children.Add(cells[i]);
+        }
+        return row;
+    }
+
+    void BuildRules()
+    {
+        var app = App.Instance!;
+        var cfg = app.Config;
+        const string Keep = "No change";
+        RulesList.Children.Clear();
+        if (cfg.AppRules.Count > 0)
+        {
+            TextBlock Head(string text) => new() { Text = text, Style = (Style)Application.Current.Resources["Caption"] };
+            RulesList.Children.Add(RuleRow(Head("PROGRAM"), Head("COOLING PROFILE"), Head("LIGHTING PROFILE")));
+        }
+        foreach (var rule in cfg.AppRules)
+        {
+            var name = new TextBox { Text = rule.Process, PlaceholderText = "game.exe" };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(name, "Program file name");
+            ToolTipService.SetToolTip(name, "The file name as Task Manager shows it (Details tab), e.g. game.exe");
+            name.LostFocus += (_, _) =>
+            {
+                if (name.Text.Trim() == rule.Process) return;
+                rule.Process = name.Text.Trim();
+                app.ConfigChanged();
+            };
+            ComboBox Pick(string what, List<string> names, string? now, Action<string?> set)
+            {
+                var box = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch, ItemsSource = names.Prepend(Keep).ToList() };
+                box.SelectedItem = now is not null && names.Contains(now) ? now : Keep;
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(box, what);
+                box.SelectionChanged += (_, _) =>
+                {
+                    set(box.SelectedItem is string s && s != Keep ? s : null);
+                    app.ConfigChanged();
+                };
+                return box;
+            }
+            var remove = new Button { Content = new FontIcon { Glyph = "\uE711", FontSize = 11 }, Padding = new Thickness(8, 6, 8, 6) };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(remove, "Remove this program");
+            ToolTipService.SetToolTip(remove, "Remove");
+            remove.Click += (_, _) => { cfg.AppRules.Remove(rule); app.ConfigChanged(); BuildRules(); };
+            RulesList.Children.Add(RuleRow(name,
+                Pick("Cooling profile", cfg.CoolingProfileNames(), rule.Cooling, v => rule.Cooling = v),
+                Pick("Lighting profile", [.. cfg.Lighting.Profiles.Select(p => p.Name)], rule.Lighting, v => rule.Lighting = v),
+                remove));
+        }
+    }
+
+    void AddRule_Click(object sender, RoutedEventArgs e)
+    {
+        App.Instance!.Config.AppRules.Add(new AppRule());
+        App.Instance.ConfigChanged();
+        BuildRules();
     }
 
     void AutoUpdate_Toggled(object sender, RoutedEventArgs e)

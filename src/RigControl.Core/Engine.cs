@@ -107,6 +107,7 @@ public sealed class FanEngine : IDisposable
     volatile bool _stop;
     volatile string? _identify;
     double _identifyUntil;
+    double? _identifyDuty; // calibration: this duty instead of a stop
 
     public HardwareHub Hub => _hub;
     public AppConfig Config => _config;
@@ -144,8 +145,21 @@ public sealed class FanEngine : IDisposable
     /// <summary>Stops one fan for a few seconds so you can see which one it is (a stopping fan is easier to spot than a faster one).</summary>
     public void Identify(string fanId)
     {
-        _identify = fanId;
+        _identifyDuty = null;
         _identifyUntil = _clock.Elapsed.TotalSeconds + 8; // big fans coast down slowly; 4 s barely shows
+        _identify = fanId;
+        _wake.Set();
+    }
+
+    /// <summary>
+    /// Runs one fan at exactly <paramref name="duty"/>% for <paramref name="seconds"/> (calibration), past its limits
+    /// and steps; then its curve takes over again by itself, so a caller that goes away leaves nothing behind.
+    /// </summary>
+    public void Hold(string fanId, double duty, double seconds)
+    {
+        _identifyDuty = Math.Clamp(duty, 0, 100);
+        _identifyUntil = _clock.Elapsed.TotalSeconds + seconds;
+        _identify = fanId;
         _wake.Set();
     }
 
@@ -234,7 +248,7 @@ public sealed class FanEngine : IDisposable
 
             double duty;
             // Identify stops a fan for a moment; a pump is never stopped, not even briefly: it's sped up instead.
-            if (identify) duty = IsPump(fan, s) ? 100 : 0;
+            if (identify) duty = _identifyDuty ?? (IsPump(fan, s) ? 100 : 0);
             else
             {
                 double target = s!.Manual is double m ? m
@@ -251,7 +265,7 @@ public sealed class FanEngine : IDisposable
     }
 
     /// <summary>A channel that runs a pump, by its hardware name or the name you gave it.</summary>
-    internal static bool IsPump(FanChannel fan, FanSettings? s) =>
+    public static bool IsPump(FanChannel fan, FanSettings? s) =>
         fan.Name.Contains("pump", StringComparison.OrdinalIgnoreCase) || s?.Name?.Contains("pump", StringComparison.OrdinalIgnoreCase) == true;
 
     static void Safe(FanStatus st, Action a)
