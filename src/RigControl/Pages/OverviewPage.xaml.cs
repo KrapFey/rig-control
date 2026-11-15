@@ -8,7 +8,7 @@ using RigControl.Core;
 namespace RigControl.Pages;
 
 /// <summary>
-/// Everything at a glance: alerts, the main temperatures and airflow with their last 10 minutes, cooling curve by
+/// Everything at a glance: alerts, the main temperatures and airflow with their last 3 minutes, cooling curve by
 /// curve, lighting, and device batteries. Each part opens its own page.
 /// </summary>
 public sealed partial class OverviewPage : Page

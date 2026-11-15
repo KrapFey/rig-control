@@ -238,6 +238,32 @@ static string WriteTemp(AppConfig c) { var p = Path.Combine(Path.GetTempPath(), 
           && cfgS.Fans["liquidctl/k/pump"] is { Manual: 70 }, "starter: applied, the pump's own setting kept");
 }
 
+// Overview history lines: averaged into columns, newest at the right edge, and a curve that never overshoots.
+{
+    var jitter = Enumerable.Range(0, 300).Select(i => 50 + (i % 2 == 0 ? 3.0 : -3.0) + i / 30.0).ToList(); // a slow rise under 2-second noise
+    var pts = SparklineMath.Layout(jitter, 300, 200, 34, 10);
+    Check(pts.Count is > 40 and <= 51 && Math.Abs(pts[^1].X - 200) < 4 && pts.Zip(pts.Skip(1)).All(q => q.First.X < q.Second.X),
+          "history line: 300 samples averaged into ~4 px columns, left to right, newest at the right edge");
+    Check(pts.Zip(pts.Skip(1)).Count(q => q.Second.Y > q.First.Y) <= 2, "history line: the 2-second jitter is averaged away (the slow rise is what shows)");
+    var shortHistory = SparklineMath.Layout([40, 41, 42, 43, 44, 45], 300, 200, 34, 10);
+    Check(shortHistory.Count >= 1 && shortHistory.All(q => q.X > 190), "history line: a short history fills only the right-hand part");
+    var bumpy = new List<(double, double)> { (0, 30), (10, 5), (20, 28), (30, 28), (40, 2), (50, 20) };
+    var curve = SparklineMath.Curve(bumpy);
+    bool inBand = true;
+    for (int k = 0; k < curve.Count; k++)
+    {
+        var (x0, y0) = bumpy[k];
+        var (c1, c2, end) = curve[k];
+        double lo = Math.Min(y0, end.Y) - 1e-9, hi = Math.Max(y0, end.Y) + 1e-9;
+        for (double t = 0; t <= 1; t += 0.05)
+        {
+            double u = 1 - t, y = u * u * u * y0 + 3 * u * u * t * c1.Y + 3 * u * t * t * c2.Y + t * t * t * end.Y;
+            inBand &= y >= lo && y <= hi;
+        }
+    }
+    Check(curve.Count == 5 && inBand, "history line: the curve never swings past a peak or a dip");
+}
+
 // The watchdog: bring RigControl back after it died without exiting, up to 3 times in 10 minutes, then give the
 // fans to the hardware; never when it exited cleanly (no mark, or another process's) or Windows is ending.
 Check(CrashGuard.Decide(10, 10, 0, false) == CrashGuard.Action.Restart, "watchdog: died without exiting -> start it again");

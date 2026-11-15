@@ -33,7 +33,7 @@
 
             <StackPanel x:Name="Notices" Spacing="8" />
 
-            <!-- The readings that matter most, with their last 10 minutes -->
+            <!-- The readings that matter most, with their last 3 minutes -->
             <Grid x:Name="Stats" ColumnSpacing="14">
                 <Button x:Name="CpuTile" Style="{StaticResource TileButton}" Click="Sensors_Click" AutomationProperties.Name="CPU temperature" ToolTipService.ToolTip="Every temperature sensor (Cooling, Sensors)">
                     <Border Style="{StaticResource Card}" Padding="16,14">
@@ -76,7 +76,7 @@
                     </Border>
                 </Button>
             </Grid>
-            <TextBlock Text="Lines show the last 10 minutes." Style="{StaticResource Caption}" Margin="2,-8,0,0" />
+            <TextBlock Text="Lines show the last 3 minutes." Style="{StaticResource Caption}" Margin="2,-8,0,0" />
 
             <Grid ColumnSpacing="14">
                 <Grid.ColumnDefinitions>

@@ -28,7 +28,6 @@ public sealed partial class SettingsPage : Page
             BuildDrivers();
             AutoUpdate.IsOn = App.Instance.Config.CheckForUpdates;
             TrayShowsBox.SelectedIndex = (int)App.Instance.Config.TrayShows;
-            TrayPopupSwitch.IsOn = App.Instance.Config.TrayPopup;
             ShowUpdate();
             App.Instance.UpdateFound += ShowUpdate;
             _loading = false;
@@ -42,13 +41,6 @@ public sealed partial class SettingsPage : Page
         App.Instance!.Config.TrayShows = (TrayShow)TrayShowsBox.SelectedIndex;
         App.Instance.ConfigChanged();
         App.Instance.RefreshTray();
-    }
-
-    void TrayPopup_Toggled(object sender, RoutedEventArgs e)
-    {
-        if (_loading) return;
-        App.Instance!.Config.TrayPopup = TrayPopupSwitch.IsOn;
-        App.Instance.ConfigChanged();
     }
 
     void AutoUpdate_Toggled(object sender, RoutedEventArgs e)

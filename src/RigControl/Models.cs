@@ -155,12 +155,12 @@ public sealed class TempGroup(string device, IEnumerable<TempVm> items) : List<T
 }
 
 /// <summary>
-/// The last 10 minutes of the overview's readings (CPU, GPU, liquid, airflow), one sample every 2 s. Kept by the app
+/// The last 3 minutes of the overview's readings (CPU, GPU, liquid, airflow), a sample every second. Kept by the app
 /// whether or not a window is open, so the overview has a past the moment it opens.
 /// </summary>
 public sealed class History
 {
-    public const int Samples = 300;
+    public const int Samples = 180; // 3 minutes at one a second: recent enough to show what just happened
     readonly Dictionary<string, Queue<double>> _series = [];
 
     public void Add(string key, double? value)

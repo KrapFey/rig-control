@@ -1,6 +1,6 @@
 # Simulates tray-icon mouse messages to a RigControl process (H.NotifyIcon callback id 0x400; lParam = mouse message).
-#   tray.ps1 -Id 1234 -Click Single|Double
-param([Parameter(Mandatory)][int]$Id, [ValidateSet('Single', 'Double')][string]$Click = 'Double')
+#   tray.ps1 -Id 1234 -Click Single|Double|Right   (Right opens the icon's menu)
+param([Parameter(Mandatory)][int]$Id, [ValidateSet('Single', 'Double', 'Right')][string]$Click = 'Double')
 Add-Type @'
 using System; using System.Text; using System.Runtime.InteropServices;
 public static class TrayIcon {
@@ -19,5 +19,5 @@ public static class TrayIcon {
 '@
 $sink = [TrayIcon]::Sink([uint32]$Id)
 if ($sink -eq [IntPtr]::Zero) { throw "no tray window for process $Id" }
-$msgs = if ($Click -eq 'Single') { 0x201, 0x202 } else { 0x201, 0x202, 0x203, 0x202 }
+$msgs = switch ($Click) { 'Single' { 0x201, 0x202 } 'Right' { 0x204, 0x205, 0x7B } default { 0x201, 0x202, 0x203, 0x202 } } # 0x7B: WM_CONTEXTMENU (notify icon v4)
 foreach ($m in $msgs) { [TrayIcon]::PostMessage($sink, 0x400, [IntPtr]::Zero, [IntPtr]$m) | Out-Null; Start-Sleep -Milliseconds 70 }

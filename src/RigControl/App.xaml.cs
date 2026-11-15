@@ -26,9 +26,8 @@ public partial class App : Application
 
     MainWindow? _window;
     TaskbarIcon? _tray;
-    TrayPanel? _trayPanel;
     System.Drawing.Icon? _logo;
-    DispatcherQueueTimer? _trayTimer;
+    DispatcherQueueTimer? _trayTimer, _historyTimer; // fields: a timer only a local holds gets collected and stops
     DispatcherQueueTimer? _saveTimer;
 
     public App()
@@ -375,16 +374,6 @@ public partial class App : Application
 #endif
     }
 
-    /// <summary>Left click: the mini dashboard, or the full window when that's what Settings says.</summary>
-    void TrayClick()
-    {
-        if (!Config.TrayPopup) { ShowWindow(); return; }
-        (_trayPanel ??= new TrayPanel()).Toggle();
-    }
-
-    /// <summary>Opens the tray's mini dashboard (or closes it), as clicking the tray icon does.</summary>
-    public void ToggleMiniDashboard() => Ui.TryEnqueue(() => (_trayPanel ??= new TrayPanel()).Toggle());
-
     /// <summary>Redraws the tray icon now (after its setting changed).</summary>
     public void RefreshTray() { _trayKey = "redraw"; UpdateTrayTooltip(); }
 
@@ -440,6 +429,7 @@ public partial class App : Application
     {
         Engine.Apply(Config);
         Lighting?.Apply(Config.Lighting);
+        if (_tray is not null) BuildTrayMenu(); // a profile or lighting change shows in the tray menu
         _saveTimer?.Stop();
         _saveTimer?.Start();
     }
@@ -489,31 +479,110 @@ public partial class App : Application
         Log("window shown");
     });
 
+    readonly MenuFlyout _trayMenu = new();
+    string _trayMenuShows = "";
+
+    /// <summary>
+    /// The tray icon's right-click menu: open, switch cooling profile (or make one from a preset), lighting on or off
+    /// and its profile, exit. Rebuilt when something it shows changes. (PopupMenu mode runs each item's Command, never
+    /// its Click event; commands come on the tray's thread, so each hops to the UI thread.)
+    /// </summary>
+    void BuildTrayMenu()
+    {
+        var cfg = Config;
+        var shows = string.Join("|", cfg.ActiveCooling, string.Join(",", cfg.CoolingProfileNames()), cfg.Curves.Any(c => c.Kind == CurveKind.Graph),
+            cfg.Lighting.Enabled, cfg.Lighting.Active, string.Join(",", cfg.Lighting.Profiles.Select(p => p.Name)));
+        if (shows == _trayMenuShows) return;
+        _trayMenuShows = shows;
+
+        MenuFlyoutItem Item(string text, Action run) => new() { Text = text, Command = new Command(() => Ui.TryEnqueue(() => run())) };
+        ToggleMenuFlyoutItem Check(string text, bool on, Action run) => new() { Text = text, IsChecked = on, Command = new Command(() => Ui.TryEnqueue(() => run())) };
+
+        _trayMenu.Items.Clear();
+        _trayMenu.Items.Add(Item("Open RigControl", () => { Log("tray: open"); ShowWindow(); }));
+        _trayMenu.Items.Add(new MenuFlyoutSeparator());
+
+        var cooling = new MenuFlyoutSubItem { Text = $"Cooling: {cfg.ActiveCooling}" };
+        foreach (var name in cfg.CoolingProfileNames())
+            cooling.Items.Add(Check(name, name == cfg.ActiveCooling, () => SwitchCoolingFromTray(name)));
+        if (cfg.Curves.Any(c => c.Kind == CurveKind.Graph))
+        {
+            // One click to a preset: its profile, made from the one in use the first time.
+            var missing = CoolingPresets.All.Where(p => !cfg.CoolingProfileNames().Contains(p.ToString())).ToList();
+            if (missing.Count > 0)
+            {
+                cooling.Items.Add(new MenuFlyoutSeparator());
+                foreach (var preset in missing)
+                    cooling.Items.Add(Item($"New {preset} profile", () => CoolingPresetFromTray(preset)));
+            }
+        }
+        _trayMenu.Items.Add(cooling);
+
+        var lighting = new MenuFlyoutSubItem { Text = cfg.Lighting.Enabled ? $"Lighting: {cfg.Lighting.Current.Name}" : "Lighting: off" };
+        lighting.Items.Add(Check("Lighting on", cfg.Lighting.Enabled, () =>
+        {
+            Config.Lighting.Enabled = !Config.Lighting.Enabled;
+            Log($"tray: lighting {(Config.Lighting.Enabled ? "on" : "off")}");
+            ConfigChanged();
+            LightingStateChanged?.Invoke();
+        }));
+        if (cfg.Lighting.Profiles.Count > 1)
+        {
+            lighting.Items.Add(new MenuFlyoutSeparator());
+            foreach (var p in cfg.Lighting.Profiles.Select(p => p.Name))
+                lighting.Items.Add(Check(p, p == cfg.Lighting.Current.Name, () =>
+                {
+                    Config.Lighting.Active = p;
+                    Log($"tray: lighting profile {p}");
+                    ConfigChanged();
+                    LightingStateChanged?.Invoke();
+                }));
+        }
+        _trayMenu.Items.Add(lighting);
+
+        _trayMenu.Items.Add(new MenuFlyoutSeparator());
+        _trayMenu.Items.Add(Item("Exit", () => { Log("tray: exit"); Quit(); }));
+    }
+
+    void SwitchCoolingFromTray(string name)
+    {
+        if (name == Config.ActiveCooling) return;
+        Config.SwitchCooling(name);
+        CoolingProfileChanged();
+    }
+
+    void CoolingPresetFromTray(CoolingPreset preset)
+    {
+        Config.AddCooling(preset.ToString());
+        int n = CoolingPresets.ApplyAll(Config.Curves, preset, id => Hub.Temps.FirstOrDefault(t => t.Id == id)?.Name);
+        Log($"tray: cooling profile \"{preset}\" made from the preset ({n} curves reshaped)");
+        CoolingProfileChanged();
+    }
+
     void CreateTray()
     {
-        var menu = new MenuFlyout();
-        // PopupMenu mode runs each item's Command, never its Click event.
-        var open = new MenuFlyoutItem { Text = "Open RigControl", Command = new Command(() => { Log("tray: open"); ShowWindow(); }) };
-        var quit = new MenuFlyoutItem { Text = "Exit", Command = new Command(() => { Log("tray: exit"); Ui.TryEnqueue(Quit); }) };
-        menu.Items.Add(open);
-        menu.Items.Add(new MenuFlyoutSeparator());
-        menu.Items.Add(quit);
+        BuildTrayMenu();
 
         _tray = new TaskbarIcon
         {
             ToolTipText = "RigControl",
             Icon = new System.Drawing.Icon(Path.Combine(AppContext.BaseDirectory, "Assets", "RigControl.ico")),
             ContextMenuMode = ContextMenuMode.PopupMenu,
-            ContextFlyout = menu,
+            ContextFlyout = _trayMenu,
             NoLeftClickDelay = true,
-            LeftClickCommand = new Command(() => Ui.TryEnqueue(TrayClick)),
+            LeftClickCommand = new Command(ShowWindow), // a click opens the app
             DoubleClickCommand = new Command(() => Ui.TryEnqueue(ShowWindow)),
         };
         _logo = _tray.Icon;
         _tray.ForceCreate(enablesEfficiencyMode: false);
         _trayTimer = Ui.CreateTimer();
         _trayTimer.Interval = TimeSpan.FromSeconds(2);
-        _trayTimer.Tick += (_, _) => { UpdateTrayTooltip(); CheckStalls(); SampleHistory(); CheckFanLoop(); };
+        _trayTimer.Tick += (_, _) => { UpdateTrayTooltip(); CheckStalls(); CheckFanLoop(); };
+        // The overview's history lines: a sample a second (see History).
+        _historyTimer = Ui.CreateTimer();
+        _historyTimer.Interval = TimeSpan.FromSeconds(1);
+        _historyTimer.Tick += (_, _) => SampleHistory();
+        _historyTimer.Start();
         _trayTimer.Start();
         UpdateTrayTooltip();
     }
@@ -541,7 +610,7 @@ public partial class App : Application
 #endif
     }
 
-    /// <summary>The overview's last 10 minutes (see <see cref="RigControl.History"/>).</summary>
+    /// <summary>The overview's last 3 minutes (see <see cref="RigControl.History"/>).</summary>
     public History History { get; } = new();
 
     void SampleHistory()

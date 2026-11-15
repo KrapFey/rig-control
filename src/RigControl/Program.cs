@@ -49,13 +49,7 @@ public static class Program
             Task.Run(() => main.RedirectActivationToAsync(activation).AsTask()).Wait(TimeSpan.FromSeconds(10));
             return 0;
         }
-        main.Activated += (_, e) =>
-        {
-            // "RigControl.exe --mini-dashboard" while it runs (from a shortcut, say) opens the tray's mini dashboard.
-            if (e.Data is Windows.ApplicationModel.Activation.ILaunchActivatedEventArgs launch && launch.Arguments.Contains("--mini-dashboard"))
-                App.Instance?.ToggleMiniDashboard();
-            else App.Instance?.ShowWindow();
-        };
+        main.Activated += (_, _) => App.Instance?.ShowWindow();
 #if !UITEST
         // Setup checks this mutex to know RigControl is running. RigControl runs elevated and setup doesn't,
         // so the mutex gets a DACL that lets setup see it (synchronize only).

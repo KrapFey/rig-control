@@ -72,8 +72,6 @@ public sealed class AppConfig
     public bool CheckForUpdates { get; set; } = true;
     /// <summary>The tray icon shows this value live (or the logo).</summary>
     public TrayShow TrayShows { get; set; } = TrayShow.CpuTemp;
-    /// <summary>Left-clicking the tray icon opens the mini dashboard (false: the full window).</summary>
-    public bool TrayPopup { get; set; } = true;
     /// <summary>Where the main window was when it last closed; null = the default size.</summary>
     public WindowPlacement? Window { get; set; }
     /// <summary>Per-device driver: device key (e.g. "nzxt-hue2/&lt;serial&gt;") -> "liquidctl". Missing = built-in.</summary>

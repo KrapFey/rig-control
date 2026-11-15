@@ -6,7 +6,7 @@ An open-source Windows app for your PC's fans, RGB lighting and gaming periphera
 curves for motherboard, GPU, fan-controller and AIO fans, light every RGB device in sync, set up your mouse,
 headset and keyboard, and watch it all live in a modern WinUI 3 interface.
 
-![Overview: CPU, GPU, liquid and airflow with their last 10 minutes, cooling by curve, lighting and device batteries](docs/screenshots/overview.png)
+![Overview: CPU, GPU, liquid and airflow with their last 3 minutes, cooling by curve, lighting and device batteries](docs/screenshots/overview.png)
 
 | | |
 |---|---|
@@ -82,10 +82,9 @@ headset and keyboard, and watch it all live in a modern WinUI 3 interface.
   the FanControl.Liquidctl plugin (matched by the plugin's own device ids).
 - **Identify** stops one fan for 8 seconds so you can see which it is; **Swap with…** exchanges two fans'
   settings.
-- **Tray widget:** the tray icon shows a live CPU or GPU temperature or the airflow, coloured by how hot it is;
-  clicking it opens a mini dashboard above the taskbar (temperatures, airflow, fans, a lighting switch).
-  Double-click opens the full app; Esc or a click elsewhere closes the mini dashboard. `RigControl.exe --mini-dashboard`
-  opens it too (for a keyboard shortcut). Windows 11 hides new tray icons at first: drag it onto the taskbar to keep it in view.
+- **Tray icon:** shows a live CPU or GPU temperature or the airflow, coloured by how hot it is; its tooltip has the
+  rest and device batteries. Clicking it opens RigControl; right-click it to switch the cooling profile (or start one from a preset) or the lighting. Windows 11 hides new tray icons at first: drag it onto the
+  taskbar to keep it in view.
 - Start with Windows (scheduled task, admin without a UAC prompt), Mica, live animations.
 
 ## Requirements

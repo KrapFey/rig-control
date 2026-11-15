@@ -42,10 +42,13 @@ static class Heat
     public static Color WithAlpha(this Color c, byte a) => Color.FromArgb(a, c.R, c.G, c.B);
 }
 
-/// <summary>A small line of recent values (the overview's last 10 minutes), drawn right-aligned over the whole window.</summary>
+/// <summary>
+/// A small line of recent values (the overview's history), drawn right-aligned over the whole window: averaged into
+/// narrow columns and drawn as a smooth curve that never overshoots (see <see cref="RigControl.Core.SparklineMath"/>).
+/// </summary>
 public sealed class Sparkline : Grid
 {
-    readonly Polyline _line = new() { StrokeThickness = 2, StrokeLineJoin = PenLineJoin.Round };
+    readonly Path _line = new() { StrokeThickness = 2, StrokeLineJoin = PenLineJoin.Round, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round };
     IReadOnlyList<double> _values = [];
 
     /// <summary>The smallest range drawn top to bottom, so a steady 40° doesn't look like a storm.</summary>
@@ -67,16 +70,12 @@ public sealed class Sparkline : Grid
 
     void Draw()
     {
-        var points = new PointCollection();
-        double w = ActualWidth, h = ActualHeight - 4;
-        if (_values.Count >= 2 && w > 0)
-        {
-            double lo = _values.Min(), hi = _values.Max(), span = Math.Max(hi - lo, MinSpan), bottom = (lo + hi - span) / 2;
-            double step = w / (History.Samples - 1);
-            for (int i = 0; i < _values.Count; i++)
-                points.Add(new Point(w - (_values.Count - 1 - i) * step, 2 + h - (_values[i] - bottom) / span * h));
-        }
-        _line.Points = points;
+        var points = RigControl.Core.SparklineMath.Layout(_values, History.Samples, ActualWidth, ActualHeight, MinSpan);
+        if (points.Count < 2) { _line.Data = null; return; }
+        var figure = new PathFigure { StartPoint = new Point(points[0].X, points[0].Y) };
+        foreach (var (c1, c2, end) in RigControl.Core.SparklineMath.Curve(points))
+            figure.Segments.Add(new BezierSegment { Point1 = new Point(c1.X, c1.Y), Point2 = new Point(c2.X, c2.Y), Point3 = new Point(end.X, end.Y) });
+        _line.Data = new PathGeometry { Figures = { figure } };
     }
 }
 
