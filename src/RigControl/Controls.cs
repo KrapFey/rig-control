@@ -80,7 +80,7 @@ public sealed class Sparkline : Grid
         _values = values;
         _added = added;
         Draw();
-        if (fresh is > 0 and < 5 && ActualWidth > 0)
+        if (fresh is > 0 and < 5 && ActualWidth > 0 && Frames.Visible)
         {
             _story.Stop();
             _glide.From = fresh * ActualWidth / (History.Samples - 1);
@@ -126,7 +126,8 @@ public sealed class FanGlyph : Grid
             _visual.CenterPoint = new Vector3((float)e.NewSize.Width / 2, (float)e.NewSize.Height / 2, 0);
             if (_spin is null) StartSpin();
         };
-        Unloaded += (_, _) => { _visual?.StopAnimation("RotationAngleInDegrees"); _spin = null; };
+        Loaded += (_, _) => Frames.VisibleChanged += ApplyRate;
+        Unloaded += (_, _) => { Frames.VisibleChanged -= ApplyRate; _visual?.StopAnimation("RotationAngleInDegrees"); _spin = null; };
     }
 
     public double Rpm
@@ -153,7 +154,7 @@ public sealed class FanGlyph : Grid
         if (_spin is null) return;
         // 1000 rpm reads as ~2 turns a second: fast enough to feel alive, slow enough not to strobe.
         var rate = _rpm / 500.0;
-        if (rate < 0.02) _spin.Pause();
+        if (rate < 0.02 || !Frames.Visible) _spin.Pause();
         else
         {
             _spin.PlaybackRate = (float)Math.Min(rate, 8);

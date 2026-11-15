@@ -13,18 +13,19 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Header: title, profiles, master switch -->
+        <!-- Header: title with the master switch beside it, then profiles on the right -->
         <Grid ColumnSpacing="12">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel>
                 <TextBlock Text="Lighting" Style="{StaticResource PageTitle}" Margin="0" />
                 <TextBlock x:Name="Summary" Style="{StaticResource Caption}" Margin="0,4,0,0" />
             </StackPanel>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                 <Button x:Name="RescanButton" Click="Rescan_Click" ToolTipService.ToolTip="Look for devices again (one plugged in or woken up since RigControl started)" AutomationProperties.Name="Rescan">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <FontIcon Glyph="&#xE72C;" FontSize="14" />
@@ -43,7 +44,8 @@
                     </Button.Flyout>
                 </Button>
             </StackPanel>
-            <ToggleSwitch x:Name="EnabledSwitch" Grid.Column="2" OnContent="Lighting on" OffContent="Lighting off" VerticalAlignment="Center" Toggled="EnabledSwitch_Toggled" />
+            <ToggleSwitch x:Name="EnabledSwitch" Grid.Column="1" Margin="20,0,0,0" OnContent="On" OffContent="Off" VerticalAlignment="Center" Toggled="EnabledSwitch_Toggled"
+                          AutomationProperties.Name="Lighting on" ToolTipService.ToolTip="Turn all lighting on or off" />
         </Grid>
 
         <InfoBar x:Name="Notice" Grid.Row="1" Severity="Informational" IsClosable="False" />
@@ -69,7 +71,7 @@
                                 </Border>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                     <TextBlock Text="Synced effect" FontWeight="SemiBold" />
-                                    <TextBlock x:Name="SyncLine" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="SyncLine" Style="{StaticResource Caption}" TextWrapping="Wrap" />
                                 </StackPanel>
                             </Grid>
                         </Border>

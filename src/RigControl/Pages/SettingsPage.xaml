@@ -30,20 +30,22 @@
                 </Grid>
             </Border>
             <Border Style="{StaticResource Card}">
-                <StackPanel Spacing="12">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="Taskbar" FontWeight="SemiBold" />
-                        <TextBlock Text="The tray icon can show a live reading; clicking it opens RigControl; right-clicking switches the cooling or lighting profile." Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                        <TextBlock Text="Tray icon shows" FontWeight="SemiBold" />
+                        <TextBlock Text="A live reading on the taskbar. Clicking the icon opens RigControl; right-clicking switches the cooling or lighting profile." Style="{StaticResource Caption}" TextWrapping="Wrap" />
                     </StackPanel>
-                    <Grid>
-                        <ComboBox x:Name="TrayShowsBox" Header="Tray icon shows" MinWidth="220" SelectionChanged="TrayShows_Changed">
-                            <x:String>RigControl logo</x:String>
-                            <x:String>CPU temperature</x:String>
-                            <x:String>GPU temperature</x:String>
-                            <x:String>Airflow (average fan speed)</x:String>
-                        </ComboBox>
-                    </Grid>
-                </StackPanel>
+                    <ComboBox x:Name="TrayShowsBox" Grid.Column="1" Width="240" VerticalAlignment="Center" SelectionChanged="TrayShows_Changed" AutomationProperties.Name="Tray icon shows">
+                        <x:String>RigControl logo</x:String>
+                        <x:String>CPU temperature</x:String>
+                        <x:String>GPU temperature</x:String>
+                        <x:String>Airflow (average fan speed)</x:String>
+                    </ComboBox>
+                </Grid>
             </Border>
             <TextBlock Text="FANS AND SENSORS" Style="{StaticResource Caption}" Margin="2,14,0,2" />
             <Border Style="{StaticResource Card}">

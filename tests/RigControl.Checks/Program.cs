@@ -273,6 +273,55 @@ static string WriteTemp(AppConfig c) { var p = Path.Combine(Path.GetTempPath(), 
     Check(curve.Count == 5 && inBand, "history line: the curve never swings past a peak or a dip");
 }
 
+// The fan loop on the demo hardware: graph curves follow their sensor, fans follow their curve, and a swapped
+// config is used from the next pass on (its lookups are kept between passes, so they must notice).
+{
+    Demo.On = true;
+    try
+    {
+        var hub = new HardwareHub();
+        hub.Open();
+        var demoCfg = Demo.Config();
+        foreach (var c in demoCfg.Curves) { c.Deadband = 0; c.ResponseSeconds = 0; }
+        foreach (var f in demoCfg.Fans.Values) { f.StepUp = 0; f.StepDown = 0; f.StartPercent = 0; }
+        using var engine = new FanEngine(hub, demoCfg);
+        bool curvesRight = true, fansRight = true, sawRenamed = false;
+        int passes = 0;
+        using var done = new ManualResetEventSlim();
+        engine.Updated += () => // on the loop's thread, before the next pass reads the sensors again
+        {
+            var used = engine.Config;
+            foreach (var c in used.Curves.Where(c => c.Kind == CurveKind.Graph))
+            {
+                var t = hub.Temps.First(s => s.Id == c.Source).Value!.Value;
+                // The engine ignores moves under 0.0001° even with no deadband, so the input it used is "about" t.
+                curvesRight &= engine.CurveInputs.TryGetValue(c.Name, out var input) && Math.Abs(input - t) < 0.001
+                    && engine.CurveOutputs.TryGetValue(c.Name, out var o) && Math.Abs(o - CurveMath.Interpolate(c.Points, input)) < 1e-9;
+            }
+            foreach (var (id, s) in used.Fans.Where(f => f.Value.Enabled && f.Value.Curve is not null && f.Value.Manual is null))
+                if (engine.CurveOutputs.TryGetValue(s.Curve!, out var o))
+                    fansRight &= engine.Status[id].Target == CurveMath.NextDuty(o, null, s);
+            sawRenamed |= engine.CurveOutputs.ContainsKey("Renamed");
+            if (++passes == 2)
+            {
+                var next = used.Clone();
+                var g = next.Curves.First(c => c.Kind == CurveKind.Graph);
+                foreach (var f in next.Fans.Values.Where(f => f.Curve == g.Name)) f.Curve = "Renamed";
+                foreach (var m in next.Curves) m.Inputs = [.. m.Inputs.Select(i => i == g.Name ? "Renamed" : i)];
+                g.Name = "Renamed";
+                engine.Apply(next);
+            }
+            if (passes == 4) done.Set();
+        };
+        engine.Start();
+        Check(done.Wait(TimeSpan.FromSeconds(15)), "fan loop: runs passes on the demo hardware");
+        Check(curvesRight, "fan loop: each graph curve gives its points' value at its sensor's temperature");
+        Check(fansRight, "fan loop: each fan on a curve runs at that curve's output");
+        Check(sawRenamed, "fan loop: a swapped config (a curve renamed) is used from the next pass");
+    }
+    finally { Demo.On = false; }
+}
+
 // The watchdog: bring RigControl back after it died without exiting, up to 3 times in 10 minutes, then give the
 // fans to the hardware; never when it exited cleanly (no mark, or another process's) or Windows is ending.
 Check(CrashGuard.Decide(10, 10, 0, false) == CrashGuard.Action.Restart, "watchdog: died without exiting -> start it again");

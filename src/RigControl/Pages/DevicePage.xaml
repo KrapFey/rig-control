@@ -18,7 +18,7 @@
                                         <FontIcon Glyph="{x:Bind Glyph}" FontSize="30" Foreground="White" />
                                     </Border>
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                        <TextBlock Text="{x:Bind Name}" Style="{StaticResource PageTitle}" Margin="0" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{x:Bind Name}" Style="{StaticResource PageTitle}" Margin="0" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
                                         <TextBlock Text="{x:Bind Source}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
                                     </StackPanel>
                                     <Border Grid.Column="2" CornerRadius="14" Padding="12,6" Background="#1AFFFFFF" VerticalAlignment="Center" Visibility="{x:Bind BatteryVisibility, Mode=OneWay}">
@@ -151,11 +151,12 @@
                                     </Grid>
                                     <ItemsControl ItemsSource="{x:Bind Presets}">
                                         <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate>
+                                            <!-- wraps onto a second row rather than running off the card -->
+                                            <ItemsPanelTemplate><VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="78" ItemHeight="40" /></ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="p:DpiPreset">
-                                                <Button Content="{x:Bind Label}" Click="{x:Bind Pick}" Padding="10,4" MinWidth="0" CornerRadius="12"
+                                                <Button Content="{x:Bind Label}" Click="{x:Bind Pick}" Padding="10,4" MinWidth="0" CornerRadius="12" Margin="0,0,6,6" HorizontalAlignment="Stretch"
                                                         Background="{x:Bind Background, Mode=OneWay}" BorderBrush="{StaticResource CardStroke}" />
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -168,7 +169,7 @@
                                     <TextBlock Text="{x:Bind StagesTitle}" Style="{StaticResource Caption}" />
                                     <ItemsControl ItemsSource="{x:Bind Stages}">
                                         <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="10" /></ItemsPanelTemplate>
+                                            <ItemsPanelTemplate><VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="108" ItemHeight="84" /></ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="p:StageVm">

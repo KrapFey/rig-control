@@ -38,7 +38,7 @@ public sealed class CurveEditor : Grid
 
     public CurveEditor()
     {
-        MinHeight = 320;
+        MinHeight = 200; // less than the editor card gets in a small window, so the axis labels are never cut off
         Children.Add(_canvas);
         var accent = (Brush)Application.Current.Resources["AccentGradient"];
         _line.Stroke = accent;
@@ -78,8 +78,9 @@ public sealed class CurveEditor : Grid
         Storyboard.SetTarget(fade, _markerRing);
         Storyboard.SetTargetProperty(fade, "Opacity");
         sb.Children.Add(fade);
-        Loaded += (_, _) => sb.Begin();
-        Unloaded += (_, _) => sb.Stop();
+        Action pauseHidden = () => { if (Frames.Visible) sb.Resume(); else sb.Pause(); };
+        Loaded += (_, _) => { sb.Begin(); pauseHidden(); Frames.VisibleChanged += pauseHidden; };
+        Unloaded += (_, _) => { sb.Stop(); Frames.VisibleChanged -= pauseHidden; };
     }
 
     public void SetPoints(IEnumerable<CurvePoint> points)

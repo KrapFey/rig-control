@@ -35,6 +35,7 @@ public sealed partial class OverviewPage : Page
         BuildCurveRows();
         BuildNotices();
         AppI.UpdateFound += BuildNotices;
+        AppI.NotesChanged += BuildNotices;
         AppI.LightingStateChanged += OnRefreshed;
         _live.Refreshed += OnRefreshed;
         OnRefreshed();
@@ -44,6 +45,7 @@ public sealed partial class OverviewPage : Page
     {
         _live.Refreshed -= OnRefreshed;
         AppI.UpdateFound -= BuildNotices;
+        AppI.NotesChanged -= BuildNotices;
         AppI.LightingStateChanged -= OnRefreshed;
         _live.Detach();
     }
@@ -303,8 +305,14 @@ public sealed partial class OverviewPage : Page
             Notices.Children.Add(bar);
         }
 
-        foreach (var note in app.StartupNotes.Concat(app.Hub.Problems))
-            Notices.Children.Add(new InfoBar { IsOpen = true, Severity = InfoBarSeverity.Warning, Message = note });
+        foreach (var note in app.StartupNotes.ToList())
+        {
+            var bar = new InfoBar { IsOpen = true, Severity = InfoBarSeverity.Warning, Message = note };
+            bar.Closed += (_, _) => app.DismissNote(note); // closed stays closed, not back at the next rebuild
+            Notices.Children.Add(bar);
+        }
+        foreach (var problem in app.Hub.Problems)
+            Notices.Children.Add(new InfoBar { IsOpen = true, Severity = InfoBarSeverity.Warning, Message = problem });
 
         if (app.Update is { } update)
         {

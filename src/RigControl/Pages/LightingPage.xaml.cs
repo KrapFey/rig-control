@@ -400,13 +400,13 @@ public sealed partial class LightingPage : Page
             AppI.LightingStateChanged += Rebuild;
             DeviceCard.SourceChanged += UpdateSyncCount;
             Rebuild();
-            CompositionTarget.Rendering += RenderFrame; // device strips, once per screen refresh
+            Frames.Add(RenderFrame); // device strips, once per screen refresh
         };
         Unloaded += (_, _) =>
         {
             AppI.LightingStateChanged -= Rebuild;
             DeviceCard.SourceChanged -= UpdateSyncCount;
-            CompositionTarget.Rendering -= RenderFrame;
+            Frames.Remove(RenderFrame);
             if (Card is not null) Card.PropertyChanged -= CardChanged;
         };
     }

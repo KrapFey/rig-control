@@ -34,14 +34,21 @@ public sealed partial class MainWindow : Window
 
         _statusTimer.Tick += (_, _) => UpdateStatus();
         _statusTimer.Start();
+        // Per-frame drawing only while the window can be seen (see Frames).
+        Frames.Visible = true;
+        VisibilityChanged += (_, e) => Frames.Visible = e.Visible && !Minimized;
+        AppWindow.Changed += (_, _) => Frames.Visible = AppWindow.IsVisible && !Minimized;
         Closed += (_, _) =>
         {
+            Frames.Visible = false;
             _statusTimer.Stop();
             RememberPlacement();
         };
         Navigate("Overview", null);
         UpdateStatus();
     }
+
+    bool Minimized => AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized };
 
     RectInt32 _restored; // the window's bounds when last neither maximized nor minimized
 

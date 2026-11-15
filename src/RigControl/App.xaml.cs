@@ -16,6 +16,23 @@ public partial class App : Application
     public AppConfig Config { get; private set; } = null!;
     public DispatcherQueue Ui { get; private set; } = null!;
     public List<string> StartupNotes { get; } = [];
+    /// <summary>A start-up note was closed or went away by itself.</summary>
+    public event Action? NotesChanged;
+    string? _exitNote; // "didn't exit properly": gone once this run has gone well for a while
+    readonly DateTime _startedAt = DateTime.Now;
+
+    public void DismissNote(string note)
+    {
+        if (StartupNotes.Remove(note)) NotesChanged?.Invoke();
+    }
+
+    /// <summary>The note about the last run fades once this one has run cleanly for 5 minutes: it's old news by then.</summary>
+    void ExpireExitNote()
+    {
+        if (_exitNote is null || DateTime.Now - _startedAt < TimeSpan.FromMinutes(5)) return;
+        DismissNote(_exitNote);
+        _exitNote = null;
+    }
     public LightingEngine Lighting { get; private set; } = null!;
     public PeripheralHub Peripherals { get; private set; } = null!;
     public RgbEngine? Rgb { get; private set; }
@@ -75,9 +92,10 @@ public partial class App : Application
         if (CrashGuard.Begin(Environment.ProcessId, boot) is { } lastStart)
         {
             Log($"previous run (started {lastStart:HH:mm:ss}) ended without exiting{(restarted ? "; started again by the watchdog" : "")}");
-            StartupNotes.Add(restarted
+            _exitNote = restarted
                 ? $"RigControl stopped unexpectedly and was started again, so your fans are back on their curves. What it was doing is in rigcontrol.log, in the settings folder (Settings → About)."
-                : $"RigControl didn't exit properly last time (it was started at {lastStart:t}). Its log, rigcontrol.log, is in the settings folder (Settings → About).");
+                : $"RigControl didn't exit properly last time (it was started at {lastStart:t}). Its log, rigcontrol.log, is in the settings folder (Settings → About).";
+            StartupNotes.Add(_exitNote);
         }
 #if !UITEST
         Watchdog.Start();
@@ -577,7 +595,7 @@ public partial class App : Application
         _tray.ForceCreate(enablesEfficiencyMode: false);
         _trayTimer = Ui.CreateTimer();
         _trayTimer.Interval = TimeSpan.FromSeconds(2);
-        _trayTimer.Tick += (_, _) => { UpdateTrayTooltip(); CheckStalls(); CheckFanLoop(); };
+        _trayTimer.Tick += (_, _) => { UpdateTrayTooltip(); CheckStalls(); CheckFanLoop(); ExpireExitNote(); };
         // The overview's history lines: a sample a second (see History).
         _historyTimer = Ui.CreateTimer();
         _historyTimer.Interval = TimeSpan.FromSeconds(1);

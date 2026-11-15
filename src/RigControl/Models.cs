@@ -20,6 +20,48 @@ public abstract class Observable : INotifyPropertyChanged
 }
 
 /// <summary>
+/// Work done once per screen refresh (gliding numbers, lighting previews), only while the main window can be seen:
+/// a minimized or hidden window keeps its pages, and they'd otherwise keep drawing for nobody.
+/// </summary>
+public static class Frames
+{
+    static readonly List<EventHandler<object>> Handlers = [];
+    static bool _visible = true, _hooked;
+
+    public static void Add(EventHandler<object> h) { Handlers.Add(h); Sync(); }
+    public static void Remove(EventHandler<object> h) { Handlers.Remove(h); Sync(); }
+
+    /// <summary>Whether the main window can be seen (not minimized, hidden or closed).</summary>
+    public static bool Visible
+    {
+        get => _visible;
+        set
+        {
+            if (_visible == value) return;
+            _visible = value;
+            Sync();
+            VisibleChanged?.Invoke();
+        }
+    }
+
+    /// <summary>For endless animations (a pulse, a spinning fan) to pause while nobody sees them.</summary>
+    public static event Action? VisibleChanged;
+
+    static void Sync()
+    {
+        bool want = _visible && Handlers.Count > 0;
+        if (want == _hooked) return;
+        _hooked = want;
+        if (want) CompositionTarget.Rendering += Tick; else CompositionTarget.Rendering -= Tick;
+    }
+
+    static void Tick(object? sender, object e)
+    {
+        foreach (var h in Handlers.ToArray()) h(sender, e);
+    }
+}
+
+/// <summary>
 /// A number that glides to its target (critically damped, frame-rate independent).
 /// Only ticks while moving: the frame callback detaches once everything has settled.
 /// </summary>
@@ -48,7 +90,7 @@ public sealed class Smooth : Observable
             {
                 _hooked = true;
                 _lastFrame = DateTime.Now;
-                CompositionTarget.Rendering += Frame;
+                Frames.Add(Frame);
             }
         }
     }
@@ -76,7 +118,7 @@ public sealed class Smooth : Observable
         }
         if (Moving.Count == 0)
         {
-            CompositionTarget.Rendering -= Frame;
+            Frames.Remove(Frame);
             _hooked = false;
         }
     }

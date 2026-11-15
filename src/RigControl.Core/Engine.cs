@@ -99,6 +99,8 @@ public sealed class FanEngine : IDisposable
     readonly Dictionary<string, Hysteresis> _hyst = [];
     readonly Dictionary<string, double> _last = [];
     readonly HashSet<string> _driven = [];
+    readonly Dictionary<string, TempSensor> _sensors; // the hub's sensors never change: a rescan makes a new engine
+    (AppConfig Config, Dictionary<string, CurveDef> ByName) _curves; // rebuilt only when the config is swapped
     readonly Thread _thread;
     readonly ManualResetEventSlim _wake = new();
     readonly Stopwatch _clock = Stopwatch.StartNew();
@@ -126,6 +128,7 @@ public sealed class FanEngine : IDisposable
         _hub = hub;
         _config = config.Clone(); // the UI keeps editing the caller's copy; this thread must never see it mid-edit
         Status = hub.Fans.ToDictionary(f => f.Id, f => new FanStatus { Channel = f });
+        _sensors = hub.Temps.GroupBy(t => t.Id).ToDictionary(g => g.Key, g => g.First());
         _thread = new Thread(Loop) { IsBackground = true, Name = "FanEngine", Priority = ThreadPriority.AboveNormal };
     }
 
@@ -163,8 +166,8 @@ public sealed class FanEngine : IDisposable
     {
         _hub.Update();
         double now = _clock.Elapsed.TotalSeconds;
-        var temps = _hub.Temps.ToDictionary(t => t.Id, t => t.Value);
-        var curves = cfg.Curves.ToDictionary(c => c.Name);
+        if (!ReferenceEquals(_curves.Config, cfg)) _curves = (cfg, cfg.Curves.GroupBy(c => c.Name).ToDictionary(g => g.Key, g => g.First()));
+        var curves = _curves.ByName;
         var outputs = new Dictionary<string, double>();
         var inputs = new Dictionary<string, double>();
 
@@ -189,7 +192,7 @@ public sealed class FanEngine : IDisposable
                     };
                     break;
                 default:
-                    if (c.Source is null || !temps.TryGetValue(c.Source, out var t) || t is not float tv || float.IsNaN(tv)) { r = null; break; }
+                    if (c.Source is null || !_sensors.TryGetValue(c.Source, out var sensor) || sensor.Value is not float tv || float.IsNaN(tv)) { r = null; break; }
                     var h = _hyst.TryGetValue(name, out var hh) ? hh : _hyst[name] = new Hysteresis();
                     var hot = c.Points.Count > 0 ? c.Points[^1].Temp : double.MaxValue;
                     var used = h.Apply(tv, now, c.Deadband, c.ResponseSeconds, hot);

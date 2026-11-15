@@ -48,9 +48,9 @@ public sealed partial class EffectEditor : UserControl
             // Read here, not once: a rescan can change the sensors.
             SensorBox.ItemsSource = AppI.Hub.Temps.OrderBy(t => t.Device).ThenBy(t => t.Name).Select(t => new SensorOption(t.Id, $"{AppI.SensorLabel(t)} · {t.Device}")).ToList();
             Load();
-            CompositionTarget.Rendering += RenderFrame; // once per screen refresh, so the preview moves smoothly
+            Frames.Add(RenderFrame); // once per screen refresh, so the preview moves smoothly
         };
-        Unloaded += (_, _) => CompositionTarget.Rendering -= RenderFrame;
+        Unloaded += (_, _) => Frames.Remove(RenderFrame);
     }
 
     /// <summary>The effect being edited (changed in place).</summary>
