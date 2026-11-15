@@ -36,7 +36,7 @@
         <Grid x:Name="Body" Grid.Row="1" ColumnSpacing="16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="290" />
-                <ColumnDefinition />
+                <ColumnDefinition Width="*" MaxWidth="1100" />
             </Grid.ColumnDefinitions>
 
             <!-- Every device, with what matters now -->

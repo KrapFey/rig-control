@@ -32,6 +32,7 @@ public sealed partial class SettingsPage : Page
             BatteryAlert.Value = App.Instance.Config.LowBatteryAlert;
             HotAlert.Value = App.Instance.Config.HotAlert;
             BuildRules();
+            _ = ShowGamesAsync();
             ShowUpdate();
             App.Instance.UpdateFound += ShowUpdate;
             _loading = false;
@@ -86,11 +87,27 @@ public sealed partial class SettingsPage : Page
         var cfg = app.Config;
         const string Keep = "No change";
         RulesList.Children.Clear();
-        if (cfg.AppRules.Count > 0)
+        TextBlock Head(string text) => new() { Text = text, Style = (Style)Application.Current.Resources["Caption"] };
+        RulesList.Children.Add(RuleRow(Head("WHILE THIS RUNS"), Head("COOLING PROFILE"), Head("LIGHTING PROFILE")));
+        ComboBox Pick(string what, List<string> names, string? now, Action<string?> set)
         {
-            TextBlock Head(string text) => new() { Text = text, Style = (Style)Application.Current.Resources["Caption"] };
-            RulesList.Children.Add(RuleRow(Head("PROGRAM"), Head("COOLING PROFILE"), Head("LIGHTING PROFILE")));
+            var box = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch, ItemsSource = names.Prepend(Keep).ToList() };
+            box.SelectedItem = now is not null && names.Contains(now) ? now : Keep;
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(box, what);
+            box.SelectionChanged += (_, _) =>
+            {
+                set(box.SelectedItem is string s && s != Keep ? s : null);
+                app.ConfigChanged();
+            };
+            return box;
         }
+        List<string> cooling = cfg.CoolingProfileNames(), lighting = [.. cfg.Lighting.Profiles.Select(p => p.Name)];
+        var anyGame = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 0, 0) };
+        anyGame.Children.Add(new FontIcon { Glyph = "\uE7FC", FontSize = 16 });
+        anyGame.Children.Add(new TextBlock { Text = "Any game", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
+        RulesList.Children.Add(RuleRow(anyGame,
+            Pick("Cooling profile for games", cooling, cfg.GameCooling, v => cfg.GameCooling = v),
+            Pick("Lighting profile for games", lighting, cfg.GameLighting, v => cfg.GameLighting = v)));
         foreach (var rule in cfg.AppRules)
         {
             var name = new TextBox { Text = rule.Process, PlaceholderText = "game.exe" };
@@ -102,27 +119,23 @@ public sealed partial class SettingsPage : Page
                 rule.Process = name.Text.Trim();
                 app.ConfigChanged();
             };
-            ComboBox Pick(string what, List<string> names, string? now, Action<string?> set)
-            {
-                var box = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch, ItemsSource = names.Prepend(Keep).ToList() };
-                box.SelectedItem = now is not null && names.Contains(now) ? now : Keep;
-                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(box, what);
-                box.SelectionChanged += (_, _) =>
-                {
-                    set(box.SelectedItem is string s && s != Keep ? s : null);
-                    app.ConfigChanged();
-                };
-                return box;
-            }
             var remove = new Button { Content = new FontIcon { Glyph = "\uE711", FontSize = 11 }, Padding = new Thickness(8, 6, 8, 6) };
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(remove, "Remove this program");
             ToolTipService.SetToolTip(remove, "Remove");
             remove.Click += (_, _) => { cfg.AppRules.Remove(rule); app.ConfigChanged(); BuildRules(); };
             RulesList.Children.Add(RuleRow(name,
-                Pick("Cooling profile", cfg.CoolingProfileNames(), rule.Cooling, v => rule.Cooling = v),
-                Pick("Lighting profile", [.. cfg.Lighting.Profiles.Select(p => p.Name)], rule.Lighting, v => rule.Lighting = v),
+                Pick("Cooling profile", cooling, rule.Cooling, v => rule.Cooling = v),
+                Pick("Lighting profile", lighting, rule.Lighting, v => rule.Lighting = v),
                 remove));
         }
+    }
+
+    /// <summary>What game detection has to go on here, and the game it sees now.</summary>
+    async Task ShowGamesAsync()
+    {
+        var (exes, folders) = await Task.Run(GameDetector.Find);
+        GamesText.Text = $"On this PC: {exes.Count} games Windows has seen and {folders.Count} game folders (Steam, Epic, GOG, Ubisoft, Xbox)."
+            + (App.Instance!.RunningGame is { } game ? $" Running now: {game}." : "");
     }
 
     void AddRule_Click(object sender, RoutedEventArgs e)

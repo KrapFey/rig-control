@@ -5,7 +5,6 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using RigControl.Core;
-using Windows.ApplicationModel.DataTransfer;
 
 namespace RigControl.Pages;
 
@@ -26,10 +25,12 @@ public sealed class CurveGroup(CurveDef? def) : Observable
     public string EmptyHint => Members.Count > 0 ? "" : Def is null ? "Every fan follows a curve." : "No fans yet: drag one here.";
     public void MembersChanged() => Raise(nameof(EmptyHint));
 
-    bool _selected;
+    bool _selected, _dropTarget;
     public bool Selected { get => _selected; set { if (Set(ref _selected, value)) { Raise(nameof(Stroke)); Raise(nameof(StrokeThickness)); } } }
-    public Brush Stroke => (Brush)Application.Current.Resources[Selected ? "AccentGradient" : "CardStroke"];
-    public Thickness StrokeThickness => new(Selected ? 2 : 1);
+    /// <summary>A dragged fan is over this card.</summary>
+    public bool DropTarget { get => _dropTarget; set { if (Set(ref _dropTarget, value)) { Raise(nameof(Stroke)); Raise(nameof(StrokeThickness)); } } }
+    public Brush Stroke => (Brush)Application.Current.Resources[Selected || DropTarget ? "AccentGradient" : "CardStroke"];
+    public Thickness StrokeThickness => new(Selected || DropTarget ? 2 : 1);
 }
 
 public sealed record TempOption(string Id, string Label);
@@ -127,6 +128,8 @@ public sealed partial class CoolingPage : Page
             if (!RowsMatch()) BuildPointRows(); // a drag, an undo, or typed values that got sorted or kept in range
         };
         Editor.UndoChanged += () => UndoButton.IsEnabled = Editor.CanUndo;
+        HookDrag();
+        SizeChanged += (_, _) => LayoutPanels();
         Loaded += (_, _) =>
         {
             _temps = [.. App.Instance!.Hub.Temps.OrderBy(t => t.Device).ThenBy(t => t.Name).Select(t => new TempOption(t.Id, $"{App.Instance.SensorLabel(t)} · {t.Device}"))];
@@ -227,27 +230,90 @@ public sealed partial class CoolingPage : Page
 
     // ---- dragging a fan onto a curve
 
-    void Fans_DragItemsStarting(object sender, DragItemsStartingEventArgs e)
+    // Done with the pointer itself: Windows' own drag and drop never starts in a program run as administrator, which
+    // RigControl is. The handlers sit on the whole column and also get events its children handled (a list item
+    // takes the press for its click), so a drag can start on a fan row and end on any card.
+    FanVm? _dragFan;
+    Windows.Foundation.Point _dragFrom;
+    bool _dragging;
+    CurveGroup? _dropOn;
+
+    void HookDrag()
     {
-        if (e.Items.FirstOrDefault() is not FanVm fan) { e.Cancel = true; return; }
-        e.Data.SetText(fan.Id);
-        e.Data.RequestedOperation = DataPackageOperation.Move;
+        CurvesColumn.AddHandler(PointerPressedEvent, new PointerEventHandler(Drag_Pressed), true);
+        CurvesColumn.AddHandler(PointerMovedEvent, new PointerEventHandler(Drag_Moved), true);
+        CurvesColumn.AddHandler(PointerReleasedEvent, new PointerEventHandler(Drag_Released), true);
+        CurvesColumn.AddHandler(PointerCanceledEvent, new PointerEventHandler((_, _) => EndDrag()), true);
     }
 
-    void Group_DragOver(object sender, DragEventArgs e)
+    void Drag_Pressed(object sender, PointerRoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is not CurveGroup g || !e.DataView.Contains(StandardDataFormats.Text)) return;
-        e.AcceptedOperation = DataPackageOperation.Move;
-        e.DragUIOverride.Caption = g.Def is null ? "Take it off its curve" : $"Follow \"{g.Title}\"";
+        var point = e.GetCurrentPoint(null);
+        bool mouse = e.Pointer.PointerDeviceType != Microsoft.UI.Input.PointerDeviceType.Touch; // a finger scrolls the list
+        _dragFan = mouse && point.Properties.IsLeftButtonPressed ? FanAt(e.OriginalSource as DependencyObject) : null;
+        _dragFrom = point.Position;
     }
 
-    async void Group_Drop(object sender, DragEventArgs e)
+    /// <summary>The fan whose row holds an element (the row's text, its icon, or the list item around them).</summary>
+    static FanVm? FanAt(DependencyObject? d)
     {
-        if ((sender as FrameworkElement)?.DataContext is not CurveGroup g || !e.DataView.Contains(StandardDataFormats.Text)) return;
-        var deferral = e.GetDeferral();
-        var id = await e.DataView.GetTextAsync();
-        deferral.Complete();
-        if (Live.Instance.Fans.FirstOrDefault(f => f.Id == id) is { } fan) Assign(fan, g);
+        for (; d is not null and not ListView; d = VisualTreeHelper.GetParent(d))
+        {
+            if (d is ListViewItem { Content: FanVm item }) return item;
+            if (d is FrameworkElement { DataContext: FanVm fan }) return fan;
+        }
+        return null;
+    }
+
+    void Drag_Moved(object sender, PointerRoutedEventArgs e)
+    {
+        if (_dragFan is not { } fan) return;
+        var point = e.GetCurrentPoint(null);
+        if (!point.Properties.IsLeftButtonPressed) { EndDrag(); return; }
+        if (!_dragging)
+        {
+            if (Math.Abs(point.Position.X - _dragFrom.X) + Math.Abs(point.Position.Y - _dragFrom.Y) < 10) return; // still a click
+            _dragging = true;
+            CurvesColumn.CapturePointer(e.Pointer); // keeps the events coming when the pointer leaves the column
+            DragGhostName.Text = fan.Name;
+            DragGhost.Visibility = Visibility.Visible;
+        }
+        var at = e.GetCurrentPoint(DragLayer).Position;
+        Canvas.SetLeft(DragGhost, at.X + 14);
+        Canvas.SetTop(DragGhost, at.Y + 12);
+
+        var over = VisualTreeHelper.FindElementsInHostCoordinates(point.Position, Groups)
+            .Select(x => (x as FrameworkElement)?.DataContext).OfType<CurveGroup>().FirstOrDefault();
+        if (over == (GroupOf(fan) ?? _unassigned)) over = null; // where it already is
+        if (over != _dropOn)
+        {
+            if (_dropOn is not null) _dropOn.DropTarget = false;
+            _dropOn = over;
+            if (over is not null) over.DropTarget = true;
+        }
+        DragGhostHint.Text = over is null ? "Drop it on a curve" : over.Def is null ? "Take it off its curve" : $"Follow \"{over.Title}\"";
+
+        // Near the top or bottom of the list: scroll, so a card out of sight can be reached.
+        double y = e.GetCurrentPoint(GroupsScroll).Position.Y;
+        if (y < 28) GroupsScroll.ChangeView(null, GroupsScroll.VerticalOffset - 14, null, true);
+        else if (y > GroupsScroll.ActualHeight - 28) GroupsScroll.ChangeView(null, GroupsScroll.VerticalOffset + 14, null, true);
+    }
+
+    void Drag_Released(object sender, PointerRoutedEventArgs e)
+    {
+        var (fan, on) = (_dragFan, _dragging ? _dropOn : null);
+        EndDrag();
+        if (fan is not null && on is not null) Assign(fan, on);
+    }
+
+    void EndDrag()
+    {
+        if (_dropOn is not null) _dropOn.DropTarget = false;
+        (_dragFan, _dropOn) = (null, null);
+        if (!_dragging) return;
+        _dragging = false;
+        DragGhost.Visibility = Visibility.Collapsed;
+        CurvesColumn.ReleasePointerCaptures();
     }
 
     /// <summary>Makes a fan follow a group's curve; the no-curve group hands it back to the hardware.</summary>
@@ -272,7 +338,9 @@ public sealed partial class CoolingPage : Page
 
     void Fan_ItemClick(object sender, ItemClickEventArgs e)
     {
-        if (e.ClickedItem is FanVm fan) ShowFan(fan);
+        if (e.ClickedItem is not FanVm fan) return;
+        if (GroupOf(fan) is { } g && g != _sel) Select(g); // its curve opens with it
+        ShowFan(fan);
     }
 
     void ShowFan(FanVm fan)
@@ -282,8 +350,7 @@ public sealed partial class CoolingPage : Page
         _fan = new FanEdit(fan, [.. Cfg.Curves.Select(c => c.Name)]);
         _fan.PropertyChanged += FanChanged;
         FanHost.Content = _fan;
-        FanCard.Visibility = Visibility.Visible;
-        FanColumn.Width = new GridLength(320);
+        LayoutPanels();
         MarkSelectedFan();
     }
 
@@ -299,8 +366,7 @@ public sealed partial class CoolingPage : Page
         if (_fan is not null) _fan.PropertyChanged -= FanChanged;
         _fan = null;
         FanHost.Content = null;
-        FanCard.Visibility = Visibility.Collapsed;
-        FanColumn.Width = new GridLength(0);
+        LayoutPanels();
         MarkSelectedFan();
     }
 
@@ -535,13 +601,30 @@ public sealed partial class CoolingPage : Page
     /// <summary>Curves (with their fans) or Sensors (every temperature, to rename).</summary>
     void Views_SelectionChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args) => ShowView(sender.SelectedItem == SensorsView);
 
+    bool _sensors;
+    const double FanPanelWidth = 320, EditorMinWidth = 440;
+
+    /// <summary>
+    /// The curve editor and the open fan's panel side by side, when there's room for both; in a narrower window the
+    /// fan's panel takes the editor's place until it's closed (squeezed beside it, the editor was unusable).
+    /// </summary>
+    void LayoutPanels()
+    {
+        bool fan = !_sensors && _fan is not null;
+        bool both = ActualWidth - 280 - FanPanelWidth - 2 * 16 >= EditorMinWidth; // curves column, panel, two gaps
+        FanCard.Visibility = fan ? Visibility.Visible : Visibility.Collapsed;
+        FanColumn.Width = new GridLength(fan && both ? FanPanelWidth : 0);
+        Grid.SetColumn(FanCard, both ? 2 : 1);
+        EditorCard.Visibility = _sensors || (fan && !both) ? Visibility.Collapsed : Visibility.Visible;
+    }
+
     void ShowView(bool sensors)
     {
         if (sensors && SensorsFrame.Content is null) SensorsFrame.Navigate(typeof(SensorsPage));
+        _sensors = sensors;
         SensorsFrame.Visibility = sensors ? Visibility.Visible : Visibility.Collapsed;
-        CurvesColumn.Visibility = EditorCard.Visibility = sensors ? Visibility.Collapsed : Visibility.Visible;
-        FanCard.Visibility = !sensors && _fan is not null ? Visibility.Visible : Visibility.Collapsed;
-        FanColumn.Width = new GridLength(!sensors && _fan is not null ? 320 : 0);
+        CurvesColumn.Visibility = sensors ? Visibility.Collapsed : Visibility.Visible;
+        LayoutPanels();
         PageCaption.Text = sensors ? "Rename a sensor and the new name is used everywhere: curves, the overview, temperature lighting." : CurvesCaption;
     }
 

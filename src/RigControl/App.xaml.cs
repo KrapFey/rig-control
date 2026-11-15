@@ -732,6 +732,10 @@ public partial class App : Application
             H.NotifyIcon.Core.NotificationIcon.Warning);
     }
 
+    readonly GameDetector _games = new();
+    readonly AppRule _gameRule = new(); // "any game", as a rule: the game running now and the profiles chosen for games
+    /// <summary>The game found running at the last look (every 2 s, while profiles for games are chosen), or null.</summary>
+    public string? RunningGame { get; private set; }
     AppRule? _rule; // the app rule in force
     (string Cooling, string Lighting) _beforeRule; // the profiles in use when the first rule took over
     bool _checkingRules;
@@ -742,19 +746,28 @@ public partial class App : Application
     /// </summary>
     async Task CheckAppRulesAsync()
     {
-        if (_checkingRules || _quitting || (Config.AppRules.Count == 0 && _rule is null)) return;
+        bool games = Config.GameCooling is not null || Config.GameLighting is not null;
+        if (_checkingRules || _quitting || (Config.AppRules.Count == 0 && !games && _rule is null)) return;
         _checkingRules = true;
         try
         {
-            var running = await Task.Run(() =>
+            var (running, game) = await Task.Run(() =>
             {
                 var all = System.Diagnostics.Process.GetProcesses();
                 var names = all.Select(p => p.ProcessName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var game = games ? _games.Running(all) : null;
                 foreach (var p in all) p.Dispose();
-                return names;
+                return (names, game);
             });
+            RunningGame = game;
             static string Name(string process) => process.Trim() is var n && n.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? n[..^4] : n;
+            // A program you listed comes first (so listing one with "No change" leaves it out); then any game.
             var rule = Config.AppRules.FirstOrDefault(r => Name(r.Process).Length > 0 && running.Contains(Name(r.Process)));
+            if (rule is null && game is not null)
+            {
+                (_gameRule.Process, _gameRule.Cooling, _gameRule.Lighting) = (game, Config.GameCooling, Config.GameLighting);
+                rule = _gameRule;
+            }
             if (ReferenceEquals(rule, _rule)) return;
             if (_rule is null) _beforeRule = (Config.ActiveCooling, Config.Lighting.Active);
             // What the ending rule changed goes back; what the new one names comes in.

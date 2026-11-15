@@ -55,7 +55,7 @@
         <Grid Grid.Row="2" ColumnSpacing="16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="320" />
-                <ColumnDefinition />
+                <ColumnDefinition Width="*" MaxWidth="1100" />
             </Grid.ColumnDefinitions>
 
             <!-- The synced effect, then every device with its LEDs now -->

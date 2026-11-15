@@ -20,6 +20,11 @@
     </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <!-- No wider than 1400: on a big screen the cards stretched until their numbers sat far from their names -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition MaxWidth="1400" />
+            </Grid.ColumnDefinitions>
         <StackPanel Spacing="16" Padding="0,0,0,24">
             <StackPanel.ChildrenTransitions>
                 <TransitionCollection>
@@ -183,5 +188,6 @@
                 </StackPanel>
             </Border>
         </StackPanel>
+        </Grid>
     </ScrollViewer>
 </Page>

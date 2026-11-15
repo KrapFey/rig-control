@@ -895,6 +895,18 @@ Check(SupportedDevices.Search("zzqqxx").Count == 0, "search: nonsense finds noth
 Check(SupportedDevices.Search("kraken x").TakeWhile(d => !d.Name.Contains("Kraken M")).Any(d => d.Name == "NZXT Kraken X2"), "search: a word that starts a later word beats the same letters inside an earlier one");
 Check(SupportedDevices.List.Single(d => d.Name == "Razer DeathAdder V2").Kind == "Mouse · Lighting", "supported list: one row per device, settings and lighting merged");
 
+// --- games: known programs and library folders, minus what only runs beside a game
+{
+    var exes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { @"D:\Games\Solo\solo.exe" };
+    string[] folders = [@"E:\SteamLibrary\steamapps\common\"];
+    Check(GameDetector.IsGame(@"d:\games\solo\SOLO.exe", exes, folders), "games: a program Windows lists, whatever the case");
+    Check(GameDetector.IsGame(@"E:\SteamLibrary\steamapps\common\Hades\x64\Hades.exe", exes, folders), "games: anything in a library folder");
+    Check(!GameDetector.IsGame(@"E:\SteamLibrary\steamapps\common\Hades\UnityCrashHandler64.exe", exes, folders)
+          && !GameDetector.IsGame(@"E:\SteamLibrary\steamapps\common\wallpaper_engine\wallpaper32.exe", exes, folders)
+          && !GameDetector.IsGame(@"C:\Windows\explorer.exe", exes, folders), "games: not crash handlers, Wallpaper Engine or other programs");
+    Check(GameDetector.SteamLibraries("\"0\"\n{\n\t\"path\"\t\t\"E:\\\\SteamLibrary\"\n}").SequenceEqual([@"E:\SteamLibrary"]), "games: Steam's library list");
+}
+
 // --- config round trip
 var path = Path.Combine(Path.GetTempPath(), $"rigcontrol-{Guid.NewGuid():N}.json");
 cfg.Save(path);

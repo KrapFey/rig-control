@@ -87,6 +87,9 @@ public sealed class AppConfig
     public int HotAlert { get; set; } = 95;
     /// <summary>Apps that bring their own cooling and lighting profiles while they run; the first one running wins.</summary>
     public List<AppRule> AppRules { get; set; } = [];
+    /// <summary>The profiles in use while any game runs (see <see cref="GameDetector"/>); null = leave that one alone.</summary>
+    public string? GameCooling { get; set; }
+    public string? GameLighting { get; set; }
     /// <summary>Where the main window was when it last closed; null = the default size.</summary>
     public WindowPlacement? Window { get; set; }
     /// <summary>Per-device driver: device key (e.g. "nzxt-hue2/&lt;serial&gt;") -> "liquidctl". Missing = built-in.</summary>

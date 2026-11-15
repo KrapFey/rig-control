@@ -93,9 +93,10 @@
             <Border Style="{StaticResource Card}">
                 <StackPanel Spacing="10">
                     <StackPanel>
-                        <TextBlock Text="Switch profiles while a program runs" FontWeight="SemiBold" />
+                        <TextBlock Text="Switch profiles while a game or program runs" FontWeight="SemiBold" />
                         <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap"
-                                   Text="While a program listed here is running, its cooling and lighting profiles are in use; when it closes, the ones from before come back. With several running, the first in the list wins." />
+                                   Text="While a game is running, the profiles you pick for games are in use; when it closes, the ones from before come back. Games are found by themselves. A program you add yourself comes first: give it its own profiles, or No change to leave it out." />
+                        <TextBlock x:Name="GamesText" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" />
                     </StackPanel>
                     <StackPanel x:Name="RulesList" Spacing="8" />
                     <Button Click="AddRule_Click" AutomationProperties.Name="Add a program" HorizontalAlignment="Left">

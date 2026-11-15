@@ -10,7 +10,7 @@
     <Page.Resources>
         <!-- One fan in a curve's card: drag it onto another card to make it follow that curve -->
         <DataTemplate x:Key="FanRow" x:DataType="local:FanVm">
-            <Grid Padding="0,6" ColumnSpacing="8" Opacity="{x:Bind local:Fmt.PresentOpacity(Present), Mode=OneWay}">
+            <Grid Padding="0,6" ColumnSpacing="8" Background="Transparent" Opacity="{x:Bind local:Fmt.PresentOpacity(Present), Mode=OneWay}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition />
@@ -30,7 +30,7 @@
         <!-- A curve and the fans that follow it (or the fans on no curve) -->
         <DataTemplate x:Key="GroupCard" x:DataType="p:CurveGroup">
             <Border Style="{StaticResource Card}" Padding="6" BorderBrush="{x:Bind Stroke, Mode=OneWay}" BorderThickness="{x:Bind StrokeThickness, Mode=OneWay}"
-                    AllowDrop="True" DragOver="Group_DragOver" Drop="Group_Drop" DataContext="{x:Bind}">
+                    DataContext="{x:Bind}">
                 <StackPanel>
                     <Button Style="{StaticResource TileButton}" Click="Group_Click" DataContext="{x:Bind}" AutomationProperties.Name="{x:Bind Title, Mode=OneWay}" Padding="0">
                         <Grid Padding="8,6" ColumnSpacing="10">
@@ -48,7 +48,7 @@
                         </Grid>
                     </Button>
                     <ListView ItemsSource="{x:Bind Members}" ItemTemplate="{StaticResource FanRow}" SelectionMode="Single" IsItemClickEnabled="True"
-                              CanDragItems="True" DragItemsStarting="Fans_DragItemsStarting" ItemClick="Fan_ItemClick" Loaded="Fans_Loaded"
+                              ItemClick="Fan_ItemClick" Loaded="Fans_Loaded"
                               ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled" />
                     <TextBlock Text="{x:Bind EmptyHint, Mode=OneWay}" Style="{StaticResource Caption}" Margin="10,2,10,8" TextWrapping="Wrap"
                                Visibility="{x:Bind local:Fmt.ShowText(EmptyHint), Mode=OneWay}" />
@@ -183,7 +183,7 @@
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
+            <ScrollViewer x:Name="GroupsScroll" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
                 <ItemsRepeater x:Name="Groups" ItemTemplate="{StaticResource GroupCard}">
                     <ItemsRepeater.Layout>
                         <StackLayout Spacing="10" />
@@ -303,5 +303,16 @@
                 </Button>
             </Grid>
         </Border>
+
+        <!-- The fan being dragged, under the pointer -->
+        <Canvas x:Name="DragLayer" Grid.RowSpan="2" Grid.ColumnSpan="3" IsHitTestVisible="False">
+            <Border x:Name="DragGhost" Visibility="Collapsed" CornerRadius="8" Padding="12,8" Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}"
+                    BorderBrush="{StaticResource AccentGradient}" BorderThickness="2">
+                <StackPanel>
+                    <TextBlock x:Name="DragGhostName" FontWeight="SemiBold" />
+                    <TextBlock x:Name="DragGhostHint" Style="{StaticResource Caption}" />
+                </StackPanel>
+            </Border>
+        </Canvas>
     </Grid>
 </Page>
