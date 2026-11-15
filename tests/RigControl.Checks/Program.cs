@@ -173,6 +173,37 @@ Check(Near(CurveMath.NextDuty(10, null, new FanSettings { MinPercent = 25 }), 25
 }
 static string WriteTemp(AppConfig c) { var p = Path.Combine(Path.GetTempPath(), $"rigcontrol-profiles-{Guid.NewGuid():N}.json"); c.Save(p); return p; }
 
+// Cooling presets: valid shapes that always end at 100 %, the right shape for each sensor, mix and flat untouched.
+{
+    bool allValid = true;
+    foreach (var kind in Enum.GetValues<SensorKind>())
+        foreach (var preset in CoolingPresets.All)
+        {
+            var shape = CoolingPresets.Shape(kind, preset);
+            allValid &= shape.Count >= 2 && shape[^1].Percent == 100 && shape.Zip(shape.Skip(1)).All(p => p.First.Temp < p.Second.Temp && p.First.Percent <= p.Second.Percent)
+                        && shape.All(p => p.Temp is >= 20 and <= 100 && p.Percent is >= 0 and <= 100);
+        }
+    Check(allValid, "presets: every shape rises, stays on the graph and ends at 100 %");
+    Check(CoolingPresets.All.All(p => CurveMath.Interpolate(CoolingPresets.Shape(SensorKind.Cpu, p), 90) == 100)
+          && CoolingPresets.All.All(p => CurveMath.Interpolate(CoolingPresets.Shape(SensorKind.Liquid, p), 45) == 100),
+          "presets: full speed by 90 °C on a CPU and 45 °C coolant, even Silent");
+    Check(CurveMath.Interpolate(CoolingPresets.Shape(SensorKind.Cpu, CoolingPreset.Silent), 60) < CurveMath.Interpolate(CoolingPresets.Shape(SensorKind.Cpu, CoolingPreset.Balanced), 60)
+          && CurveMath.Interpolate(CoolingPresets.Shape(SensorKind.Cpu, CoolingPreset.Balanced), 60) < CurveMath.Interpolate(CoolingPresets.Shape(SensorKind.Cpu, CoolingPreset.Performance), 60),
+          "presets: at 60 °C, Silent < Balanced < Performance");
+    Check(CoolingPresets.KindOf("/intelcpu/0/temperature/0", "CPU Package") == SensorKind.Cpu
+          && CoolingPresets.KindOf("/gpu-nvidia/0/temperature/0", "GPU Core") == SensorKind.Gpu
+          && CoolingPresets.KindOf("liquidctl/abc/temp/Liquid temperature", "Liquid temperature") == SensorKind.Liquid
+          && CoolingPresets.KindOf("/lpc/it8689e/temperature/2", "VRM MOS") == SensorKind.Other
+          && CoolingPresets.KindOf(null, null) == SensorKind.Other,
+          "presets: CPU, GPU, coolant and other sensors told apart");
+    var g = new CurveDef { Name = "G", Source = "/gpu-nvidia/0/temperature/0", Points = [new(30, 30), new(80, 100)] };
+    var mixCurve = new CurveDef { Name = "M", Kind = CurveKind.Mix, Inputs = ["G"] };
+    var flat = new CurveDef { Name = "F", Kind = CurveKind.Flat, Percent = 55 };
+    int n = CoolingPresets.ApplyAll([g, mixCurve, flat], CoolingPreset.Silent, id => id.Contains("gpu") ? "GPU Core" : null);
+    Check(n == 1 && g.Points.SequenceEqual(CoolingPresets.Shape(SensorKind.Gpu, CoolingPreset.Silent)) && g is { Deadband: 3, ResponseSeconds: 4 }
+          && mixCurve.Points.Count == 0 && flat.Percent == 55, "presets: a graph curve reshaped for its sensor; mix and flat left alone");
+}
+
 // The watchdog: bring RigControl back after it died without exiting, up to 3 times in 10 minutes, then give the
 // fans to the hardware; never when it exited cleanly (no mark, or another process's) or Windows is ending.
 Check(CrashGuard.Decide(10, 10, 0, false) == CrashGuard.Action.Restart, "watchdog: died without exiting -> start it again");

@@ -361,6 +361,41 @@ public sealed partial class CoolingPage : Page
         App.Instance!.CoolingProfileChanged();
     }
 
+    // ---- presets: ready-made curve shapes for each kind of sensor (CoolingPresets)
+
+    static string? SensorName(string id) => App.Instance!.Hub.Temps.FirstOrDefault(t => t.Id == id)?.Name;
+
+    /// <summary>A new profile: a copy of the one in use with every graph curve shaped like the preset.</summary>
+    async void PresetProfile_Click(object sender, RoutedEventArgs e)
+    {
+        var preset = Enum.Parse<CoolingPreset>((string)((FrameworkElement)sender).Tag);
+        if (!Cfg.Curves.Any(c => c.Kind == CurveKind.Graph))
+        {
+            await new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = "No curves to shape yet",
+                Content = "A preset reshapes your temperature curves and keeps which fan follows which. Make a curve first (New curve), or import your FanControl setup.",
+                CloseButtonText = "OK",
+            }.ShowAsync();
+            return;
+        }
+        if (await Dialogs.AskName(XamlRoot, $"New {preset} profile", Dialogs.Unique(preset.ToString(), Cfg.CoolingProfileNames())) is not { } name) return;
+        Cfg.AddCooling(Dialogs.Unique(name, Cfg.CoolingProfileNames()));
+        int n = CoolingPresets.ApplyAll(Cfg.Curves, preset, SensorName);
+        App.Log($"cooling profile \"{Cfg.ActiveCooling}\" made from the {preset} preset ({n} curves reshaped)");
+        App.Instance!.CoolingProfileChanged();
+    }
+
+    /// <summary>This curve only, shaped like the preset for its sensor; Undo takes the points back.</summary>
+    void ShapeCurve_Click(object sender, RoutedEventArgs e)
+    {
+        if (_sel?.Def is not { Kind: CurveKind.Graph } d) return;
+        var preset = Enum.Parse<CoolingPreset>((string)((FrameworkElement)sender).Tag);
+        Editor.SetTypedPoints(CoolingPresets.Shape(CoolingPresets.KindOf(d.Source, d.Source is null ? null : SensorName(d.Source)), preset));
+        (DeadbandBox.Value, ResponseBox.Value) = CoolingPresets.Tuning(preset); // saved through their own change handler
+    }
+
     async void NewProfile_Click(object sender, RoutedEventArgs e)
     {
         if (await Dialogs.AskName(XamlRoot, "New cooling profile", Dialogs.Unique($"{Cfg.ActiveCooling} copy", Cfg.CoolingProfileNames())) is not { } name) return;
@@ -418,6 +453,8 @@ public sealed partial class CoolingPage : Page
         Grid.SetColumn(DeadbandBox, narrow ? 0 : 2);
         Grid.SetRow(ResponseBox, narrow ? 1 : 0);
         Grid.SetColumn(ResponseBox, narrow ? 1 : 3);
+        Grid.SetRow(ShapeButton, narrow ? 1 : 0);
+        Grid.SetColumn(ShapeButton, narrow ? 2 : 4);
     }
 
     // ---- the curve's points as numbers
@@ -498,7 +535,7 @@ public sealed partial class CoolingPage : Page
         DeleteButton.IsEnabled = d is not null;
         bool graph = d?.Kind == CurveKind.Graph, mix = d?.Kind == CurveKind.Mix, flat = d?.Kind == CurveKind.Flat;
         NameBox.Visibility = d is null ? Visibility.Collapsed : Visibility.Visible;
-        Editor.Visibility = SourceBox.Visibility = DeadbandBox.Visibility = ResponseBox.Visibility = UndoButton.Visibility = PointsExpander.Visibility = graph ? Visibility.Visible : Visibility.Collapsed;
+        Editor.Visibility = SourceBox.Visibility = DeadbandBox.Visibility = ResponseBox.Visibility = UndoButton.Visibility = PointsExpander.Visibility = ShapeButton.Visibility = graph ? Visibility.Visible : Visibility.Collapsed;
         MixPanel.Visibility = MixBox.Visibility = mix ? Visibility.Visible : Visibility.Collapsed;
         FlatPanel.Visibility = flat ? Visibility.Visible : Visibility.Collapsed;
         if (d is null) { _loading = false; return; }
