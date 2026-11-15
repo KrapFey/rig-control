@@ -8,14 +8,14 @@ namespace RigControl.Core;
 public static class SparklineMath
 {
     /// <summary>
-    /// Points to draw, left to right. The newest sample sits at the right edge and the whole <paramref name="window"/>
+    /// Points to draw, left to right. The newest samples sit at the right edge and the whole <paramref name="window"/>
     /// spans the width, so a short history only fills the right-hand part.
     /// </summary>
     /// <param name="minSpan">The smallest range drawn top to bottom, so a steady 40° doesn't look like a storm.</param>
     /// <param name="column">Width (px) of the columns samples are averaged into.</param>
     /// <param name="first">How many samples came before <paramref name="values"/>[0]. Columns are counted from the
-    /// very first sample, so a sample stays in its column as the line moves left (no wobble), and only the newest
-    /// column is still filling.</param>
+    /// very first sample, so a sample stays in its column as the line moves left (no wobble). The newest column is
+    /// left out until it's full, so the line's end doesn't twitch with every sample.</param>
     public static List<(double X, double Y)> Layout(IReadOnlyList<double> values, int window, double width, double height, double minSpan, double column = 4, long first = 0)
     {
         if (values.Count < 2 || width <= 0 || height <= 0 || window < 2) return [];
@@ -28,6 +28,7 @@ public static class SparklineMath
             long key = (first + i) / perColumn;
             columns[key] = columns.TryGetValue(key, out var c) ? (c.x + x, c.v + values[i], c.n + 1) : (x, values[i], 1);
         }
+        if (columns.Count > 0 && columns.Last().Value.n < perColumn) columns.Remove(columns.Last().Key);
         var averaged = columns.Values.Select(c => (x: c.x / c.n, v: c.v / c.n)).ToList();
         if (averaged.Count < 2) return [];
         double lo = averaged.Min(p => p.v), hi = averaged.Max(p => p.v), span = Math.Max(hi - lo, minSpan), bottom = (lo + hi - span) / 2;

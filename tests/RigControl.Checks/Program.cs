@@ -250,6 +250,10 @@ static string WriteTemp(AppConfig c) { var p = Path.Combine(Path.GetTempPath(), 
     var after = SparklineMath.Layout(wave[1..], 180, 80, 34, 10, first: 1);
     Check(before.Count == after.Count && Enumerable.Range(1, before.Count - 2).All(i => Math.Abs(before[i].X - 80.0 / 179 - after[i].X) < 1e-9),
           "history line: a new sample moves every full column exactly one step left (no wobble, so it can glide)");
+    var full = SparklineMath.Layout(wave[..117], 180, 80, 34, 10); // 13 full columns of 9
+    var filling = SparklineMath.Layout(wave[..118], 180, 80, 34, 10); // ...and one sample of the next
+    Check(full.Count == filling.Count && Math.Abs(full[^1].Y - filling[^1].Y) < 1e-9 && Math.Abs(full[^1].X - 80.0 / 179 - filling[^1].X) < 1e-9,
+          "history line: the end stays put while the newest column fills (it only glides left)");
     var shortHistory = SparklineMath.Layout([.. Enumerable.Range(40, 20).Select(i => (double)i)], 300, 200, 34, 10);
     Check(shortHistory.Count >= 2 && shortHistory.All(q => q.X > 180), "history line: a short history fills only the right-hand part");
     var bumpy = new List<(double, double)> { (0, 30), (10, 5), (20, 28), (30, 28), (40, 2), (50, 20) };
