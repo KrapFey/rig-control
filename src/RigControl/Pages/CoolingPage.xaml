@@ -193,6 +193,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid ColumnSpacing="16" SizeChanged="EditorHeader_SizeChanged">
                     <Grid.RowDefinitions>
@@ -217,6 +218,19 @@
                 </Grid>
 
                 <c:CurveEditor x:Name="Editor" Grid.Row="1" />
+
+                <!-- The same points as numbers: exact values, and the keyboard way to edit a curve -->
+                <Expander x:Name="PointsExpander" Grid.Row="2" Header="Points as numbers" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                    <StackPanel Spacing="8">
+                        <StackPanel x:Name="PointRows" Spacing="6" />
+                        <Button Click="AddPoint_Click" AutomationProperties.Name="Add a point">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE710;" FontSize="12" />
+                                <TextBlock Text="Add a point" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Expander>
 
                 <StackPanel x:Name="MixPanel" Grid.Row="1" Spacing="8" Visibility="Collapsed">
                     <TextBlock Text="INPUT CURVES" Style="{StaticResource Caption}" />

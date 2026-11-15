@@ -108,6 +108,25 @@ public sealed class CurveEditor : Grid
         PointsChanged?.Invoke([.. _points]);
     }
 
+    /// <summary>The points now, coolest first.</summary>
+    public IReadOnlyList<CurvePoint> Points => _points;
+
+    /// <summary>
+    /// Points typed in as numbers (the keyboard way to edit a curve): kept within the graph, whole numbers, coolest
+    /// first, one point per temperature. Undoable like a drag. Fewer than two points are refused.
+    /// </summary>
+    public void SetTypedPoints(IEnumerable<CurvePoint> typed)
+    {
+        var list = typed
+            .Select(p => new CurvePoint(Math.Round(Math.Clamp(p.Temp, TMin, TMax)), Math.Round(Math.Clamp(p.Percent, 0, 100))))
+            .GroupBy(p => p.Temp).Select(g => g.Last())
+            .OrderBy(p => p.Temp).ToList();
+        if (list.Count < 2) return;
+        _points = list;
+        Redraw();
+        Commit();
+    }
+
     public void Undo()
     {
         if (_undo.Count == 0) return;

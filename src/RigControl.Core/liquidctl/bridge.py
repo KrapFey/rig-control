@@ -83,6 +83,7 @@ class Bridge:
     def __init__(self):
         self.devices = {}   # id -> driver
         self.sent = {}      # (id, channel) -> (duty, time)
+        self.driven = set() # (id, channel) RigControl sets and hasn't released
 
     def start(self, exclude):
         import liquidctl
@@ -135,6 +136,8 @@ class Bridge:
         now = time.monotonic()
         by_dev = {}
         for it in items:
+            if not force:
+                self.driven.add((it['dev'], it['channel']))
             duty = max(0, min(100, int(round(it['duty']))))
             if 'pump' in it['channel']:
                 duty = max(duty, PUMP_FLOOR)
@@ -168,6 +171,8 @@ class Bridge:
         return {'ok': not errors, 'errors': errors}
 
     def release(self, items):
+        for it in items:
+            self.driven.discard((it['dev'], it['channel']))
         return self.set([dict(it, duty=RELEASE_PUMP if 'pump' in it['channel'] else RELEASE_FAN) for it in items], force=True)
 
     def quit(self):
@@ -208,6 +213,11 @@ def main():
         except Exception as e:
             reply = {'error': f'{type(e).__name__}: {e}'}
         print(json.dumps(reply), flush=True)
+    # stdin closed without a 'quit': RigControl is gone (a crash, or killed). Whatever it was driving would stay at
+    # its last speed, so leave those channels at the safe speeds a normal exit uses.
+    if bridge.driven:
+        log(f'RigControl went away; releasing {len(bridge.driven)} channel(s)')
+        bridge.release([{'dev': d, 'channel': c} for d, c in sorted(bridge.driven)])
     bridge.quit()
 
 
@@ -244,6 +254,10 @@ def selftest():
     assert sent == [('pump', PUMP_FLOOR), ('fan1', 33)], sent
     b.set([{'dev': 'x', 'channel': 'fan1', 'duty': 33}])
     assert len(sent) == 2, 'unchanged duty is not re-sent'
+    # what RigControl drives is remembered, so it can be released if RigControl goes away; a release forgets it
+    assert b.driven == {('x', 'pump'), ('x', 'fan1')}, b.driven
+    b.release([{'dev': 'x', 'channel': 'pump'}])
+    assert b.driven == {('x', 'fan1')} and sent[-1] == ('pump', RELEASE_PUMP), (b.driven, sent)
     print('bridge selftest ok')
 
 

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using LibreHardwareMonitor.Hardware;
 
 namespace RigControl.Core;
@@ -137,12 +138,37 @@ public sealed class HardwareHub : IDisposable
         if (Demo.On) { Demo.Tick(); return; }
         foreach (var hw in _lhmHardware)
         {
+            long start = Stopwatch.GetTimestamp();
             try { hw.Update(); } catch { /* one flaky chip must not stop the loop */ }
+            NoteSlow(hw.Name, start);
         }
         foreach (var (s, t) in _lhmTemps) t.Value = s.Value;
         foreach (var f in _lhmFans) f.Refresh();
         foreach (var d in _hue2) d.Refresh();
-        _liquidctl?.Update();
+        if (_liquidctl is not null)
+        {
+            long start = Stopwatch.GetTimestamp();
+            _liquidctl.Update();
+            NoteSlow("liquidctl helper", start);
+        }
+    }
+
+    public const double SlowMs = 200;
+    static readonly TimeSpan SlowLogEvery = TimeSpan.FromMinutes(10);
+    readonly Dictionary<string, long> _slowLogged = [];
+
+    /// <summary>
+    /// Logs hardware that took over <see cref="SlowMs"/> to read: every reading waits for it, so it slows the fan
+    /// loop (a drive waking up, a busy controller). At most once per device every 10 minutes.
+    /// </summary>
+    void NoteSlow(string what, long start)
+    {
+        var ms = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+        if (ms < SlowMs) return;
+        long now = Stopwatch.GetTimestamp();
+        if (_slowLogged.TryGetValue(what, out var last) && Stopwatch.GetElapsedTime(last, now) < SlowLogEvery) return;
+        _slowLogged[what] = now;
+        AppConfig.Log?.Invoke($"slow hardware: reading {what} took {ms:0} ms");
     }
 
     /// <summary>Sends the duties set since the last flush (devices that batch their commands).</summary>

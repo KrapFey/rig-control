@@ -35,17 +35,25 @@ public partial class App : Application
     {
         Instance = this;
         AppConfig.Log = Log;
-#if UITEST
-        // RIGCONTROL_DEMO=1: made-up hardware for screenshots (RigControl.Core.Demo), in its own settings folder.
-        Demo.On = Environment.GetEnvironmentVariable("RIGCONTROL_DEMO") == "1";
-        AppConfig.Folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Demo.On ? "RigControl-demo" : "RigControl-uitest");
-#endif
+        UseBuildFolder();
         Log($"start pid {Environment.ProcessId} args [{string.Join(" ", Environment.GetCommandLineArgs().Skip(1))}]");
         InitializeComponent();
         // The tray keeps the app (and fan control) alive with no window open.
         DispatcherShutdownMode = DispatcherShutdownMode.OnExplicitShutdown;
         UnhandledException += (_, e) => Crash(e.Exception);
         AppDomain.CurrentDomain.UnhandledException += (_, e) => Crash(e.ExceptionObject as Exception);
+    }
+
+    /// <summary>
+    /// The settings folder for this build: the UI-test build never touches real settings, and RIGCONTROL_DEMO=1 gives it
+    /// made-up hardware for screenshots (RigControl.Core.Demo) in a folder of its own. Also used by the watchdog.
+    /// </summary>
+    public static void UseBuildFolder()
+    {
+#if UITEST
+        Demo.On = Environment.GetEnvironmentVariable("RIGCONTROL_DEMO") == "1";
+        AppConfig.Folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Demo.On ? "RigControl-demo" : "RigControl-uitest");
+#endif
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
@@ -60,6 +68,23 @@ public partial class App : Application
             StartupNotes.Add($"config.json couldn't be read ({e.Message}); it was moved to {Path.GetFileName(bad)} and a fresh one started.");
             Config = new AppConfig();
         }
+
+        // A run that ended without exiting (see CrashGuard) is said so on the overview; the watchdog started this one
+        // again if it was a crash ("--crashed").
+        var boot = DateTime.Now - TimeSpan.FromMilliseconds(Environment.TickCount64);
+        bool restarted = Environment.GetCommandLineArgs().Contains("--crashed");
+        if (CrashGuard.Begin(Environment.ProcessId, boot) is { } lastStart)
+        {
+            Log($"previous run (started {lastStart:HH:mm:ss}) ended without exiting{(restarted ? "; started again by the watchdog" : "")}");
+            StartupNotes.Add(restarted
+                ? $"RigControl stopped unexpectedly and was started again, so your fans are back on their curves. What it was doing is in rigcontrol.log, in the settings folder (Settings → About)."
+                : $"RigControl didn't exit properly last time (it was started at {lastStart:t}). Its log, rigcontrol.log, is in the settings folder (Settings → About).");
+        }
+#if !UITEST
+        Watchdog.Start();
+#endif
+        // Windows ending the session (logoff, shutdown, a fast-startup "shutdown") isn't a crash.
+        Microsoft.Win32.SystemEvents.SessionEnded += (_, _) => { CrashGuard.End(Environment.ProcessId); Log("Windows is ending the session"); };
 
         // Opening the hardware takes seconds: do it in the background so the tray and window appear at once.
         // Until it's done, an engine over the empty hub stands in (it drives nothing).
@@ -118,6 +143,8 @@ public partial class App : Application
         _ = StartHardwareAsync();
 
         CreateTray();
+        if (restarted)
+            _tray?.ShowNotification("RigControl was restarted", "It stopped unexpectedly. Your fans are back on their curves.", H.NotifyIcon.Core.NotificationIcon.Warning);
         if (!Environment.GetCommandLineArgs().Contains("--tray")) ShowWindow();
         _ = UpdateLoopAsync();
     }
@@ -471,9 +498,32 @@ public partial class App : Application
         _tray.ForceCreate(enablesEfficiencyMode: false);
         _trayTimer = Ui.CreateTimer();
         _trayTimer.Interval = TimeSpan.FromSeconds(2);
-        _trayTimer.Tick += (_, _) => { UpdateTrayTooltip(); CheckStalls(); SampleHistory(); };
+        _trayTimer.Tick += (_, _) => { UpdateTrayTooltip(); CheckStalls(); SampleHistory(); CheckFanLoop(); };
         _trayTimer.Start();
         UpdateTrayTooltip();
+    }
+
+    long _seenTicks = -1;
+    int _stuckChecks;
+
+    /// <summary>
+    /// The fan loop must keep going: a driver call that never returns would leave every fan at its last speed with
+    /// nothing on screen saying so. Counted in loop passes, not time, so sleep and resume can't look like a hang.
+    /// After 30 s without a pass, RigControl ends itself; its watchdog starts it afresh (and says so).
+    /// </summary>
+    void CheckFanLoop()
+    {
+        var engine = Engine;
+        if (_openingFans || _quitting || !engine.Running) { _stuckChecks = 0; _seenTicks = -1; return; }
+        var ticks = engine.Ticks;
+        if (ticks != _seenTicks) { _seenTicks = ticks; _stuckChecks = 0; return; }
+        if (++_stuckChecks < 15) return; // the tray timer runs every 2 s
+        Log("fan loop: no update for 30 s (a fan or sensor driver isn't answering); ending so the watchdog starts RigControl afresh");
+#if UITEST
+        _stuckChecks = 0; // no watchdog here: just say so
+#else
+        System.Diagnostics.Process.GetCurrentProcess().Kill();
+#endif
     }
 
     /// <summary>The overview's last 10 minutes (see <see cref="RigControl.History"/>).</summary>
@@ -535,6 +585,7 @@ public partial class App : Application
         Step("seiren", _seiren is null ? null : _seiren.Dispose);
         Step("sensors", Hub.Dispose);
         Log("quit: done");
+        CrashGuard.End(Environment.ProcessId); // a clean exit: the watchdog lets it be
         _trayTimer?.Stop();
         _tray?.Dispose();
         Exit();

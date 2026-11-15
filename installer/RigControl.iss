@@ -48,7 +48,8 @@ Filename: "{app}\RigControl.exe"; Description: "Start RigControl"; Flags: nowait
 [Code]
 function Running(): Boolean;
 begin
-  Result := CheckForMutexes('RigControlRunning');
+  { RigControl, and its watchdog (a second copy that waits for it and exits right after it) }
+  Result := CheckForMutexes('RigControlRunning,RigControlWatchdog');
 end;
 
 { Waits a little (an in-app update: RigControl is handing fans back and exiting), then asks the user to exit it. }

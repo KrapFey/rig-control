@@ -13,6 +13,14 @@ public static class Program
         // The uninstaller runs this: remove the start-with-Windows task (it needs admin, like everything here).
         if (args.Contains("--uninstall")) { try { Startup.Disable(); } catch { } return 0; }
 
+        // "--watchdog <pid>": started by RigControl itself, to bring it back if it dies without exiting.
+        var wd = Array.IndexOf(args, "--watchdog");
+        if (wd >= 0 && wd + 1 < args.Length && int.TryParse(args[wd + 1], out var watched))
+        {
+            using var watchdogMutex = RunningMutex("RigControlWatchdog"); // setup waits for this one too
+            return Watchdog.Run(watched);
+        }
+
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
         // "--after <pid>": a restart. Wait for the old instance to let go of the hardware first. Shutting down can
@@ -42,7 +50,7 @@ public static class Program
 #if !UITEST
         // Setup checks this mutex to know RigControl is running. RigControl runs elevated and setup doesn't,
         // so the mutex gets a DACL that lets setup see it (synchronize only).
-        using var running = RunningMutex();
+        using var running = RunningMutex("RigControlRunning");
 #endif
 
         Application.Start(p =>
@@ -53,14 +61,14 @@ public static class Program
         return 0;
     }
 
-    /// <summary>Named "RigControlRunning", openable (SYNCHRONIZE) by everyone in the session; null if it can't be made.</summary>
-    static SafeHandle? RunningMutex()
+    /// <summary>A named mutex setup checks for, openable (SYNCHRONIZE) by everyone in the session; null if it can't be made.</summary>
+    internal static SafeHandle? RunningMutex(string name)
     {
         if (!ConvertStringSecurityDescriptorToSecurityDescriptorW("D:(A;;0x100000;;;WD)", 1, out var sd, IntPtr.Zero)) return null;
         try
         {
             var sa = new SECURITY_ATTRIBUTES { nLength = Marshal.SizeOf<SECURITY_ATTRIBUTES>(), lpSecurityDescriptor = sd };
-            var h = CreateMutexW(ref sa, false, "RigControlRunning");
+            var h = CreateMutexW(ref sa, false, name);
             return h.IsInvalid ? null : h;
         }
         finally { LocalFree(sd); }

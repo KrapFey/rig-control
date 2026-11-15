@@ -142,6 +142,40 @@ Check(Near(CurveMath.NextDuty(10, null, new FanSettings { MinPercent = 25 }), 25
     Check(!w.Update(0, 50, 74) && !w.Update(null, 50, 90), "stall: the clock restarts, and no reading (null) isn't 0 rpm");
     Check(!w.Update(800, 50, 95), "stall: spinning again clears it");
 }
+// The watchdog: bring RigControl back after it died without exiting, up to 3 times in 10 minutes, then give the
+// fans to the hardware; never when it exited cleanly (no mark, or another process's) or Windows is ending.
+Check(CrashGuard.Decide(10, 10, 0, false) == CrashGuard.Action.Restart, "watchdog: died without exiting -> start it again");
+Check(CrashGuard.Decide(10, 10, CrashGuard.MaxRestarts, false) == CrashGuard.Action.ReleaseFans, "watchdog: keeps crashing -> fans back to the hardware");
+Check(CrashGuard.Decide(10, null, 0, false) == CrashGuard.Action.None && CrashGuard.Decide(10, 11, 0, false) == CrashGuard.Action.None,
+      "watchdog: a clean exit (no mark, or a newer run's mark) -> nothing");
+Check(CrashGuard.Decide(10, 10, 0, true) == CrashGuard.Action.None, "watchdog: Windows ending the session -> nothing");
+{
+    var keepFolder = AppConfig.Folder;
+    AppConfig.Folder = Path.Combine(Path.GetTempPath(), $"rigcontrol-check-{Guid.NewGuid():N}");
+    try
+    {
+        var boot = DateTime.Now.AddHours(-1);
+        Check(CrashGuard.Begin(100, boot) is null && CrashGuard.MarkedPid() == 100, "session: first start, marked");
+        Check(CrashGuard.Begin(200, boot) is not null && CrashGuard.MarkedPid() == 200, "session: a start after a run that didn't exit says so");
+        CrashGuard.End(999);
+        Check(CrashGuard.MarkedPid() == 200, "session: another process's exit doesn't clear this run's mark");
+        CrashGuard.End(200);
+        Check(CrashGuard.MarkedPid() is null && CrashGuard.Begin(300, boot) is null, "session: a clean exit, then a quiet start");
+        CrashGuard.End(300);
+        CrashGuard.Begin(400, boot);
+        Check(CrashGuard.Begin(500, DateTime.Now.AddMinutes(1)) is null, "session: a mark from before Windows started isn't reported (power cut, forced shutdown)");
+        var now = DateTime.Now;
+        CrashGuard.NoteRestart(now.AddMinutes(-20));
+        CrashGuard.NoteRestart(now.AddMinutes(-2));
+        CrashGuard.NoteRestart(now.AddMinutes(-1));
+        Check(CrashGuard.RecentRestarts(now) == 2, "watchdog: restarts counted within the last 10 minutes only");
+    }
+    finally
+    {
+        try { Directory.Delete(AppConfig.Folder, true); } catch { }
+        AppConfig.Folder = keepFolder;
+    }
+}
 Check(FanEngine.IsPump(new TestFan("AIO Pump"), null) && FanEngine.IsPump(new TestFan("Fan #2"), new FanSettings { Name = "Loop pump" })
       && !FanEngine.IsPump(new TestFan("Fan #2"), new FanSettings { Name = "Rear" }), "identify: pumps found by hardware name or your name");
 
@@ -218,7 +252,9 @@ Check(sw.Fans["nzxt-hue2/SER/fan/2"].Curve == "Case" && sw.Fans.Count == 2, "...
 var runtime = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "build", "liquidctl"));
 if (File.Exists(Path.Combine(runtime, "bridge.py")))
 {
-    var psi = new System.Diagnostics.ProcessStartInfo(Path.Combine(runtime, "python", "python.exe"), ["-I", "-B", Path.Combine(runtime, "bridge.py"), "--selftest"])
+    // the runtime's Python, the source bridge.py (the one the app ships, see RigControl.csproj)
+    var bridgeSrc = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "RigControl.Core", "liquidctl", "bridge.py"));
+    var psi = new System.Diagnostics.ProcessStartInfo(Path.Combine(runtime, "python", "python.exe"), ["-I", "-B", bridgeSrc, "--selftest"])
         { RedirectStandardOutput = true, RedirectStandardError = true };
     using var py = System.Diagnostics.Process.Start(psi)!;
     var outText = py.StandardOutput.ReadToEnd() + py.StandardError.ReadToEnd();

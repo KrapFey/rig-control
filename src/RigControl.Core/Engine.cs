@@ -115,6 +115,12 @@ public sealed class FanEngine : IDisposable
     /// <summary>While set (e.g. another fan app is running) curves still compute but no fan is touched.</summary>
     public volatile bool Paused;
 
+    long _ticks;
+    /// <summary>Passes of the loop so far: if it stops moving while <see cref="Running"/>, the loop is stuck (a driver call that never returns).</summary>
+    public long Ticks => Interlocked.Read(ref _ticks);
+    /// <summary>Started and not stopped.</summary>
+    public bool Running => _thread.IsAlive && !_stop;
+
     public FanEngine(HardwareHub hub, AppConfig config)
     {
         _hub = hub;
@@ -146,6 +152,7 @@ public sealed class FanEngine : IDisposable
         {
             var cfg = _config;
             try { Tick(cfg); } catch (Exception e) { Trace.WriteLine($"FanEngine tick: {e}"); }
+            Interlocked.Increment(ref _ticks);
             Updated?.Invoke();
             _wake.Wait(TimeSpan.FromSeconds(Math.Clamp(cfg.IntervalSeconds, 0.25, 5)));
             _wake.Reset();

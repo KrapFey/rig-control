@@ -118,7 +118,13 @@ public sealed partial class CoolingPage : Page
     public CoolingPage()
     {
         InitializeComponent();
-        Editor.PointsChanged += pts => { if (_sel?.Def is null) return; _sel.Def.Points = pts; App.Instance!.ConfigChanged(); };
+        Editor.PointsChanged += pts =>
+        {
+            if (_sel?.Def is null) return;
+            _sel.Def.Points = pts;
+            App.Instance!.ConfigChanged();
+            if (!RowsMatch()) BuildPointRows(); // a drag, an undo, or typed values that got sorted or kept in range
+        };
         Editor.UndoChanged += () => UndoButton.IsEnabled = Editor.CanUndo;
         Loaded += (_, _) =>
         {
@@ -359,6 +365,65 @@ public sealed partial class CoolingPage : Page
         Grid.SetColumn(ResponseBox, narrow ? 1 : 3);
     }
 
+    // ---- the curve's points as numbers
+
+    readonly List<(NumberBox temp, NumberBox percent)> _pointRows = [];
+    bool _buildingRows;
+
+    /// <summary>A row per point: temperature and fan speed, typed exactly; a point can be removed while two remain.</summary>
+    void BuildPointRows()
+    {
+        _buildingRows = true;
+        PointRows.Children.Clear();
+        _pointRows.Clear();
+        var points = Editor.Points;
+        for (int i = 0; i < points.Count; i++)
+        {
+            var temp = new NumberBox { Value = points[i].Temp, Minimum = 20, Maximum = 100, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact, Width = 120 };
+            var percent = new NumberBox { Value = points[i].Percent, Minimum = 0, Maximum = 100, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact, Width = 120 };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(temp, $"Point {i + 1} temperature, °C");
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(percent, $"Point {i + 1} fan speed, %");
+            temp.ValueChanged += (_, _) => ApplyTypedPoints();
+            percent.ValueChanged += (_, _) => ApplyTypedPoints();
+            int index = i;
+            var remove = new Button { Content = new FontIcon { Glyph = "", FontSize = 11 }, IsEnabled = points.Count > 2, Padding = new Thickness(8, 6, 8, 6) };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(remove, $"Remove point {i + 1}");
+            ToolTipService.SetToolTip(remove, "Remove this point");
+            remove.Click += (_, _) => Editor.SetTypedPoints(Editor.Points.Where((_, k) => k != index));
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            row.Children.Add(temp);
+            row.Children.Add(new TextBlock { Text = "°C  →", VerticalAlignment = VerticalAlignment.Center, Opacity = 0.7 });
+            row.Children.Add(percent);
+            row.Children.Add(new TextBlock { Text = "%", VerticalAlignment = VerticalAlignment.Center, Opacity = 0.7 });
+            row.Children.Add(remove);
+            PointRows.Children.Add(row);
+            _pointRows.Add((temp, percent));
+        }
+        _buildingRows = false;
+    }
+
+    IEnumerable<CurvePoint> TypedPoints() =>
+        _pointRows.Where(r => !double.IsNaN(r.temp.Value) && !double.IsNaN(r.percent.Value)).Select(r => new CurvePoint(r.temp.Value, r.percent.Value));
+
+    /// <summary>The rows show exactly the curve's points (then they needn't be rebuilt, and focus stays where it is).</summary>
+    bool RowsMatch() => TypedPoints().SequenceEqual(Editor.Points);
+
+    void ApplyTypedPoints()
+    {
+        if (_buildingRows || _sel?.Def?.Kind != CurveKind.Graph) return;
+        Editor.SetTypedPoints(TypedPoints());
+    }
+
+    /// <summary>A new point in the middle of the widest gap between two points.</summary>
+    void AddPoint_Click(object sender, RoutedEventArgs e)
+    {
+        var p = Editor.Points;
+        int gap = Enumerable.Range(1, p.Count - 1).MaxBy(i => p[i].Temp - p[i - 1].Temp);
+        var mid = new CurvePoint(Math.Round((p[gap].Temp + p[gap - 1].Temp) / 2), Math.Round((p[gap].Percent + p[gap - 1].Percent) / 2));
+        if (p.Any(x => x.Temp == mid.Temp)) return; // the points are a degree apart everywhere: no room
+        Editor.SetTypedPoints(p.Append(mid));
+    }
+
     void Undo_Click(object sender, RoutedEventArgs e) => Editor.Undo();
 
     /// <summary>Ctrl+Z: the curve's, unless you're typing (a text box undoes its own text).</summary>
@@ -378,7 +443,7 @@ public sealed partial class CoolingPage : Page
         DeleteButton.IsEnabled = d is not null;
         bool graph = d?.Kind == CurveKind.Graph, mix = d?.Kind == CurveKind.Mix, flat = d?.Kind == CurveKind.Flat;
         NameBox.Visibility = d is null ? Visibility.Collapsed : Visibility.Visible;
-        Editor.Visibility = SourceBox.Visibility = DeadbandBox.Visibility = ResponseBox.Visibility = UndoButton.Visibility = graph ? Visibility.Visible : Visibility.Collapsed;
+        Editor.Visibility = SourceBox.Visibility = DeadbandBox.Visibility = ResponseBox.Visibility = UndoButton.Visibility = PointsExpander.Visibility = graph ? Visibility.Visible : Visibility.Collapsed;
         MixPanel.Visibility = MixBox.Visibility = mix ? Visibility.Visible : Visibility.Collapsed;
         FlatPanel.Visibility = flat ? Visibility.Visible : Visibility.Collapsed;
         if (d is null) { _loading = false; return; }
@@ -393,6 +458,7 @@ public sealed partial class CoolingPage : Page
             DeadbandBox.Value = d.Deadband;
             ResponseBox.Value = d.ResponseSeconds;
             Editor.SetPoints(d.Points);
+            BuildPointRows();
         }
         if (mix)
         {

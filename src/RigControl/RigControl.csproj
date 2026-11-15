@@ -57,7 +57,9 @@
   </ItemGroup>
 
   <ItemGroup Condition="Exists('..\..\build\liquidctl\bridge.py')">
-    <Content Include="..\..\build\liquidctl\**" LinkBase="liquidctl" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\build\liquidctl\**" Exclude="..\..\build\liquidctl\*.py" LinkBase="liquidctl" CopyToOutputDirectory="PreserveNewest" />
+    <!-- RigControl's own helper scripts always come from src: an edit ships without fetching the runtime again -->
+    <Content Include="..\RigControl.Core\liquidctl\*.py" LinkBase="liquidctl" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
