@@ -12,11 +12,11 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <StackPanel>
-            <!-- Opened from Settings -->
-            <Button Click="Back_Click" Padding="10,6" Margin="-10,0,0,8" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Back to Settings">
+            <!-- Opened from Settings or Devices -->
+            <Button Click="Back_Click" Padding="10,6" Margin="-10,0,0,8" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Back">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <FontIcon Glyph="&#xE72B;" FontSize="14" />
-                    <TextBlock Text="Settings" />
+                    <TextBlock Text="Back" />
                 </StackPanel>
             </Button>
             <TextBlock Text="Supported devices" Style="{StaticResource PageTitle}" Margin="0" />
