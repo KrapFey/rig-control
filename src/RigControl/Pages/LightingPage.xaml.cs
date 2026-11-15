@@ -565,21 +565,7 @@ public sealed partial class LightingPage : Page
         Rebuild();
     }
 
-    async Task<string?> AskName(string title, string initial)
-    {
-        var box = new TextBox { Text = initial, SelectionStart = 0, SelectionLength = initial.Length };
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot, Title = title, Content = box,
-            PrimaryButtonText = "Save", CloseButtonText = "Cancel", DefaultButton = ContentDialogButton.Primary,
-        };
-        return await dialog.ShowAsync() == ContentDialogResult.Primary && !string.IsNullOrWhiteSpace(box.Text) ? box.Text.Trim() : null;
-    }
+    Task<string?> AskName(string title, string initial) => Dialogs.AskName(XamlRoot, title, initial);
 
-    static string Unique(string name)
-    {
-        var taken = Cfg.Profiles.Select(p => p.Name).ToHashSet();
-        if (!taken.Contains(name)) return name;
-        for (int i = 2; ; i++) if (!taken.Contains($"{name} {i}")) return $"{name} {i}";
-    }
+    static string Unique(string name) => Dialogs.Unique(name, Cfg.Profiles.Select(p => p.Name));
 }

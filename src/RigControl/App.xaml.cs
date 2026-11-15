@@ -421,6 +421,18 @@ public partial class App : Application
         _tray.ToolTipText = string.Join("\n", new[] { "RigControl", summary }.Where(s => s.Length > 0).Concat(batteries));
     }
 
+    /// <summary>
+    /// The cooling profile changed (switched, added, renamed or deleted, from the Cooling page or the tray): the fans
+    /// follow it at once, it's saved, and the open page shows the new one.
+    /// </summary>
+    public void CoolingProfileChanged()
+    {
+        Log($"cooling profile: {Config.ActiveCooling}");
+        ConfigChanged();
+        Live.Instance.Refresh();
+        _window?.ReloadPage();
+    }
+
     public void ConfigChanged()
     {
         Engine.Apply(Config);

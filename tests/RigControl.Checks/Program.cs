@@ -142,6 +142,37 @@ Check(Near(CurveMath.NextDuty(10, null, new FanSettings { MinPercent = 25 }), 25
     Check(!w.Update(0, 50, 74) && !w.Update(null, 50, 90), "stall: the clock restarts, and no reading (null) isn't 0 rpm");
     Check(!w.Update(800, 50, 95), "stall: spinning again clears it");
 }
+// Cooling profiles: the one in use is Curves + Fans; switching puts it away and takes another out. Names stay with fans.
+{
+    var cp = new AppConfig { Curves = [new CurveDef { Name = "Calm" }] };
+    cp.Fans["f1"] = new FanSettings { Name = "Front", Enabled = true, Curve = "Calm" };
+    Check(cp.CoolingProfileNames().SequenceEqual(["Default"]), "profiles: a fresh config has one, Default");
+    cp.AddCooling("Gaming");
+    Check(cp.ActiveCooling == "Gaming" && cp.Curves[0].Name == "Calm" && cp.Fans["f1"].Curve == "Calm" && cp.CoolingProfileNames().SequenceEqual(["Default", "Gaming"]),
+          "profiles: a new one starts as a copy of the one in use");
+    cp.Curves[0].Name = "Loud"; cp.Fans["f1"].Curve = "Loud"; cp.Fans["f1"].MinPercent = 40;
+    cp.Fans["f1"].Name = "Front intake";
+    cp.SwitchCooling("Default");
+    Check(cp.ActiveCooling == "Default" && cp.Curves[0].Name == "Calm" && cp.Fans["f1"] is { Curve: "Calm", MinPercent: 0 },
+          "profiles: switching brings back the other's curves and fan settings (the copy was separate)");
+    Check(cp.Fans["f1"].Name == "Front intake", "profiles: a fan renamed in one profile keeps the name in the others");
+    cp.SwitchCooling("Gaming");
+    Check(cp.Curves[0].Name == "Loud" && cp.Fans["f1"] is { Curve: "Loud", MinPercent: 40 }, "profiles: ...and switching back restores those");
+    cp.Fans["f9"] = new FanSettings();
+    cp.MoveHue2Settings("S", toLiquidctl: false); // nothing to move, just must not throw
+    cp.CoolingProfiles[0].Fans["nzxt-hue2/S/fan/1"] = new FanSettings { Curve = "Calm" };
+    cp.MoveHue2Settings("S", toLiquidctl: true);
+    Check(cp.CoolingProfiles[0].Fans.ContainsKey("liquidctl/S/fan1"), "profiles: a driver switch moves the fan's settings in profiles not in use too");
+    var rt = AppConfig.Load(WriteTemp(cp));
+    Check(rt.ActiveCooling == "Gaming" && rt.CoolingProfiles.Single().Name == "Default" && rt.CoolingProfiles[0].Curves[0].Name == "Calm", "profiles: saved and loaded");
+    cp.DeleteCooling();
+    Check(cp.ActiveCooling == "Default" && cp.CoolingProfiles.Count == 0 && cp.Curves[0].Name == "Calm" && cp.Fans["f1"].Name == "Front intake",
+          "profiles: deleting the one in use switches to another");
+    cp.DeleteCooling();
+    Check(cp.ActiveCooling == "Default", "profiles: the last one can't be deleted");
+}
+static string WriteTemp(AppConfig c) { var p = Path.Combine(Path.GetTempPath(), $"rigcontrol-profiles-{Guid.NewGuid():N}.json"); c.Save(p); return p; }
+
 // The watchdog: bring RigControl back after it died without exiting, up to 3 times in 10 minutes, then give the
 // fans to the hardware; never when it exited cleanly (no mark, or another process's) or Windows is ending.
 Check(CrashGuard.Decide(10, 10, 0, false) == CrashGuard.Action.Restart, "watchdog: died without exiting -> start it again");

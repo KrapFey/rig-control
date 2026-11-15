@@ -11,6 +11,14 @@ public enum TrayShow { Logo, CpuTemp, GpuTemp, Airflow }
 
 public sealed record CurvePoint(double Temp, double Percent);
 
+/// <summary>A named set of curves and fan settings, kept while another is in use.</summary>
+public sealed class CoolingProfile
+{
+    public string Name { get; set; } = "Default";
+    public List<CurveDef> Curves { get; set; } = [];
+    public Dictionary<string, FanSettings> Fans { get; set; } = [];
+}
+
 /// <summary>The main window's restored bounds in screen pixels, and whether it was maximized.</summary>
 public sealed record WindowPlacement(int X, int Y, int Width, int Height, bool Maximized);
 
@@ -76,15 +84,75 @@ public sealed class AppConfig
 
     /// <summary>
     /// Moves a HUE 2 device's fan settings between its built-in ids ("nzxt-hue2/S/fan/N") and its liquidctl ids
-    /// ("liquidctl/S/fanN"), so switching drivers keeps names, curves and limits.
+    /// ("liquidctl/S/fanN"), so switching drivers keeps names, curves and limits, in every cooling profile.
     /// </summary>
     public void MoveHue2Settings(string serial, bool toLiquidctl)
     {
-        for (int n = 1; n <= 3; n++)
+        foreach (var fans in CoolingProfiles.Select(p => p.Fans).Prepend(Fans))
+            for (int n = 1; n <= 3; n++)
+            {
+                string native = $"nzxt-hue2/{serial}/fan/{n}", lq = $"liquidctl/{serial}/fan{n}";
+                var (from, to) = toLiquidctl ? (native, lq) : (lq, native);
+                if (fans.Remove(from, out var s)) fans[to] = s;
+            }
+    }
+
+    // ---- cooling profiles: named sets of curves and fan settings (Quiet, Gaming…)
+
+    /// <summary>The cooling profile in use. Its curves and fan settings are <see cref="Curves"/> and <see cref="Fans"/>.</summary>
+    public string ActiveCooling { get; set; } = "Default";
+    /// <summary>The other cooling profiles, kept as they were when last in use.</summary>
+    public List<CoolingProfile> CoolingProfiles { get; set; } = [];
+
+    /// <summary>Every cooling profile's name, in alphabetical order (the one in use among them).</summary>
+    public List<string> CoolingProfileNames() =>
+        [.. CoolingProfiles.Select(p => p.Name).Append(ActiveCooling).Distinct().Order(StringComparer.CurrentCultureIgnoreCase)];
+
+    /// <summary>Puts the profile in use away and takes out <paramref name="name"/>.</summary>
+    public void SwitchCooling(string name)
+    {
+        if (name == ActiveCooling || CoolingProfiles.FirstOrDefault(p => p.Name == name) is not { } next) return;
+        CoolingProfiles.Remove(next);
+        Use(next);
+    }
+
+    /// <summary>A new profile, a copy of the one in use, which it becomes (change it from there).</summary>
+    public void AddCooling(string name)
+    {
+        var copy = JsonSerializer.Deserialize<CoolingProfile>(JsonSerializer.Serialize(new CoolingProfile { Name = name, Curves = Curves, Fans = Fans }, Json), Json)!;
+        Use(copy);
+    }
+
+    /// <summary>Removes the profile in use and switches to another; the last one stays.</summary>
+    public void DeleteCooling()
+    {
+        if (CoolingProfiles.Count == 0) return;
+        var next = CoolingProfiles[0];
+        CoolingProfiles.RemoveAt(0);
+        var names = FanNames();
+        (Curves, Fans, ActiveCooling) = (next.Curves, next.Fans, next.Name);
+        KeepNames(names);
+    }
+
+    void Use(CoolingProfile next)
+    {
+        var names = FanNames();
+        CoolingProfiles.Add(new CoolingProfile { Name = ActiveCooling, Curves = Curves, Fans = Fans });
+        (Curves, Fans, ActiveCooling) = (next.Curves, next.Fans, next.Name);
+        KeepNames(names);
+    }
+
+    // A fan's name is the fan's, not a profile's: it stays when the profile changes.
+    Dictionary<string, string> FanNames() =>
+        Fans.Where(f => !string.IsNullOrWhiteSpace(f.Value.Name)).ToDictionary(f => f.Key, f => f.Value.Name!);
+
+    void KeepNames(Dictionary<string, string> names)
+    {
+        foreach (var (id, s) in Fans) s.Name = null;
+        foreach (var (id, name) in names)
         {
-            string native = $"nzxt-hue2/{serial}/fan/{n}", lq = $"liquidctl/{serial}/fan{n}";
-            var (from, to) = toLiquidctl ? (native, lq) : (lq, native);
-            if (Fans.Remove(from, out var s)) Fans[to] = s;
+            if (!Fans.TryGetValue(id, out var s)) Fans[id] = s = new FanSettings();
+            s.Name = name;
         }
     }
 

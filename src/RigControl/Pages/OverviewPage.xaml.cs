@@ -98,6 +98,8 @@ public sealed partial class OverviewPage : Page
     /// <summary>A row per curve: its sensor and temperature, how many fans follow it, and its output now.</summary>
     void BuildCurveRows()
     {
+        var cfg = AppI.Config;
+        CoolingProfileText.Text = cfg.CoolingProfiles.Count > 0 ? $"profile \"{cfg.ActiveCooling}\"" : "";
         CurveRows.Children.Clear();
         _curveRows.Clear();
         foreach (var def in AppI.Config.Curves)

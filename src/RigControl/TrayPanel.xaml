@@ -63,13 +63,18 @@
         </ScrollViewer>
 
         <!-- Quick actions -->
-        <Grid Grid.Row="4" ColumnSpacing="10">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+        <StackPanel Grid.Row="4" Spacing="8">
+            <Grid ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <!-- The cooling profile: Quiet for the evening, Gaming for a session -->
+                <ComboBox x:Name="CoolingBox" HorizontalAlignment="Stretch" SelectionChanged="CoolingBox_SelectionChanged"
+                          AutomationProperties.Name="Cooling profile" ToolTipService.ToolTip="Cooling profile" />
+                <Button Grid.Column="1" Content="Open RigControl" Style="{StaticResource AccentButtonStyle}" Click="Open_Click" VerticalAlignment="Center" />
+            </Grid>
             <ToggleSwitch x:Name="LightingSwitch" OnContent="Lighting on" OffContent="Lighting off" Toggled="LightingSwitch_Toggled" MinWidth="0" />
-            <Button Grid.Column="1" Content="Open RigControl" Style="{StaticResource AccentButtonStyle}" Click="Open_Click" VerticalAlignment="Center" />
-        </Grid>
+        </StackPanel>
     </Grid>
 </Window>

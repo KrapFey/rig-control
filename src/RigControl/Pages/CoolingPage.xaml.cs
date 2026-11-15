@@ -132,6 +132,7 @@ public sealed partial class CoolingPage : Page
             Live.Instance.Attach();
             BuildGroups();
             Groups.ItemsSource = _groups;
+            ShowProfiles();
             var fan = Live.Instance.Fans.FirstOrDefault(f => f.Id == _openFan);
             Select(_groups.FirstOrDefault(g => g.Def is not null && g.Def.Name == _openCurve)
                    ?? (fan is not null ? GroupOf(fan) : null)
@@ -336,6 +337,57 @@ public sealed partial class CoolingPage : Page
     }
 
     void Rescan_Click(object sender, RoutedEventArgs e) => _ = App.Instance!.RescanFansAsync();
+
+    // ---- cooling profiles (each its own curves and fan settings; the page is rebuilt on a change)
+
+    bool _showingProfiles;
+
+    void ShowProfiles()
+    {
+        _showingProfiles = true;
+        ProfileBox.ItemsSource = Cfg.CoolingProfileNames();
+        ProfileBox.SelectedItem = Cfg.ActiveCooling;
+        DeleteProfileItem.IsEnabled = Cfg.CoolingProfiles.Count > 0;
+        _showingProfiles = false;
+    }
+
+    void ProfileBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_showingProfiles || ProfileBox.SelectedItem is not string name || name == Cfg.ActiveCooling) return;
+        Cfg.SwitchCooling(name);
+        App.Instance!.CoolingProfileChanged();
+    }
+
+    async void NewProfile_Click(object sender, RoutedEventArgs e)
+    {
+        if (await Dialogs.AskName(XamlRoot, "New cooling profile", Dialogs.Unique($"{Cfg.ActiveCooling} copy", Cfg.CoolingProfileNames())) is not { } name) return;
+        Cfg.AddCooling(Dialogs.Unique(name, Cfg.CoolingProfileNames()));
+        App.Instance!.CoolingProfileChanged();
+    }
+
+    async void RenameProfile_Click(object sender, RoutedEventArgs e)
+    {
+        if (await Dialogs.AskName(XamlRoot, "Rename cooling profile", Cfg.ActiveCooling) is not { } name || name == Cfg.ActiveCooling) return;
+        Cfg.ActiveCooling = Dialogs.Unique(name, Cfg.CoolingProfileNames());
+        App.Instance!.CoolingProfileChanged();
+    }
+
+    async void DeleteProfile_Click(object sender, RoutedEventArgs e)
+    {
+        if (Cfg.CoolingProfiles.Count == 0) return;
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = $"Delete \"{Cfg.ActiveCooling}\"?",
+            Content = $"Its curves and fan settings go with it. RigControl switches to \"{Cfg.CoolingProfiles[0].Name}\".",
+            PrimaryButtonText = "Delete",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Close,
+        };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        Cfg.DeleteCooling();
+        App.Instance!.CoolingProfileChanged();
+    }
 
     const string CurvesCaption = "Curves turn temperatures into fan speeds. Drag a fan onto a curve to make it follow, or click it for its settings.";
 

@@ -56,6 +56,9 @@ public sealed partial class TrayPanel : Window
         AppWindow.MoveAndResize(new RectInt32(x, y, w, h));
         _loading = true;
         LightingSwitch.IsOn = App.Instance!.Config.Lighting.Enabled;
+        CoolingBox.ItemsSource = App.Instance.Config.CoolingProfileNames();
+        CoolingBox.SelectedItem = App.Instance.Config.ActiveCooling;
+        CoolingBox.Visibility = App.Instance.Config.CoolingProfiles.Count > 0 ? Visibility.Visible : Visibility.Collapsed; // only once there's a choice
         _loading = false;
         Refresh();
         _shownAt = Environment.TickCount64;
@@ -117,6 +120,13 @@ public sealed partial class TrayPanel : Window
         Grid.SetColumnSpan(track, 2);
         row.Children.Add(track);
         return row;
+    }
+
+    void CoolingBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || CoolingBox.SelectedItem is not string name || name == App.Instance!.Config.ActiveCooling) return;
+        App.Instance.Config.SwitchCooling(name);
+        App.Instance.CoolingProfileChanged();
     }
 
     void LightingSwitch_Toggled(object sender, RoutedEventArgs e)

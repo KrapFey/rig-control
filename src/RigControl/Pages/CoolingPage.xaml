@@ -139,13 +139,28 @@
                     <SelectorBarItem x:Name="SensorsView" Text="Sensors" />
                 </SelectorBar>
             </StackPanel>
-            <Button HorizontalAlignment="Right" VerticalAlignment="Top" Click="Rescan_Click" AutomationProperties.Name="Rescan"
-                    ToolTipService.ToolTip="Look for fans and sensors again. Fans go back to their own control for the few seconds this takes.">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <FontIcon Glyph="&#xE72C;" FontSize="14" />
-                    <TextBlock Text="Rescan" />
-                </StackPanel>
-            </Button>
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right" VerticalAlignment="Top">
+                <!-- Cooling profiles: Quiet, Gaming… each its own curves and fan settings -->
+                <ComboBox x:Name="ProfileBox" Width="190" SelectionChanged="ProfileBox_SelectionChanged" AutomationProperties.Name="Cooling profile"
+                          ToolTipService.ToolTip="Cooling profile: its own curves and fan settings. Also switchable from the tray." />
+                <Button ToolTipService.ToolTip="Profile actions" AutomationProperties.Name="Cooling profile actions">
+                    <FontIcon Glyph="&#xE712;" FontSize="14" />
+                    <Button.Flyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Text="New profile (copy of this one)" Click="NewProfile_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE710;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Rename…" Click="RenameProfile_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8AC;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
+                            <MenuFlyoutItem x:Name="DeleteProfileItem" Text="Delete" Click="DeleteProfile_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74D;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+                <Button Click="Rescan_Click" AutomationProperties.Name="Rescan"
+                        ToolTipService.ToolTip="Look for fans and sensors again. Fans go back to their own control for the few seconds this takes.">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE72C;" FontSize="14" />
+                        <TextBlock Text="Rescan" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
         </Grid>
 
         <!-- Every temperature, to rename (the Sensors view) -->
