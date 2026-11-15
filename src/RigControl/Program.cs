@@ -41,12 +41,21 @@ public static class Program
         if (!main.IsCurrent)
         {
             var activation = AppInstance.GetCurrent().GetActivatedEventArgs();
+            // This launch may bring a window to the front (the user just started it); the running copy may not, by
+            // itself: Windows lets only the foreground process do that. Hand the permission over.
+            AllowSetForegroundWindow(main.ProcessId);
             // Bounded: if the other instance is on its way out it never answers, and waiting forever would leave
             // this one stuck in the background holding the program files.
             Task.Run(() => main.RedirectActivationToAsync(activation).AsTask()).Wait(TimeSpan.FromSeconds(10));
             return 0;
         }
-        main.Activated += (_, _) => App.Instance?.ShowWindow();
+        main.Activated += (_, e) =>
+        {
+            // "RigControl.exe --mini-dashboard" while it runs (from a shortcut, say) opens the tray's mini dashboard.
+            if (e.Data is Windows.ApplicationModel.Activation.ILaunchActivatedEventArgs launch && launch.Arguments.Contains("--mini-dashboard"))
+                App.Instance?.ToggleMiniDashboard();
+            else App.Instance?.ShowWindow();
+        };
 #if !UITEST
         // Setup checks this mutex to know RigControl is running. RigControl runs elevated and setup doesn't,
         // so the mutex gets a DACL that lets setup see it (synchronize only).
@@ -82,4 +91,6 @@ public static class Program
     static extern bool ConvertStringSecurityDescriptorToSecurityDescriptorW(string sddl, int revision, out IntPtr sd, IntPtr size);
     [DllImport("kernel32.dll")]
     static extern IntPtr LocalFree(IntPtr mem);
+    [DllImport("user32.dll")]
+    static extern bool AllowSetForegroundWindow(uint processId);
 }

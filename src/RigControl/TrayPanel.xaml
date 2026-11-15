@@ -55,7 +55,10 @@
             </Border>
         </Grid>
 
-        <TextBlock Grid.Row="2" x:Name="FansTitle" Text="FANS" Style="{StaticResource Caption}" />
+        <StackPanel Grid.Row="2" Spacing="6">
+            <TextBlock x:Name="Alert" Foreground="{StaticResource SystemFillColorCriticalBrush}" TextWrapping="Wrap" Visibility="Collapsed" />
+            <TextBlock x:Name="FansTitle" Text="FANS" Style="{StaticResource Caption}" />
+        </StackPanel>
 
         <!-- Fans: name, rpm, duty bar -->
         <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">

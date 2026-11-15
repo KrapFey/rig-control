@@ -17,7 +17,7 @@ public sealed partial class TrayPanel : Window
     const int PanelWidth = 360, PanelHeight = 470; // in DIPs
     readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(1) };
     bool _loading;
-    long _shownAt;
+    long _shownAt, _hiddenAt;
 
     public TrayPanel()
     {
@@ -35,19 +35,27 @@ public sealed partial class TrayPanel : Window
         Activated += (_, e) =>
         {
             // Clicking anywhere else closes it, like the system's own flyouts (but not in the instant it opens).
-            if (e.WindowActivationState == WindowActivationState.Deactivated && Environment.TickCount64 - _shownAt > 300) Hide();
+            if (e.WindowActivationState == WindowActivationState.Deactivated && Environment.TickCount64 - _shownAt > 300) Hide("clicked elsewhere");
         };
+        // Esc closes it, like the system's flyouts.
+        var esc = new Microsoft.UI.Xaml.Input.KeyboardAccelerator { Key = Windows.System.VirtualKey.Escape };
+        esc.Invoked += (_, a) => { Hide("Esc"); a.Handled = true; };
+        ((UIElement)Content).KeyboardAccelerators.Add(esc);
         _timer.Tick += (_, _) => Refresh();
-        AppWindow.Closing += (_, e) => { e.Cancel = true; Hide(); }; // Alt+F4 hides; the app owns its lifetime
+        AppWindow.Closing += (_, e) => { e.Cancel = true; Hide("Alt+F4"); }; // Alt+F4 hides; the app owns its lifetime
     }
 
     /// <summary>Opens above the tray, on the screen the pointer is on (or closes it if it was open).</summary>
     public void Toggle()
     {
-        if (AppWindow.IsVisible) { Hide(); return; }
+        if (AppWindow.IsVisible) { Hide("toggled"); return; }
+        // Clicking the tray icon to close it: that click first takes focus away, which already hid it. Without this,
+        // the click itself then opened it again.
+        if (Environment.TickCount64 - _hiddenAt < 400) return;
         GetCursorPos(out var p);
         var area = DisplayArea.GetFromPoint(new PointInt32(p.X, p.Y), DisplayAreaFallback.Primary).WorkArea;
-        double scale = GetDpiForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this)) / 96.0;
+        // The scale of the screen it opens on (where the pointer is), not the one the window was last on.
+        double scale = GetDpiForMonitor(MonitorFromPoint(p, 2 /* nearest */), 0 /* effective */, out var dpi, out _) == 0 ? dpi / 96.0 : 1;
         int w = (int)(PanelWidth * scale), h = (int)(PanelHeight * scale), margin = (int)(12 * scale);
         // Bottom-right of the work area, which sits just above (or beside) the taskbar wherever it is.
         int x = Math.Clamp(p.X - w / 2, area.X + margin, area.X + area.Width - w - margin);
@@ -64,14 +72,18 @@ public sealed partial class TrayPanel : Window
         _shownAt = Environment.TickCount64;
         AppWindow.Show();
         Activate();
-        SetForegroundWindow(WinRT.Interop.WindowNative.GetWindowHandle(this));
+        bool front = SetForegroundWindow(WinRT.Interop.WindowNative.GetWindowHandle(this));
+        App.Log($"mini dashboard: opened ({(front ? "in front" : "Windows didn't let it come to the front")})");
         _timer.Start();
     }
 
-    void Hide()
+    void Hide(string why)
     {
+        if (!AppWindow.IsVisible) return; // closing also loses focus, which asks again
+        App.Log($"mini dashboard: closed ({why})");
         _timer.Stop();
         AppWindow.Hide();
+        _hiddenAt = Environment.TickCount64;
     }
 
     void Refresh()
@@ -81,6 +93,12 @@ public sealed partial class TrayPanel : Window
         CpuText.Text = Live.CpuSensor(app.Hub.Temps)?.Value is float c ? $"{c:0}°" : "–";
         GpuText.Text = Live.GpuSensor(app.Hub.Temps)?.Value is float g ? $"{g:0}°" : "–";
         AirText.Text = Live.Airflow(app.Hub.Fans) is double a ? $"{a:0}%" : "–";
+
+        // A fan that stopped spinning is said first, as on the overview.
+        var stalled = app.Engine.Status.Values.Where(s => s.Stalled)
+            .Select(s => app.Config.Fans.TryGetValue(s.Channel.Id, out var fs) && !string.IsNullOrWhiteSpace(fs.Name) ? fs.Name : s.Channel.Name).ToList();
+        Alert.Text = stalled.Count == 0 ? "" : $"Not spinning: {string.Join(", ", stalled)}. Check the fan and its cable.";
+        Alert.Visibility = stalled.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
 
         // The spinning fans, busiest first.
         var fans = app.Hub.Fans.Where(f => f.Connected ?? f.Rpm > 0).OrderByDescending(f => f.Rpm ?? 0).Take(8).ToList();
@@ -138,13 +156,14 @@ public sealed partial class TrayPanel : Window
 
     void Open_Click(object sender, RoutedEventArgs e)
     {
-        Hide();
+        Hide("opening the full window");
         App.Instance!.ShowWindow();
     }
 
     [StructLayout(LayoutKind.Sequential)] struct POINT { public int X, Y; }
     [DllImport("user32.dll")] static extern bool GetCursorPos(out POINT p);
-    [DllImport("user32.dll")] static extern uint GetDpiForWindow(IntPtr hwnd);
+    [DllImport("user32.dll")] static extern IntPtr MonitorFromPoint(POINT pt, uint flags);
+    [DllImport("shcore.dll")] static extern int GetDpiForMonitor(IntPtr monitor, int dpiType, out uint dpiX, out uint dpiY);
     [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr hwnd);
     [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
 }

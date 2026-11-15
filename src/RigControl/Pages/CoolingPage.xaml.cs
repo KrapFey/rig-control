@@ -387,13 +387,16 @@ public sealed partial class CoolingPage : Page
         App.Instance!.CoolingProfileChanged();
     }
 
-    /// <summary>This curve only, shaped like the preset for its sensor; Undo takes the points back.</summary>
+    /// <summary>This curve only, shaped like the preset for its sensor; Undo takes it all back (points, deadband, response).</summary>
     void ShapeCurve_Click(object sender, RoutedEventArgs e)
     {
         if (_sel?.Def is not { Kind: CurveKind.Graph } d) return;
         var preset = Enum.Parse<CoolingPreset>((string)((FrameworkElement)sender).Tag);
-        Editor.SetTypedPoints(CoolingPresets.Shape(CoolingPresets.KindOf(d.Source, d.Source is null ? null : SensorName(d.Source)), preset));
+        // The tuning goes first, so that Undo, which puts the old values back, also comes after it.
+        var (deadband, response) = (d.Deadband, d.ResponseSeconds);
         (DeadbandBox.Value, ResponseBox.Value) = CoolingPresets.Tuning(preset); // saved through their own change handler
+        Editor.SetTypedPoints(CoolingPresets.Shape(CoolingPresets.KindOf(d.Source, d.Source is null ? null : SensorName(d.Source)), preset),
+            alsoUndo: () => (DeadbandBox.Value, ResponseBox.Value) = (deadband, response));
     }
 
     async void NewProfile_Click(object sender, RoutedEventArgs e)

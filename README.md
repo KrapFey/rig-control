@@ -84,7 +84,8 @@ headset and keyboard, and watch it all live in a modern WinUI 3 interface.
   settings.
 - **Tray widget:** the tray icon shows a live CPU or GPU temperature or the airflow, coloured by how hot it is;
   clicking it opens a mini dashboard above the taskbar (temperatures, airflow, fans, a lighting switch).
-  Double-click opens the full app. Windows 11 hides new tray icons at first: drag it onto the taskbar to keep it in view.
+  Double-click opens the full app; Esc or a click elsewhere closes the mini dashboard. `RigControl.exe --mini-dashboard`
+  opens it too (for a keyboard shortcut). Windows 11 hides new tray icons at first: drag it onto the taskbar to keep it in view.
 - Start with Windows (scheduled task, admin without a UAC prompt), Mica, live animations.
 
 ## Requirements

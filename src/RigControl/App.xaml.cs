@@ -382,6 +382,9 @@ public partial class App : Application
         (_trayPanel ??= new TrayPanel()).Toggle();
     }
 
+    /// <summary>Opens the tray's mini dashboard (or closes it), as clicking the tray icon does.</summary>
+    public void ToggleMiniDashboard() => Ui.TryEnqueue(() => (_trayPanel ??= new TrayPanel()).Toggle());
+
     /// <summary>Redraws the tray icon now (after its setting changed).</summary>
     public void RefreshTray() { _trayKey = "redraw"; UpdateTrayTooltip(); }
 

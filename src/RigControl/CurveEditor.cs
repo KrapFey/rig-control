@@ -93,16 +93,17 @@ public sealed class CurveEditor : Grid
     }
 
     // Undo: every finished edit (a drag let go, a point added or removed) keeps the points from before it.
-    readonly Stack<List<CurvePoint>> _undo = new();
+    // each step: the points before it, and anything else that edit changed and Undo puts back (a preset's tuning)
+    readonly Stack<(List<CurvePoint> points, Action? alsoUndo)> _undo = new();
     List<CurvePoint> _committed = [];
     public bool CanUndo => _undo.Count > 0;
     public event Action? UndoChanged;
 
     /// <summary>An edit is finished: remember what came before it, and report the new points.</summary>
-    void Commit()
+    void Commit(Action? alsoUndo = null)
     {
-        if (_points.SequenceEqual(_committed)) return; // a click without a move
-        _undo.Push(_committed);
+        if (_points.SequenceEqual(_committed) && alsoUndo is null) return; // a click without a move
+        _undo.Push((_committed, alsoUndo));
         _committed = [.. _points];
         UndoChanged?.Invoke();
         PointsChanged?.Invoke([.. _points]);
@@ -115,7 +116,8 @@ public sealed class CurveEditor : Grid
     /// Points typed in as numbers (the keyboard way to edit a curve): kept within the graph, whole numbers, coolest
     /// first, one point per temperature. Undoable like a drag. Fewer than two points are refused.
     /// </summary>
-    public void SetTypedPoints(IEnumerable<CurvePoint> typed)
+    /// <param name="alsoUndo">Puts back what else this edit changed (a preset's deadband and response) when it's undone.</param>
+    public void SetTypedPoints(IEnumerable<CurvePoint> typed, Action? alsoUndo = null)
     {
         var list = typed
             .Select(p => new CurvePoint(Math.Round(Math.Clamp(p.Temp, TMin, TMax)), Math.Round(Math.Clamp(p.Percent, 0, 100))))
@@ -124,14 +126,16 @@ public sealed class CurveEditor : Grid
         if (list.Count < 2) return;
         _points = list;
         Redraw();
-        Commit();
+        Commit(alsoUndo);
     }
 
     public void Undo()
     {
         if (_undo.Count == 0) return;
-        _points = _undo.Pop();
+        var (points, alsoUndo) = _undo.Pop();
+        _points = points;
         _committed = [.. _points];
+        alsoUndo?.Invoke();
         UndoChanged?.Invoke();
         Redraw();
         PointsChanged?.Invoke([.. _points]);
