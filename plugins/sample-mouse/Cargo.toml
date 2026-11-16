@@ -1,0 +1,13 @@
+[package]
+name = "sample-mouse"
+version = "1.0.0"
+edition = "2021"
+publish = false
+description = "A RigControl plugin that pretends to be a mouse: for trying plugins out, and a template for real ones"
+
+[dependencies]
+serde_json = "1"
+
+[profile.release]
+opt-level = "s"
+strip = true

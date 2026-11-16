@@ -148,9 +148,9 @@ public partial class App : Application
         // never changed afterwards), not the live one: that is being edited on the UI thread.
 #if UITEST
         // the UI-test build reads devices but never writes settings (demo devices are made up, so they may)
-        Peripherals = new PeripheralHub(() => Demo.On ? Engine.Config.Peripherals : []);
+        Peripherals = new PeripheralHub(() => Demo.On ? Engine.Config.Peripherals : [], NewPluginManager());
 #else
-        Peripherals = new PeripheralHub(() => Engine.Config.Peripherals);
+        Peripherals = new PeripheralHub(() => Engine.Config.Peripherals, NewPluginManager());
 #endif
         Peripherals.Changed += () => Ui.TryEnqueue(UpdateTrayTooltip);
         Peripherals.ChangedOnDevice += (key, state) => Ui.TryEnqueue(() =>
@@ -186,6 +186,9 @@ public partial class App : Application
         if (!Environment.GetCommandLineArgs().Contains("--tray")) ShowWindow();
         _ = UpdateLoopAsync();
     }
+
+    /// <summary>Plugins from the plugins folder, switched on and allowed as Settings says (read from the engine's copy of the config, which no other thread edits).</summary>
+    PluginManager NewPluginManager() => new(PluginManager.DefaultFolder, () => new PluginChoices(Engine.Config.Plugins, Engine.Config.AdminPlugins));
 
     /// <summary>What a sensor is called in the app: the name you gave it, or the hardware's own.</summary>
     public string SensorLabel(TempSensor t) => Config.SensorNames.TryGetValue(t.Id, out var n) && !string.IsNullOrWhiteSpace(n) ? n : t.Name;

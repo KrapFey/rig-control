@@ -95,6 +95,10 @@ public sealed class AppConfig
     /// <summary>Per-device driver: device key (e.g. "nzxt-hue2/&lt;serial&gt;") -> "liquidctl". Missing = built-in.</summary>
     public Dictionary<string, string> Drivers { get; set; } = [];
     public LightingConfig Lighting { get; set; } = new();
+    /// <summary>Plugins switched on, by id (see <see cref="PluginManager"/>). Off until you switch one on.</summary>
+    public List<string> Plugins { get; set; } = [];
+    /// <summary>Plugins you allowed to run as administrator (only those whose plugin.json asks for it).</summary>
+    public List<string> AdminPlugins { get; set; } = [];
     /// <summary>Device settings (DPI, polling rate…) per peripheral key, e.g. "razer/0084".</summary>
     public Dictionary<string, PeripheralSettings> Peripherals { get; set; } = [];
 

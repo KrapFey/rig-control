@@ -37,6 +37,10 @@ Name: desktopicon; Description: "Create a &desktop shortcut"; Flags: unchecked
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
+; Plugins you added (docs\plugins.md) aren't part of the release, so updates leave them alone; uninstalling removes them.
+[UninstallDelete]
+Type: filesandordirs; Name: "{app}\plugins"
+
 [Icons]
 Name: "{autoprograms}\RigControl"; Filename: "{app}\RigControl.exe"
 Name: "{autodesktop}\RigControl"; Filename: "{app}\RigControl.exe"; Tasks: desktopicon

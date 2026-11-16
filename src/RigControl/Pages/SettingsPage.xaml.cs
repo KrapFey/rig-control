@@ -33,11 +33,17 @@ public sealed partial class SettingsPage : Page
             HotAlert.Value = App.Instance.Config.HotAlert;
             BuildRules();
             _ = ShowGamesAsync();
+            BuildPlugins();
+            App.Instance.Peripherals.Changed += PluginsChanged;
             ShowUpdate();
             App.Instance.UpdateFound += ShowUpdate;
             _loading = false;
         };
-        Unloaded += (_, _) => App.Instance!.UpdateFound -= ShowUpdate;
+        Unloaded += (_, _) =>
+        {
+            App.Instance!.UpdateFound -= ShowUpdate;
+            App.Instance.Peripherals.Changed -= PluginsChanged;
+        };
     }
 
     void TrayShows_Changed(object sender, SelectionChangedEventArgs e)
@@ -136,6 +142,114 @@ public sealed partial class SettingsPage : Page
         var (exes, folders) = await Task.Run(GameDetector.Find);
         GamesText.Text = $"On this PC: {exes.Count} games Windows has seen and {folders.Count} game folders (Steam, Epic, GOG, Ubisoft, Xbox)."
             + (App.Instance!.RunningGame is { } game ? $" Running now: {game}." : "");
+    }
+
+    // ---- plugins (PluginManager): a row per plugin folder, each off until switched on
+
+    readonly Dictionary<string, TextBlock> _pluginStatus = [];
+
+    static PluginManager? Plugins => App.Instance!.Peripherals.Plugins;
+
+    void BuildPlugins()
+    {
+        PluginsList.Children.Clear();
+        _pluginStatus.Clear();
+        if (Plugins is not { } manager) return;
+        var installed = PluginManager.Installed(manager.Folder);
+        PluginsHint.Text = installed.Count == 0
+            ? $"A plugin is a folder with a plugin.json and its program, in {manager.Folder}. None are installed. Plugins start off, run with an ordinary user's rights, and only start for the devices they name."
+            : "Each plugin is a separate program. It starts off; switched on, it runs with an ordinary user's rights whenever one of its devices is plugged in, and its devices appear under Devices. Only switch on plugins you trust.";
+        var cfg = App.Instance!.Config;
+        var caption = (Style)Application.Current.Resources["Caption"];
+        foreach (var info in installed)
+        {
+            var m = info.Manifest;
+            var row = new Grid { ColumnSpacing = 16 };
+            row.ColumnDefinitions.Add(new ColumnDefinition());
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var text = new StackPanel { Spacing = 2 };
+            text.Children.Add(new TextBlock
+            {
+                Text = m is null ? info.Name : $"{m.Name} {m.Version}" + (m.Author is { Length: > 0 } a ? $" · by {a}" : ""),
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+            });
+            if (m?.Description is { Length: > 0 } d) text.Children.Add(new TextBlock { Text = d, Style = caption, TextWrapping = TextWrapping.Wrap });
+            if (m is not null && info.Problem is null)
+                text.Children.Add(new TextBlock
+                {
+                    Text = (m.Devices.Count == 0 ? "Looks for its own devices" : $"Handles {string.Join(", ", m.Devices)}") + (m.Admin ? " · asks for administrator rights" : ""),
+                    Style = caption,
+                    TextWrapping = TextWrapping.Wrap,
+                });
+            var status = new TextBlock { Style = caption, TextWrapping = TextWrapping.Wrap };
+            _pluginStatus[info.Id] = status;
+            text.Children.Add(status);
+            row.Children.Add(text);
+
+            var on = new ToggleSwitch { IsOn = cfg.Plugins.Contains(info.Id), IsEnabled = info.Problem is null, VerticalAlignment = VerticalAlignment.Top };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(on, $"{info.Name} plugin on");
+            on.Toggled += async (_, _) =>
+            {
+                if (on.IsOn == cfg.Plugins.Contains(info.Id)) return;
+                if (on.IsOn && m!.Admin && !await AllowAdmin(m))
+                {
+                    on.IsOn = false;
+                    return;
+                }
+                cfg.Plugins.Remove(info.Id);
+                cfg.AdminPlugins.Remove(info.Id);
+                if (on.IsOn)
+                {
+                    cfg.Plugins.Add(info.Id);
+                    if (m!.Admin) cfg.AdminPlugins.Add(info.Id);
+                }
+                App.Log($"plugin {info.Id}: switched {(on.IsOn ? "on" : "off")}");
+                App.Instance.ConfigChanged();
+                App.Instance.Peripherals.Rescan(); // starts or stops it, and its devices come or go
+                status.Text = on.IsOn ? "Starting…" : "Off";
+            };
+            Grid.SetColumn(on, 1);
+            row.Children.Add(on);
+            PluginsList.Children.Add(row);
+        }
+        ShowPluginStatus();
+    }
+
+    void PluginsChanged() => DispatcherQueue.TryEnqueue(ShowPluginStatus);
+
+    void ShowPluginStatus()
+    {
+        if (Plugins is not { } manager) return;
+        var status = manager.Status;
+        foreach (var info in PluginManager.Installed(manager.Folder))
+            if (_pluginStatus.TryGetValue(info.Id, out var text))
+                text.Text = info.Problem is { } p ? $"Can't be used: {p}" : status.GetValueOrDefault(info.Id) ?? (App.Instance!.Config.Plugins.Contains(info.Id) ? "Starting…" : "Off");
+    }
+
+    async Task<bool> AllowAdmin(PluginManifest m)
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = $"Run {m.Name} as administrator?",
+            Content = new TextBlock
+            {
+                TextWrapping = TextWrapping.Wrap,
+                Text = $"This plugin asks for administrator rights{(m.Author is { Length: > 0 } a ? $" (it's from {a})" : "")}. With them it can change anything on this PC, not just its devices. Most devices don't need it: only allow it if you trust where the plugin came from.",
+            },
+            PrimaryButtonText = "Allow and switch on",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Close,
+        };
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    void OpenPlugins_Click(object sender, RoutedEventArgs e)
+    {
+        if (Plugins is not { } manager) return;
+        Directory.CreateDirectory(manager.Folder);
+        Process.Start(new ProcessStartInfo("explorer.exe", manager.Folder) { UseShellExecute = true });
     }
 
     void AddRule_Click(object sender, RoutedEventArgs e)

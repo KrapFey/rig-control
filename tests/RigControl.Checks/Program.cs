@@ -907,6 +907,75 @@ Check(SupportedDevices.List.Single(d => d.Name == "Razer DeathAdder V2").Kind ==
     Check(GameDetector.SteamLibraries("\"0\"\n{\n\t\"path\"\t\t\"E:\\\\SteamLibrary\"\n}").SequenceEqual([@"E:\SteamLibrary"]), "games: Steam's library list");
 }
 
+// --- plugins: manifests checked, then the sample plugin (plugins\sample-mouse, Rust) end to end when it's built
+{
+    var root = Path.Combine(Path.GetTempPath(), $"rigcontrol-plugins-{Guid.NewGuid():N}");
+    try
+    {
+        void Plugin(string dir, string json) { Directory.CreateDirectory(Path.Combine(root, dir)); File.WriteAllText(Path.Combine(root, dir, "plugin.json"), json); }
+        Plugin("escape", """{ "protocol": 1, "id": "escape", "name": "Escape", "program": "..\\..\\Windows\\notepad.exe" }""");
+        Plugin("bad-id", """{ "protocol": 1, "id": "Bad Id", "name": "Bad", "program": "x.exe" }""");
+        Plugin("future", """{ "protocol": 2, "id": "future", "name": "Future", "program": "x.exe" }""");
+        Plugin("bad-device", """{ "protocol": 1, "id": "bad-device", "name": "Bad device", "program": "x.exe", "devices": ["1038"] }""");
+        File.WriteAllBytes(Path.Combine(root, "bad-device", "x.exe"), []);
+        var installed = PluginManager.Installed(root);
+        string? Problem(string dir) => installed.Single(p => Path.GetFileName(p.Folder) == dir).Problem;
+        Check(Problem("escape")?.Contains("inside its folder") == true, "plugins: a program outside the plugin's folder is refused");
+        Check(Problem("bad-id")?.Contains("lower-case") == true && Problem("future")?.Contains("protocol 2") == true, "plugins: a bad id or another protocol is refused");
+        Check(Problem("bad-device")?.Contains("isn't a USB device id") == true, "plugins: device ids must be VID:PID");
+        Check(PluginManager.ParseDevice("1038:1836") == (0x1038, 0x1836) && PluginManager.ParseDevice("1038-1836") is null, "plugins: VID:PID read as hex");
+
+        var sample = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"..\..\..\..\..\plugins\sample-mouse"));
+        var exe = Path.Combine(sample, "target", "release", "sample-mouse.exe");
+        if (!File.Exists(exe)) Console.WriteLine("skip plugins: the sample isn't built (cargo build --release in plugins\\sample-mouse)");
+        else
+        {
+            var dir = Path.Combine(root, "sample-mouse");
+            Directory.CreateDirectory(dir);
+            File.Copy(Path.Combine(sample, "plugin.json"), Path.Combine(dir, "plugin.json"));
+            File.Copy(exe, Path.Combine(dir, "sample-mouse.exe"));
+            List<string> enabled = [];
+            using var manager = new PluginManager(root, () => new PluginChoices(enabled, []));
+            Check(manager.Discover().Count == 0 && manager.Status["sample-mouse"] == "Off", "plugins: a plugin stays off until it's switched on");
+            enabled.Add("sample-mouse");
+            var devices = manager.Discover();
+            var mouse = devices.SingleOrDefault();
+            Check(mouse is { Key: "plugin/sample-mouse/mouse-1", Kind: "Mouse" } && mouse.Caps.DpiMax == 16000 && mouse.Caps.PollRates.SequenceEqual([125, 500, 1000]),
+                $"plugins: the sample plugin starts and lists its mouse, with what it can do ({manager.Status["sample-mouse"]})");
+            if (mouse is not null)
+            {
+                mouse.Apply(new PeripheralSettings { Dpi = 3200, PollRate = 500 }, mouse.Read());
+                var state = mouse.Read();
+                Check(state is { Dpi: 3200, PollRate: 500, BatteryPercent: 77 }, "plugins: settings reach the plugin and its state comes back");
+                bool refused = false;
+                try { mouse.Apply(new PeripheralSettings { PollRate = 333 }, state); } catch (InvalidOperationException) { refused = true; }
+                Check(refused && mouse.Read().PollRate == 500, "plugins: an error the plugin reports reaches RigControl, and the plugin carries on");
+                var process = manager.Host("sample-mouse")!.Process!;
+                var level = ChildProcess.IntegrityLevel(process);
+                Check(level is <= 0x2000, $"plugins: the plugin runs with an ordinary user's rights (integrity 0x{level:X}{(Environment.IsPrivilegedProcess ? ", checks run as administrator" : "; run the checks as administrator to test it from there")})");
+                process.Kill();
+                process.WaitForExit(3000);
+                bool died = false;
+                try { mouse.Read(); } catch (InvalidOperationException) { died = true; }
+                Check(died && manager.Due && manager.Discover().Count == 0 && manager.Status["sample-mouse"].StartsWith("Failed"),
+                    "plugins: a plugin that dies drops its devices and is started again later");
+                enabled.Clear();
+                var host = manager.Host("sample-mouse");
+                Check(manager.Discover().Count == 0 && manager.Host("sample-mouse") is null && manager.Status["sample-mouse"] == "Off", "plugins: switching one off stops it");
+                enabled.Add("sample-mouse");
+                manager.Discover(); // a new host: no backoff left over from the failure
+                var pid = manager.Host("sample-mouse")?.Process?.Id;
+                manager.Dispose();
+                bool gone;
+                try { using var p = System.Diagnostics.Process.GetProcessById(pid ?? -1); gone = pid is not null && p.WaitForExit(3000); }
+                catch (ArgumentException) { gone = pid is not null; } // already gone
+                Check(gone, "plugins: stopping RigControl stops its plugins");
+            }
+        }
+    }
+    finally { try { Directory.Delete(root, true); } catch { } }
+}
+
 // --- config round trip
 var path = Path.Combine(Path.GetTempPath(), $"rigcontrol-{Guid.NewGuid():N}.json");
 cfg.Save(path);

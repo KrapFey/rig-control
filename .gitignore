@@ -5,3 +5,4 @@ obj-uitest/
 *.user
 .vs/
 build/
+plugins/*/target/

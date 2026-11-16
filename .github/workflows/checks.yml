@@ -17,6 +17,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+      - name: Sample plugin
+        run: cargo build --release --manifest-path plugins/sample-mouse/Cargo.toml
       - name: Self-checks
         run: dotnet run --project tests/RigControl.Checks
       - name: Build the app

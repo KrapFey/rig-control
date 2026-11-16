@@ -74,6 +74,9 @@ headset and keyboard, and watch it all live in a modern WinUI 3 interface.
   - **Keyboards with adjustable switches:** actuation depth for every analog key on the SteelSeries Apex Pro
     TKL (2023, wired) and Apex Pro Gen 3 (firmware 4.16.8), plus rapid trigger on the TKL (2023). Only live settings
     are written, never the keyboard's saved profiles.
+- **Plugins:** support for more mice, keyboards and headsets in separate programs, in any language, that
+  RigControl starts and talks to over a small JSON protocol ([docs/plugins.md](docs/plugins.md); a sample in Rust is in
+  `plugins/sample-mouse`). Each starts off, runs with an ordinary user's rights, and is restarted if it fails.
 - **Supported devices** (Devices, or Settings → About): a searchable list (fuzzy: "dthaddr v2" finds the DeathAdder V2) of every device and
   device family RigControl handles, built by `tools/gen-supported-devices.py` from each source's own data.
 - **Sensor names:** rename any temperature sensor in Cooling → Sensors; the name is used everywhere (overview,

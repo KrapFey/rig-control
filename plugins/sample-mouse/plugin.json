@@ -1,0 +1,10 @@
+{
+  "protocol": 1,
+  "id": "sample-mouse",
+  "name": "Sample mouse",
+  "version": "1.0.0",
+  "author": "RigControl",
+  "description": "A pretend mouse, for trying plugins out. Also the template for real plugins.",
+  "program": "sample-mouse.exe",
+  "devices": []
+}

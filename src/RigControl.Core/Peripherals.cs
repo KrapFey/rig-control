@@ -145,6 +145,7 @@ public interface IPeripheral : IDisposable
 public sealed class PeripheralHub : IDisposable
 {
     readonly Func<Dictionary<string, PeripheralSettings>> _settings;
+    readonly PluginManager? _plugins;
     readonly object _lock = new();
     readonly Thread _thread;
     readonly AutoResetEvent _wake = new(false);
@@ -172,9 +173,13 @@ public sealed class PeripheralHub : IDisposable
         _wake.Set();
     }
 
-    public PeripheralHub(Func<Dictionary<string, PeripheralSettings>> settings)
+    /// <summary>Device support from plugins (null: none). Owned by the hub from here on.</summary>
+    public PluginManager? Plugins => _plugins;
+
+    public PeripheralHub(Func<Dictionary<string, PeripheralSettings>> settings, PluginManager? plugins = null)
     {
         _settings = settings;
+        _plugins = plugins;
         DeviceList.Local.Changed += (_, _) => { _rescan = true; _wake.Set(); }; // plugged in / out
         _thread = new Thread(Loop) { IsBackground = true, Name = "Peripherals" };
         _thread.Start();
@@ -201,7 +206,7 @@ public sealed class PeripheralHub : IDisposable
         {
             try
             {
-                if (_rescan)
+                if (_rescan || _plugins?.Due == true)
                 {
                     _rescan = false;
                     Thread.Sleep(500); // let a newly plugged device settle
@@ -234,6 +239,11 @@ public sealed class PeripheralHub : IDisposable
         found.AddRange(SteelSeriesMouse.FindAll());
         found.AddRange(AsusMouse.FindAll());
         found.AddRange(LogitechHidpp10Mouse.FindAll());
+        }
+        if (_plugins is not null)
+        {
+            try { found.AddRange(_plugins.Discover()); }
+            catch (Exception e) { AppConfig.Log?.Invoke($"plugins: {e.Message}"); } // the built-in devices still count
         }
 
         List<IPeripheral> old;
@@ -290,5 +300,6 @@ public sealed class PeripheralHub : IDisposable
         _wake.Set();
         _thread.Join(3000);
         foreach (var d in Devices) d.Dispose();
+        _plugins?.Dispose();
     }
 }

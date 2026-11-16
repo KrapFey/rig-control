@@ -148,6 +148,23 @@
                     <Button x:Name="ImportButton" Grid.Column="1" Content="Import…" Click="Import_Click" />
                 </Grid>
             </Border>
+            <TextBlock Text="PLUGINS" Style="{StaticResource Caption}" Margin="2,14,0,2" />
+            <Border Style="{StaticResource Card}">
+                <StackPanel Spacing="12">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Device support from plugins" FontWeight="SemiBold" />
+                            <TextBlock x:Name="PluginsHint" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="Open plugins folder" Click="OpenPlugins_Click" VerticalAlignment="Top" />
+                    </Grid>
+                    <StackPanel x:Name="PluginsList" Spacing="10" />
+                </StackPanel>
+            </Border>
             <TextBlock Text="UPDATES" Style="{StaticResource Caption}" Margin="2,14,0,2" />
             <Border Style="{StaticResource Card}">
                 <StackPanel Spacing="10">
