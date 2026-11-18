@@ -97,6 +97,9 @@
                         <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap"
                                    Text="While a game is running, the profiles you pick for games are in use; when it closes, the ones from before come back. Games are found by themselves. A program you add yourself comes first: give it its own profiles, or No change to leave it out." />
                         <TextBlock x:Name="GamesText" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                        <Expander Header="Show detected games" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Margin="0,4,0,0">
+                            <TextBlock x:Name="GamesList" Style="{StaticResource Caption}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                        </Expander>
                     </StackPanel>
                     <StackPanel x:Name="RulesList" Spacing="8" />
                     <Button Click="AddRule_Click" AutomationProperties.Name="Add a program" HorizontalAlignment="Left">

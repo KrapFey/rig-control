@@ -142,6 +142,8 @@ public sealed partial class SettingsPage : Page
         var (exes, folders) = await Task.Run(GameDetector.Find);
         GamesText.Text = $"On this PC: {exes.Count} games Windows has seen and {folders.Count} game folders (Steam, Epic, GOG, Ubisoft, Xbox)."
             + (App.Instance!.RunningGame is { } game ? $" Running now: {game}." : "");
+        GamesList.Text = $"Games Windows has seen ({exes.Count}):\n{string.Join("\n", exes.Order())}\n\n"
+            + $"Game folders ({folders.Count}), anything inside counts:\n{string.Join("\n", folders)}";
     }
 
     // ---- plugins (PluginManager): a row per plugin folder, each off until switched on
