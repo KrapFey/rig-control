@@ -65,7 +65,7 @@ public sealed class GameDetector
         var folders = new List<string>();
         void Folder(string? path)
         {
-            if (string.IsNullOrWhiteSpace(path)) return;
+            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path)) return; // a library on a drive that's gone
             try { folders.Add(Path.TrimEndingDirectorySeparator(Path.GetFullPath(path)) + Path.DirectorySeparatorChar); } catch { }
         }
         static void Try(Action a) { try { a(); } catch { } }
@@ -77,7 +77,7 @@ public sealed class GameDetector
             foreach (var child in store?.GetSubKeyNames() ?? [])
             {
                 using var key = store!.OpenSubKey(child);
-                if (key?.GetValue("MatchedExeFullPath") is string exe && exe.Length > 0) exes.Add(exe);
+                if (key?.GetValue("MatchedExeFullPath") is string exe && File.Exists(exe)) exes.Add(exe); // Windows keeps games long gone (uninstalled, a drive removed)
             }
         });
         // Steam: every library's steamapps\common.
