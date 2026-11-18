@@ -45,7 +45,7 @@ public partial class App : Application
     TaskbarIcon? _tray;
     System.Drawing.Icon? _logo;
     DispatcherQueueTimer? _trayTimer, _historyTimer; // fields: a timer only a local holds gets collected and stops
-    DispatcherQueueTimer? _saveTimer, _applyTimer;
+    DispatcherQueueTimer? _saveTimer, _applyTimer, _watch; // _watch: FanControl check and app rules (games), every 2 s
     bool _applyPending, _peripheralsChanged;
 
     public App()
@@ -124,10 +124,10 @@ public partial class App : Application
         HidSharp.DeviceList.Local.Changed += (_, _) => Ui.TryEnqueue(() => { _fanWatch.Stop(); _fanWatch.Start(); });
 
         // Two programs writing the same fans fight each other: stay hands-off while FanControl runs.
-        var watch = Ui.CreateTimer();
-        watch.Interval = TimeSpan.FromSeconds(2);
-        watch.Tick += (_, _) => { Engine.Paused = OtherFanAppRunning(); _ = CheckAppRulesAsync(); };
-        watch.Start();
+        _watch = Ui.CreateTimer();
+        _watch.Interval = TimeSpan.FromSeconds(2);
+        _watch.Tick += (_, _) => { Engine.Paused = OtherFanAppRunning(); _ = CheckAppRulesAsync(); };
+        _watch.Start();
 
         _saveTimer = Ui.CreateTimer();
         _saveTimer.Interval = TimeSpan.FromMilliseconds(600);
