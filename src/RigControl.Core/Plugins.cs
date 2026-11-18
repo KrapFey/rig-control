@@ -274,8 +274,10 @@ sealed class PluginHost(PluginInfo info, ChildJob job, PluginManager manager) : 
     {
         if (_child is not { } child || child.Process.HasExited)
         {
-            if (_child is not null) Fail("it exited");
-            throw new InvalidOperationException($"the {M.Name} plugin isn't running");
+            if (_child is null) throw new InvalidOperationException($"the {M.Name} plugin isn't running");
+            var why = $"it exited (code 0x{_child.Process.ExitCode:X8})";
+            Fail(why);
+            throw new InvalidOperationException($"the {M.Name} plugin failed: {why}");
         }
         JsonNode? reply;
         try
