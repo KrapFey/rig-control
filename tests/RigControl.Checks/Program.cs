@@ -940,7 +940,11 @@ Check(SupportedDevices.List.Single(d => d.Name == "Razer DeathAdder V2").Kind ==
             enabled.Add("sample-mouse");
             var devices = manager.Discover();
             var mouse = devices.SingleOrDefault();
-            Check(mouse is { Key: "plugin/sample-mouse/mouse-1", Kind: "Mouse" } && mouse.Caps.DpiMax == 16000 && mouse.Caps.PollRates.SequenceEqual([125, 500, 1000]),
+            // 0xC0000142 (a DLL failed to start): with no one logged on (a CI machine), a program with user rights
+            // isn't let onto the desktop the checks run on. People run RigControl on their own desktop.
+            if (mouse is null && manager.Status["sample-mouse"].Contains("0xC0000142"))
+                Console.WriteLine("skip plugins: a program with user rights can't start here (no desktop for it, as on a CI machine)");
+            else Check(mouse is { Key: "plugin/sample-mouse/mouse-1", Kind: "Mouse" } && mouse.Caps.DpiMax == 16000 && mouse.Caps.PollRates.SequenceEqual([125, 500, 1000]),
                 $"plugins: the sample plugin starts and lists its mouse, with what it can do ({manager.Status["sample-mouse"]})");
             if (mouse is not null)
             {
