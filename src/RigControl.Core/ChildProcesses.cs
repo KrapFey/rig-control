@@ -139,6 +139,7 @@ sealed class ChildProcess(Process process, StreamWriter input, StreamReader outp
 
             job.Add(pi.hProcess, Path.GetFileName(exe));
             var process = Process.GetProcessById(pi.dwProcessId); // still suspended: it can't have exited yet
+            _ = process.Handle; // held from now on, so its exit code can be read however soon it ends
             ResumeThread(pi.hThread);
             stdin.DisposeLocalCopyOfClientHandle();
             stdout.DisposeLocalCopyOfClientHandle();
